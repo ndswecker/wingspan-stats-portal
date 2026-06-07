@@ -4,7 +4,7 @@ import streamlit as st
 def get_required_env(name: str) -> str:
     value = os.getenv(name)
     if not value:
-        raise RuntimeError(f"variable '{name}' not found")
+        raise RuntimeError(f"Required environment variable '{name}' not found")
     return value
 
 APP_NAME = get_required_env("APP_NAME")
@@ -27,4 +27,5 @@ st.write(f"Data Path: {DATA_PATH}")
 
 if os.path.exists(DATA_PATH):
     st.success(f"CSV data file found at: {DATA_PATH}")
-else:    st.error(f"CSV data file not found at: {DATA_PATH}")
+else:    
+    st.error(f"CSV data file not found at: {DATA_PATH}")
