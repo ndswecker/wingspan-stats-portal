@@ -183,6 +183,28 @@ Local AI support is currently considered a developer tool, not a feature of the 
 
 If local RAG is explored later, it should be treated as a separate developer-only tool, not part of the production Streamlit application unless the project requirements change.
 
+## Docker Desktop Issue and Final Development Direction
+
+The project originally attempted to use Docker Desktop on Windows as the primary Docker runtime.
+
+That approach is no longer the preferred path for this project.
+
+Docker Desktop encountered persistent startup and configuration problems, including issues with the Docker Desktop Linux engine and WSL integration. Because of this, the project should not assume that Docker Desktop is available, reliable, or part of the required workflow.
+
+The current development direction is:
+
+* Use Windows as the host operating system.
+* Use Ubuntu/Linux through WSL2 or a Linux VM as the active development environment.
+* Install and run Docker Engine directly inside that Linux environment.
+* Run Docker commands from the Linux terminal, not from Docker Desktop.
+* Treat the Linux environment as the main Docker development platform.
+* Keep the local development environment close to the eventual Linux production environment on DigitalOcean.
+
+This means the project is still Docker-based, but it is intentionally avoiding Docker Desktop as the primary Docker runtime.
+
+Do not recommend configuring Docker Desktop with WSL2 as the next step unless the project direction changes.
+
+
 ## Immediate Next Step
 
 Set up and validate the Docker-based development workflow using the Linux environment.
