@@ -1,212 +1,300 @@
-# Wingspan Stats Portal — Project Context
+# Wingspan Stats Portal
 
-## Project Summary
+## Project Context
 
-The Wingspan Stats Portal is a personal web application for analyzing and visualizing head-to-head Wingspan board game statistics.
+---
 
-The application will use CSV data exported from Google Sheets as its initial data source. The goal is to produce a clean, interactive statistics dashboard that can show player performance, score distributions, trends over time, game outcomes, and night-level results.
+# Project Overview
 
-This project is also being used as a practical learning project for building and deploying a small production-style Python web application.
+The **Wingspan Stats Portal** is a full-stack web application for recording, managing, analyzing, and visualizing statistics from the board game *Wingspan*.
 
-## Core Technology Stack
+Unlike a simple statistics dashboard, the application serves as the complete system of record for game results. Authenticated users can submit games through the web interface, manage historical data, and explore statistical analyses generated directly from the application's database.
 
-* **Python** — primary programming language
-* **Streamlit** — web application framework
-* **Pandas** — CSV parsing and data analysis
-* **Plotly** — interactive charts and visualizations
-* **Docker** — application containerization
-* **Docker Compose** — local development orchestration
-* **Nginx** — reverse proxy in production
-* **DigitalOcean** — hosting platform
-* **Custom domain** — already owned and intended for deployment
+The project has two primary goals:
 
-## Development Environment Decision
+1. Build a polished, production-quality statistics portal for personal use and public hosting.
+2. Demonstrate modern full-stack software engineering practices suitable for a professional software development portfolio.
 
-The project was originally expected to use Docker Desktop on Windows as the primary Docker runtime.
+---
 
-After encountering setup friction and environment complexity, the project is pivoting away from Docker Desktop as the main development path.
+# Project Goals
 
-The current plan is to run Docker inside a Linux environment hosted on the Windows machine. This Linux environment will be treated as the primary development platform for Docker-based work.
+The application should:
 
-This approach keeps Docker in the project but changes where Docker runs.
+- Provide an intuitive interface for entering Wingspan game results.
+- Store all application data within a relational database.
+- Generate statistical analyses and interactive visualizations from live data.
+- Support authenticated users with appropriate permissions.
+- Be deployable as a complete containerized application on a Linux server.
+- Follow maintainable, industry-standard software architecture.
 
-## Reasoning for Linux-Based Docker Development
+---
 
-Docker is most commonly deployed on Linux servers. Since the production environment on DigitalOcean will also be Linux-based, using a local Linux development environment should reduce platform-specific differences between development and production.
+# Technology Stack
 
-The goal is to avoid Windows-specific Docker issues where possible and keep the development workflow closer to standard server deployment practices.
+## Backend
 
-## Current Repository Structure
+- Python
+- Django
+- Django ORM
 
-```text
-wingspan-stats-portal/
-├── data/
-│   ├── wingspan_games.csv
-│   └── .gitkeep
-├── docker/
-│   └── nginx/
-│       └── default.conf
-├── docs/
-│   ├── Web-app-software-requirements.txt
-│   └── project-context.md
-├── src/
-│   └── app.py
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-├── .env
-├── .env.example
-└── .gitignore
+## Database
+
+- PostgreSQL
+
+## Visualization
+
+- Pandas
+- Plotly
+
+## Frontend
+
+- Django Templates
+- HTML5
+- CSS
+- Bootstrap 5
+- JavaScript (minimal where practical)
+
+## Infrastructure
+
+- Docker
+- Docker Compose
+- Nginx
+- Ubuntu Linux
+
+## Hosting
+
+- Domain Registration: Namecheap
+- DNS Management: Namecheap
+- Hosting Provider: DigitalOcean Ubuntu Droplet
+
+## Version Control
+
+- Git
+- GitHub
+
+---
+
+# Architectural Philosophy
+
+The project follows several guiding principles.
+
+## Database First
+
+PostgreSQL is the single source of truth.
+
+CSV files are no longer considered the application's primary data store.
+
+CSV import and export functionality may be provided for convenience, but all application functionality operates from data stored within PostgreSQL.
+
+---
+
+## Django Owns the Application
+
+Django is responsible for:
+
+- Authentication
+- Authorization
+- Data validation
+- Business logic
+- Administration
+- Routing
+- Templates
+
+All statistical analyses originate from data stored within PostgreSQL.
+
+---
+
+## Containerized Development
+
+Every major component of the application executes within its own Docker container.
+
+The initial deployment consists of:
+
+- Django
+- PostgreSQL
+- Nginx
+
+Docker Compose orchestrates the application stack for both development and production.
+
+---
+
+## Incremental Development
+
+The project should be developed through small, working milestones.
+
+Every completed milestone should remain fully deployable.
+
+Avoid unnecessary complexity until a requirement justifies it.
+
+---
+
+# Deployment Architecture
+
+```
+Internet
+    │
+Domain Name (Namecheap)
+    │
+DigitalOcean Ubuntu Droplet
+    │
+Docker Compose
+    │
+├── Nginx
+├── Django
+└── PostgreSQL
 ```
 
-## Current `requirements.txt`
+The production environment should closely mirror the local Docker development environment.
 
-```text
-streamlit
-pandas
-plotly
-python-dotenv
-```
+---
 
-## Current Project Status
+# Authentication
 
-The base project structure has been created.
+The application supports authenticated users.
 
-The application currently has:
+Authentication should use Django's built-in authentication framework.
 
-* A `src/app.py` entry point
-* A `data/` directory for CSV files
-* A `docs/` directory for project documentation
-* A Dockerfile
-* A Docker Compose file
-* An Nginx configuration directory
-* Environment file handling with `.env` and `.env.example`
-* A `.gitignore` that excludes sensitive/local files such as `.env`
+Initial user roles:
 
-The current priority is to establish a reliable Docker-based development workflow before expanding the Streamlit application features.
+- Administrator
+- Standard User
 
-## Initial Data Source
+Only authenticated users may modify application data.
 
-The initial dataset is expected to come from Google Sheets exports.
+Anonymous visitors may be permitted to browse public statistics.
 
-Primary data file:
+---
 
-```text
-data/wingspan_games.csv
-```
+# Data Model
 
-The data tracks Wingspan games between two players, currently labeled:
+The initial application consists of two primary entities.
 
-* Nick
-* Nate
+## Player
 
-Each row represents a single game, with scores and dates recorded.
+Represents a Wingspan player.
 
-Additional future CSV files may include night-level results, summary tables, or derived analysis exports.
+Possible attributes include:
 
-## Statistical Goals
+- Name
+- Display Name
+- Active Status
 
-The application should eventually support analysis such as:
+---
 
-* Total games played
-* Player win counts
-* Player average scores
-* Median, min, max, and standard deviation
-* Score distributions
-* Histograms
-* Monthly score trends
-* Head-to-head comparisons
-* Game winner analysis
-* Night winner analysis
-* Central score ranges
-* Percentile-based interpretation
-* Correlation analysis between player scores
-* Margin-of-victory analysis
+## Game
 
-## Night Winner Rule
+Represents one completed Wingspan game.
 
-Some Wingspan sessions include multiple games in a single night.
+Possible attributes include:
 
-A night winner is determined as follows:
+- Date Played
+- Nick Score
+- Nate Score
+- Winner
+- Notes
 
-1. The player who wins more individual games that night wins the night.
-2. If both players win the same number of games, the player with the higher total score for that night wins the night.
+Game nights (sessions) are **not** stored as a separate entity.
 
-This means a “night” can be treated similarly to a sports matchup, even if it contains more than one individual board game.
+Instead, they are derived dynamically by grouping games played on the same calendar date. Statistics such as night winners and session summaries should be computed from the underlying game records rather than stored separately.
 
-## Deployment Goal
+---
 
-The intended production deployment target is DigitalOcean.
+# Statistical Features
 
-The expected production architecture is:
+The application should support analysis including:
 
-```text
-User Browser
-    ↓
-Custom Domain
-    ↓
-DigitalOcean Server
-    ↓
-Nginx Reverse Proxy
-    ↓
-Dockerized Streamlit Application
-```
+- Win/Loss Records
+- Win Percentage
+- Average Score
+- Median
+- Mode
+- Minimum
+- Maximum
+- Standard Deviation
+- Variance
+- Histograms
+- Score Distributions
+- Monthly Trends
+- Head-to-Head Comparisons
+- Correlation Analysis
+- Percentile Analysis
+- Night Winner Analysis
+- Historical Performance
+- Interactive Filtering
 
-The application should be simple enough for a solo developer to maintain while still following common deployment practices.
+All statistics should be generated dynamically from database queries.
 
-## Project Principles
+---
 
-* Keep the architecture simple.
-* Use Docker from the beginning.
-* Prefer Linux-based Docker workflows.
-* Avoid unnecessary infrastructure complexity.
-* Keep data handling transparent and reproducible.
-* Maintain clear documentation in the `docs/` directory.
-* Use environment variables for configurable settings.
-* Do not commit secrets or local-only configuration.
-* Build iteratively, starting with a working containerized app before adding advanced features.
+# Data Management
 
-## AI / Local LLM Usage
+The application should support:
 
-Local AI tools such as LM Studio may be used as development assistants.
+- Creating Games
+- Editing Games
+- Deleting Games
+- Viewing Historical Games
+- Searching Historical Games
+- CSV Import
+- CSV Export
 
-Possible uses include:
+Appropriate validation should prevent incomplete or inconsistent records.
 
-* Asking architectural questions
-* Reviewing Docker setup
-* Explaining code
-* Comparing implementation options
-* Summarizing project documentation
-* Experimenting with local RAG over project docs
+---
 
-Local AI support is currently considered a developer tool, not a feature of the Wingspan Stats Portal itself.
+# Administration
 
-If local RAG is explored later, it should be treated as a separate developer-only tool, not part of the production Streamlit application unless the project requirements change.
+Administrators should be able to:
 
-## Docker Desktop Issue and Final Development Direction
+- Manage Users
+- Manage Players
+- Correct Historical Data
+- Import Historical Data
+- Export Data
+- Access the Django Administration Site
 
-The project originally attempted to use Docker Desktop on Windows as the primary Docker runtime.
+---
 
-That approach is no longer the preferred path for this project.
+# User Interface
 
-Docker Desktop encountered persistent startup and configuration problems, including issues with the Docker Desktop Linux engine and WSL integration. Because of this, the project should not assume that Docker Desktop is available, reliable, or part of the required workflow.
+The interface should emphasize:
 
-The current development direction is:
+- Simplicity
+- Responsiveness
+- Accessibility
+- Mobile Compatibility
+- Readability
 
-* Use Windows as the host operating system.
-* Use Ubuntu/Linux through WSL2 or a Linux VM as the active development environment.
-* Install and run Docker Engine directly inside that Linux environment.
-* Run Docker commands from the Linux terminal, not from Docker Desktop.
-* Treat the Linux environment as the main Docker development platform.
-* Keep the local development environment close to the eventual Linux production environment on DigitalOcean.
+Interactive visualizations should be implemented using Plotly.
 
-This means the project is still Docker-based, but it is intentionally avoiding Docker Desktop as the primary Docker runtime.
+The application should prioritize fast page loads and minimize unnecessary client-side JavaScript.
 
-Do not recommend configuring Docker Desktop with WSL2 as the next step unless the project direction changes.
+---
 
+# Docker Strategy
 
-## Immediate Next Step
+Development and production environments should closely mirror one another.
 
-Set up and validate the Docker-based development workflow using the Linux environment.
+Docker Compose manages the complete application stack.
 
-The goal is to confirm that the Streamlit app can be built and run successfully through Docker before expanding application functionality.
+Persistent Docker volumes should be used for PostgreSQL data.
+
+Application configuration should be managed through environment variables.
+
+---
+
+# Development Philosophy
+
+When making architectural decisions, prioritize:
+
+- Maintainability
+- Readability
+- Testability
+- Production Readiness
+- Clear Separation of Concerns
+- Industry-Standard Practices
+
+Every architectural decision should be justified by long-term maintainability rather than short-term convenience.
+
+Development should proceed incrementally, validating each layer before introducing additional complexity.
