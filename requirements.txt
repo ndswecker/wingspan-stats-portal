@@ -1,4 +1,6 @@
-streamlit
-pandas
-plotly
-python-dotenv
+Django>=5.0,<6.0
+psycopg[binary]>=3.2,<4.0
+pandas>=2.2,<3.0
+plotly>=5.24,<6.0
+django-environ>=0.11,<1.0
+gunicorn>=22.0,<24.0
