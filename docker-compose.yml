@@ -1,15 +1,20 @@
+name: wingspan-portal
 services:
-  streamlit:
+  django:
     build: .
-    container_name: wingspan-streamlit
-
-    ports:
-      - "${STREAMLIT_PORT}:8501"
+    container_name: wingspan-django
 
     env_file:
       - .env
 
     volumes:
-      - ./data:/app/data
-      
+      - .:/workspace
+
+    working_dir: /workspace/app
+
+    ports:
+      - "8000:8000"
+
+    command: sleep infinity
+
     restart: unless-stopped
