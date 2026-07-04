@@ -55,12 +55,12 @@
                 {% if next_month %}
                     <li class="page-item">
                         <a class="page-link" href="?month={{ next_month|date:'Y-m' }}">
-                            &larr; Newer
+                            &larr;
                         </a>
                     </li>
                 {% else %}
                     <li class="page-item disabled">
-                        <span class="page-link">&larr; Newer</span>
+                        <span class="page-link">&larr;</span>
                     </li>
                 {% endif %}
 
@@ -73,16 +73,25 @@
                 {% if previous_month %}
                     <li class="page-item">
                         <a class="page-link" href="?month={{ previous_month|date:'Y-m' }}">
-                            Older &rarr;
+                            &rarr;
                         </a>
                     </li>
                 {% else %}
                     <li class="page-item disabled">
-                        <span class="page-link">Older &rarr;</span>
+                        <span class="page-link">&rarr;</span>
                     </li>
                 {% endif %}
             </ul>
         </nav>
+
+        {% if current_month != latest_month %}
+            <div class="text-center">
+                <a class="btn btn-outline-primary btn-sm" href="{% url 'portal:game_history' %}">
+                    Most Recent Month
+                </a>
+            </div>
+        {% endif %}
+
     {% endif %}
 
 {% else %}

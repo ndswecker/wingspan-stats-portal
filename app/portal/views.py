@@ -10,6 +10,7 @@ def game_history(request):
     available_months = list(
         Game.objects.dates("date_played", "month", order="DESC")
     )
+    latetest_month = available_months[0] if available_months else None
 
     if view_mode == "all":
         current_month = None
@@ -91,5 +92,6 @@ def game_history(request):
             "current_month": current_month,
             "previous_month": previous_month,
             "next_month": next_month,
+            "latetest_month": latetest_month,
         }
     )
