@@ -1,17 +1,61 @@
+from datetime import date
 from django.shortcuts import render
 from .models import Game, GameResult
 
 # Create your views here.
 def game_history(request):
-    games = (
-        Game.objects
-        .prefetch_related("results__player")
-        .order_by("-date_played", "-id")[:25]
+    view_mode = request.GET.get("view", "month")
+
+
+    available_months = list(
+        Game.objects.dates("date_played", "month", order="DESC")
     )
+
+    if view_mode == "all":
+        current_month = None
+        previous_month = None
+        next_month = None
+
+        games = (
+            Game.objects
+            .prefetch_related("results__player")
+            .order_by("-date_played", "-id")
+        )
+    else:
+        selected_month = request.GET.get("month")
+
+        if selected_month:
+            year, month = selected_month.split("-")
+            current_month = date(int(year), int(month), 1)
+        else:
+            current_month = available_months[0]
+
+        current_index = available_months.index(current_month)
+
+        if current_index - 1 >= 0:
+            next_month = available_months[current_index - 1]
+        else:
+            next_month = None
+
+        if current_index + 1 < len(available_months):
+            previous_month = available_months[current_index + 1]
+        else:
+            previous_month = None
+
+        games = (
+            Game.objects
+            .prefetch_related("results__player")
+            .filter(
+                date_played__year=current_month.year,
+                date_played__month=current_month.month
+            )
+            .order_by("-date_played", "-id")
+        )
 
     game_rows = []
     previous_date = None
     date_group_index = 0
+    
     for game in games:
         results = list(game.results.order_by("player__name"))
 
@@ -31,7 +75,6 @@ def game_history(request):
         row_class = "table-light" if date_group_index % 2 == 0 else ""
 
         game_rows.append({
-            "id": game.id,
             "date_played": game.date_played,
             "player_one": player_one,
             "player_two": player_two,
@@ -42,5 +85,11 @@ def game_history(request):
     return render(
         request, 
         "portal/game_history.html", 
-        {"game_rows": game_rows}
+        {
+            "game_rows": game_rows,
+            "view_mode": view_mode,
+            "current_month": current_month,
+            "previous_month": previous_month,
+            "next_month": next_month,
+        }
     )

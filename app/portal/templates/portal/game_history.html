@@ -5,36 +5,40 @@
 {% block content %}
 <h1 class="mb-3">Game History</h1>
 
-<p class="text-muted">
-    Showing the 25 most recent games.
-</p>
+{% if view_mode == "all" %}
+    <p class="text-muted">Showing all recorded games.</p>
+    <p>
+        <a class="btn btn-outline-primary btn-sm" href="{% url 'portal:game_history' %}">
+            Return to monthly view
+        </a>
+    </p>
+{% else %}
+    <p class="text-muted">
+        Showing games played during {{ current_month|date:"F Y" }}.
+    </p>
+    <p>
+        <a class="btn btn-outline-primary btn-sm" href="?view=all">
+            View all games
+        </a>
+    </p>
+{% endif %}
 
 {% if game_rows %}
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead>
                 <tr>
-                    <th scope="col">Game ID</th>
                     <th scope="col">Date</th>
-                    <th scope="col">Player 1</th>
-                    <th scope="col">Score</th>
-                    <th scope="col">Player 2</th>
-                    <th scope="col">Score</th>
+                    <th scope="col">{{game_rows.0.player_one.player}}</th>
+                    <th scope="col">{{game_rows.0.player_two.player}}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for game in game_rows %}
                     <tr class="{{ game.row_class }}">
-                        <td>{{ game.id }}</td>
                         <td>{{ game.date_played }}</td>
                         <td class="{% if game.winner == game.player_one %}table-success fw-bold{% endif %}">
-                            {{ game.player_one.player.name }}
-                        </td>
-                        <td class="{% if game.winner == game.player_one %}table-success fw-bold{% endif %}">
                             {{ game.player_one.score }}
-                        </td>
-                        <td class="{% if game.winner == game.player_two %}table-success fw-bold{% endif %}">
-                            {{ game.player_two.player.name }}
                         </td>
                         <td class="{% if game.winner == game.player_two %}table-success fw-bold{% endif %}">
                             {{ game.player_two.score }}
@@ -44,6 +48,43 @@
             </tbody>
         </table>
     </div>
+
+    {% if view_mode != "all" %}
+        <nav aria-label="Game history month navigation">
+            <ul class="pagination justify-content-center mt-4">
+                {% if next_month %}
+                    <li class="page-item">
+                        <a class="page-link" href="?month={{ next_month|date:'Y-m' }}">
+                            &larr; Newer
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&larr; Newer</span>
+                    </li>
+                {% endif %}
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        {{ current_month|date:"F Y" }}
+                    </span>
+                </li>
+
+                {% if previous_month %}
+                    <li class="page-item">
+                        <a class="page-link" href="?month={{ previous_month|date:'Y-m' }}">
+                            Older &rarr;
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Older &rarr;</span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+
 {% else %}
     <p>No games have been recorded yet.</p>
 {% endif %}
