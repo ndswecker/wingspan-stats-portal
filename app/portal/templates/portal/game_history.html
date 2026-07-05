@@ -23,6 +23,22 @@
     </p>
 {% endif %}
 
+<h6 class="text-muted mb-2">Legend</h6>
+
+<div class="table-responsive mb-4">
+    <table class="table table-sm w-auto mb-0">
+        <tbody>
+            <tr>
+                <td class="table-success fw-bold">Game Winner</td>
+                <td class="night-winner-pattern">Night Winner</td>
+                <td class="table-success night-winner-pattern fw-bold">
+                    Game &amp; Night Winner
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
 {% if game_rows %}
     <div class="table-responsive">
         <table class="table table-hover align-middle">
@@ -35,12 +51,12 @@
             </thead>
             <tbody>
                 {% for game in game_rows %}
-                    <tr class="{{ game.row_class }}">
+                    <tr class="{{ game.row_class }} {% if game.is_new_date_group %}game-night-start{% endif %}">
                         <td>{{ game.date_played }}</td>
-                        <td class="{% if game.winner == game.player_one %}table-success fw-bold{% endif %}">
+                        <td class="{% if game.night_winner == game.player_one.player %}night-winner-pattern{% endif %} {% if game.winner == game.player_one %}fw-bold table-success{% endif %}">
                             {{ game.player_one.score }}
                         </td>
-                        <td class="{% if game.winner == game.player_two %}table-success fw-bold{% endif %}">
+                        <td class="{% if game.night_winner == game.player_two.player %}night-winner-pattern{% endif %} {% if game.winner == game.player_two %}fw-bold table-success{% endif %}">
                             {{ game.player_two.score }}
                         </td>
                     </tr>

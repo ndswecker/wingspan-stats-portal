@@ -1,0 +1,13 @@
+.night-winner-pattern {
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(0, 0, 0, 0.08) 0,
+        rgba(0, 0, 0, 0.08) 2px,
+        transparent 2px,
+        transparent 8px
+    );
+}
+
+.game-night-start {
+    border-top: 3px solid var(--bs-border-color);
+}
