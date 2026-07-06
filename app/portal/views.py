@@ -1,6 +1,8 @@
 from datetime import date
 from django.shortcuts import render
+
 from .models import Game, GameResult
+from .services import get_total_games_played
 
 def get_available_months():
     """Returns a list of available months for which games have been played."""
@@ -200,5 +202,12 @@ def game_history(request):
     }
 
     return render(request, "portal/game_history.html", context)
+
+def home(request):
+    total_games_played = get_total_games_played()
+    context = {
+        "total_games_played": total_games_played,
+    }
+    return render(request, "portal/home.html", context)
 
   

@@ -1,0 +1,22 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Home | Wingspan Stats Portal{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Wingspan Stats Portal</h1>
+
+<p class="text-muted">
+    Dashboard summary for the current Wingspan database.
+</p>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Total Games Played</h5>
+                <p class="display-6 mb-0">{{ total_games_played }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
