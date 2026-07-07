@@ -19,4 +19,41 @@
         </div>
     </div>
 </div>
+
+<h2 class="mt-5 mb-3">Player Performance</h2>
+
+{% if player_performance_summary %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Player</th>
+                    <th scope="col">Games Played</th>
+                    <th scope="col">Game Wins</th>
+                    <th scope="col">Night Wins</th>
+                    <th scope="col">Average Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for summary in player_performance_summary %}
+                    <tr>
+                        <td>{{ summary.player.name }}</td>
+                        <td>{{ summary.games_played }}</td>
+                        <td>{{ summary.game_wins }}</td>
+                        <td>{{ summary.night_wins }}</td>
+                        <td>
+                            {% if summary.average_score %}
+                                {{ summary.average_score }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p>No player performance data is available yet.</p>
+{% endif %}
 {% endblock %}

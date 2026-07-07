@@ -2,7 +2,7 @@ from datetime import date
 from django.shortcuts import render
 
 from .models import Game, GameResult
-from .services import get_total_games_played
+from .services import get_total_games_played, get_player_performance_summary
 
 def get_available_months():
     """Returns a list of available months for which games have been played."""
@@ -207,6 +207,7 @@ def home(request):
     total_games_played = get_total_games_played()
     context = {
         "total_games_played": total_games_played,
+        "player_performance_summary": get_player_performance_summary(),
     }
     return render(request, "portal/home.html", context)
 

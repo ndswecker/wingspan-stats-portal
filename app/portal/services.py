@@ -38,7 +38,7 @@ def get_player_performance_summary() -> list[PlayerPerformanceSummary]:
         .order_by("date_played", "id")
     )
 
-    night_stats = defaultdict(lambda: {
+    night_summary = defaultdict(lambda: {
         "game_wins": defaultdict(int),
         "total_points": defaultdict(int),
     })
@@ -50,15 +50,15 @@ def get_player_performance_summary() -> list[PlayerPerformanceSummary]:
             continue
 
         for result in results:
-            night_stats[game.date_played]["total_points"][result.player_id] += result.score
+            night_summary[game.date_played]["total_points"][result.player_id] += result.score
 
         winner = _get_game_winner(results)
 
         if winner is not None:
             game_wins_by_player[winner.player_id] += 1
-            night_stats[game.date_played]["game_wins"][winner.player_id] += 1
+            night_summary[game.date_played]["game_wins"][winner.player_id] += 1
 
-    for stats in night_stats.values():
+    for stats in night_summary.values():
         night_winner_player_id = _get_night_winner_player_id(stats)
 
         if night_winner_player_id is not None:

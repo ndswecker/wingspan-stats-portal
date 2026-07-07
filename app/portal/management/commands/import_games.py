@@ -16,6 +16,11 @@ class Command(BaseCommand):
             type=str,
             help="Path to the CSV file containing game data",
         )
+        parser.add_argument(
+            "--clear",
+            action="store_true",
+            help="Clear existing games and results before importing",
+        )
 
     def handle(self, *args, **options):
         csv_path = Path(options["csv_path"])
@@ -26,6 +31,8 @@ class Command(BaseCommand):
         games_created = 0
         results_created = 0
         players_created = 0
+        deleted_count = 0
+        deleted_details = {}
 
         with csv_path.open(newline="", encoding="utf-8-sig") as csv_file:
             reader = csv.DictReader(csv_file)
@@ -37,6 +44,10 @@ class Command(BaseCommand):
             player_columns = reader.fieldnames[1:]
 
             with transaction.atomic():
+
+                if options["clear"]:
+                    deleted_count, deleted_details = Game.objects.all().delete()
+
                 players = {}
 
                 for column_name in player_columns:
@@ -74,6 +85,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
+            f"Deleted {deleted_details.get('portal.Game', 0)} games and {deleted_details.get('portal.GameResult', 0)} results. "
             f"Successfully imported {games_created} games, {results_created} results, and {players_created} players."
             )
         )
