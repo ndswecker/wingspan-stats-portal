@@ -16,3 +16,6 @@ Thumbs.db
 
 # Docker
 *.log
+
+# Django collected static files
+app/staticfiles/
