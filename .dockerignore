@@ -5,9 +5,12 @@
 .venv
 __pycache__
 *.pyc
+*.pyo
 
 .vscode
 .idea
 
 README.md
 docs
+
+app/staticfiles/
