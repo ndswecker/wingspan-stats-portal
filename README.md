@@ -4,7 +4,11 @@ Dockerized statistics portal for Wingspan game analysis.
 
 ## Running the Development Environment
 
-The project uses a layered Docker Compose configuration. The base `docker-compose.yml` defines the common infrastructure, while `docker-compose.dev.yml` contains development-specific overrides such as bind mounts, development settings, and automatic code reloading.
+The project uses a layered Docker Compose configuration:
+
+- `docker-compose.yml` contains the shared infrastructure used by all environments.
+- `docker-compose.dev.yml` contains development-specific overrides.
+- `docker-compose.prod.yml` contains production-specific overrides.
 
 Start the development environment with:
 
@@ -22,9 +26,10 @@ Once the containers have started, the application is available at:
 
 During startup, the Django entrypoint automatically:
 
-* Applies any pending database migrations
-* Collects static files
-* Starts Gunicorn in development mode with automatic code reloading
+- Applies any pending database migrations
+- Collects static files
+
+The development Docker Compose configuration then starts Gunicorn with automatic code reloading.
 
 To stop the development environment:
 
@@ -34,6 +39,19 @@ docker compose \
   -f docker-compose.dev.yml \
   down
 ```
+
+## Running the Production Environment
+
+The production configuration uses the same shared Docker Compose base configuration while applying production-specific overrides.
+
+Start the production environment with:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  up --build
+
 
 ## Rotating the PostgreSQL Password
 
