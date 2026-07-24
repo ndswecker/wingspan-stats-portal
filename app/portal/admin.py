@@ -13,8 +13,8 @@ class PlayerAdmin(admin.ModelAdmin):
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ("id", "date_played")
-    list_filter = ("date_played",)
+    list_display = ("id", "date_played", "human_player_mode",)
+    list_filter = ("date_played", "human_player_mode")
     date_hierarchy = "date_played"
     inlines = [GameResultInline]
 

@@ -18,13 +18,26 @@ class Player(models.Model):
         return self.name
     
 class Game(models.Model):
+    class HumanPlayerMode(models.TextChoices):
+        SINGLE = "single_human", "Solo Game"
+        MULTIPLE = "multi_human", "Competitive Game"
+
     date_played = models.DateField()
+
+    human_player_mode = models.CharField(
+        max_length=20,
+        choices=HumanPlayerMode.choices,
+    )
 
     class Meta:
         ordering = ["-date_played", "-id"]
 
     def __str__(self):
-        return f"Game {self.id} - {self.date_played}"
+        return (
+            f"Game {self.id} - "
+            f"{self.date_played} - "
+            f"{self.get_human_player_mode_display()}"
+        )
     
 class GameResult(models.Model):
     game = models.ForeignKey(
