@@ -27,16 +27,24 @@ docker-compose.prod.yml
 
 Deploy the latest version of the application.
 
+## Update the application
+
+Pull the latest changes and rebuild the application containers.
+
 ```bash
 git pull
 
 docker compose \
   -f docker-compose.yml \
   -f docker-compose.prod.yml \
-  up -d --build
+  up -d --build --force-recreate django nginx
 ```
 
-Verify the containers are running.
+This rebuilds the Django image and recreates both the Django and Nginx containers to ensure Nginx reconnects to the current Gunicorn instance.
+
+## Verify the deployment
+
+Confirm the containers are running.
 
 ```bash
 docker compose \
@@ -45,14 +53,21 @@ docker compose \
   ps
 ```
 
-Review recent logs if necessary.
+Review the application logs.
 
 ```bash
 docker compose \
   -f docker-compose.yml \
   -f docker-compose.prod.yml \
-  logs --tail=100
+  logs --tail=100 django nginx
 ```
+
+Finally, verify the deployment by:
+
+- Opening the public website.
+- Confirming the home page loads successfully.
+- Logging into the Django admin.
+- Checking that the expected application changes are present.
 
 ---
 
