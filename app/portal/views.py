@@ -1,13 +1,21 @@
 from datetime import date
-from django.shortcuts import render
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect, render
+from django.views import View
 
 from .models import Game, GameResult
-from .services import get_total_games_played, get_player_performance_summary
+from .forms import GameForm, GameResultFormSet
+from .services.game_entry import create_game
+from .services.dashboard import (get_player_performance_summary, get_total_games_played,)
 
 def get_available_months():
     """Returns a list of available months for which games have been played."""
     return list(
-        Game.objects.dates("date_played", "month", order="DESC")
+        Game.objects
+        .filter(human_player_mode=Game.HumanPlayerMode.MULTIPLE)
+        .dates("date_played", "month", order="DESC")
     )
 
 def get_game_history_context(request, months_with_games):
@@ -22,6 +30,7 @@ def get_game_history_context(request, months_with_games):
 
         games = (
             Game.objects
+            .filter(human_player_mode=Game.HumanPlayerMode.MULTIPLE,)
             .prefetch_related("results__player")
             .order_by("-date_played", "-id")
         )
@@ -50,6 +59,7 @@ def get_game_history_context(request, months_with_games):
             Game.objects
             .prefetch_related("results__player")
             .filter(
+                human_player_mode=Game.HumanPlayerMode.MULTIPLE,
                 date_played__year=current_month.year,
                 date_played__month=current_month.month
             )
@@ -211,4 +221,71 @@ def home(request):
     }
     return render(request, "portal/home.html", context)
 
-  
+class StaffRequiredMixin(LoginRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not request.user.is_staff:
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+    
+class GameCreateView(StaffRequiredMixin, View):
+    template_name = "portal/game_create.html"
+
+    def get(self, request):
+        game_form = GameForm()
+
+        result_formset = GameResultFormSet(
+            prefix="results",
+        )
+
+        context = {
+            "game_form": game_form,
+            "result_formset": result_formset,
+        }
+
+        return render(
+            request,
+            self.template_name,
+            context,
+        )
+    
+    def post(self, request):
+        game_form = GameForm(request.POST)
+
+        game_form_is_valid = game_form.is_valid()
+
+        human_player_mode = request.POST.get("human_player_mode")
+
+        if game_form_is_valid:
+            human_player_mode = game_form.cleaned_data["human_player_mode"]
+
+        result_formset = GameResultFormSet(
+            request.POST,
+            prefix="results",
+            human_player_mode=human_player_mode,
+        )
+
+        result_formset_is_valid = result_formset.is_valid()
+
+        if game_form_is_valid and result_formset_is_valid:
+            game = create_game(
+                game_data=game_form.cleaned_data,
+                result_forms=result_formset.forms,
+            )
+
+            messages.success(
+                request,
+                f"Game {game.id} was added successfully.",
+            )
+
+            return redirect("portal:game-create")
+
+        context = {
+            "game_form": game_form,
+            "result_formset": result_formset,
+        }
+
+        return render(
+            request,
+            self.template_name,
+            context,
+        )

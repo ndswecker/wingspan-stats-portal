@@ -110,7 +110,7 @@ Player creation is outside the scope of this feature.
 ## Turn Order
 
 - Integer input
-- Required if a player is selected
+- Optional if a player is selected
 - Must be a positive integer
 - No two submitted players may share the same turn order
 
@@ -130,7 +130,7 @@ A row containing:
 - Score
 - Turn Order
 
-must contain all three values.
+must contain Player and Score.
 
 Examples:
 
@@ -140,7 +140,7 @@ Examples:
 | Nate | 108 | 1 | Saved |
 | Nate | blank | 1 | Validation Error |
 | blank | 108 | 1 | Validation Error |
-| Nate | 108 | blank | Validation Error |
+| Nate | 108 | blank | Saved |
 
 ---
 
@@ -182,9 +182,8 @@ For every populated row:
 
 - Player is selected
 - Score is entered
-- Turn Order is entered
 - Score is zero or greater
-- Turn Order is a positive integer
+- If a Turn Order is present, it is a positive integer
 
 ## Cross-Row Validation
 

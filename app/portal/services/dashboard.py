@@ -2,8 +2,8 @@ from collections import defaultdict
 from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import Count, Avg
 
-from .models import Game, GameResult, Player
-from .types import PlayerPerformanceSummary
+from ..models import Game, GameResult, Player
+from ..types import PlayerPerformanceSummary
 
 def get_total_games_played():
     """Returns the total number of games played."""

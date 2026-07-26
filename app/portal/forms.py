@@ -3,9 +3,9 @@ from django.core.exceptions import ValidationError
 from django.forms import BaseFormSet, formset_factory
 from django.utils import timezone
 
-from .models import Game, Player, GameResult
+from .models import Game, Player
 
-class GameFrom(forms.ModelForm):
+class GameForm(forms.ModelForm):
     class Meta:
         model = Game
         fields = [
@@ -118,6 +118,12 @@ class GameResultForm(forms.Form):
         return cleaned_data
     
 class BaseGameResultFormSet(BaseFormSet):
+    def __init__(
+        self, *args, human_player_mode=None, **kwargs
+    ):
+        self.human_player_mode = human_player_mode
+        super().__init__(*args, **kwargs)
+        
     def clean(self):
         super().clean()
 
@@ -129,6 +135,19 @@ class BaseGameResultFormSet(BaseFormSet):
         for form in self.forms:
             if form.cleaned_data.get("is_populated"):
                 populated_forms.append(form)
+
+        player_count = len(populated_forms)
+        if (
+            self.human_player_mode == Game.HumanPlayerMode.SINGLE
+            and player_count !=1
+        ):
+            raise ValidationError("A solo game must have exactly one player")
+
+        if (
+            self.human_player_mode == Game.HumanPlayerMode.MULTIPLE
+            and player_count < 2
+        ):
+            raise ValidationError("A competitive game must have two or more players.")
 
         players = []
 
@@ -149,3 +168,10 @@ class BaseGameResultFormSet(BaseFormSet):
         if len(turn_orders) != len(set(turn_orders)):
             raise ValidationError("Each provided turn order must be unique.")
 
+GameResultFormSet = formset_factory(
+    GameResultForm,
+    formset=BaseGameResultFormSet,
+    extra=5,
+    max_num=5,
+    validate_max=True,
+)

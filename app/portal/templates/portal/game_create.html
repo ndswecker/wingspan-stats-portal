@@ -1,0 +1,177 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Add Game{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+        <div class="mb-4">
+            <h1 class="h2 mb-1">Add Game</h1>
+            <p class="text-muted mb-0">
+                Record a completed Wingspan game and its player results.
+            </p>
+        </div>
+
+```
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Game Information</h2>
+            </div>
+
+            <div class="card-body">
+                {% if game_form.non_field_errors %}
+                    <div class="alert alert-danger" role="alert">
+                        {% for error in game_form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label
+                            class="form-label"
+                            for="{{ game_form.date_played.id_for_label }}"
+                        >
+                            {{ game_form.date_played.label }}
+                        </label>
+
+                        {{ game_form.date_played }}
+
+                        {% for error in game_form.date_played.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label
+                            class="form-label"
+                            for="{{ game_form.human_player_mode.id_for_label }}"
+                        >
+                            {{ game_form.human_player_mode.label }}
+                        </label>
+
+                        {{ game_form.human_player_mode }}
+
+                        {% for error in game_form.human_player_mode.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="h5 mb-1">Player Results</h2>
+                <p class="small text-muted mb-0">
+                    Player and score are required for each used row.
+                    Turn order is optional.
+                </p>
+            </div>
+
+            <div class="card-body">
+                {{ result_formset.management_form }}
+
+                {% if result_formset.non_form_errors %}
+                    <div class="alert alert-danger" role="alert">
+                        {% for error in result_formset.non_form_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="d-none d-md-block">
+                    <div class="row fw-semibold border-bottom pb-2 mb-3">
+                        <div class="col-md-5">Player</div>
+                        <div class="col-md-4">Score</div>
+                        <div class="col-md-3">Turn Order</div>
+                    </div>
+                </div>
+
+                {% for form in result_formset %}
+                    <div class="row g-3 align-items-start border-bottom pb-3 mb-3">
+                        <div class="col-12 col-md-5">
+                            <label
+                                class="form-label d-md-none"
+                                for="{{ form.player.id_for_label }}"
+                            >
+                                Player
+                            </label>
+
+                            {{ form.player }}
+
+                            {% for error in form.player.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label
+                                class="form-label d-md-none"
+                                for="{{ form.score.id_for_label }}"
+                            >
+                                Score
+                            </label>
+
+                            {{ form.score }}
+
+                            {% for error in form.score.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label
+                                class="form-label d-md-none"
+                                for="{{ form.turn_order.id_for_label }}"
+                            >
+                                Turn Order
+                            </label>
+
+                            {{ form.turn_order }}
+
+                            {% for error in form.turn_order.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="col-12">
+                                <div class="alert alert-danger mb-0" role="alert">
+                                    {% for error in form.non_field_errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">
+                Save Game
+            </button>
+        </div>
+    </form>
+</div>
+```
+
+</div>
+{% endblock %}
