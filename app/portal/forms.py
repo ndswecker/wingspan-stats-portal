@@ -175,3 +175,26 @@ GameResultFormSet = formset_factory(
     max_num=5,
     validate_max=True,
 )
+
+class PlayerStatisticsFilterForm(forms.Form):
+    player = forms.ModelChoiceField(
+        queryset=Player.objects.none(),
+        empty_label="Select a player",
+        widget=forms.Select(
+            attrs={"class": "form-select",}
+        ),
+    )
+
+    game_type = forms.ChoiceField(
+        choices=Game.HumanPlayerMode.choices,
+        widget=forms.Select(
+            attrs={"class": "form-select",}
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["player"].queryset = (
+            Player.objects.filter(is_active=True)
+        )
