@@ -6,9 +6,15 @@ from django.shortcuts import redirect, render
 from django.views import View
 
 from .models import Game, GameResult
-from .forms import GameForm, GameResultFormSet
+from .forms import (
+    GameForm, 
+    GameResultFormSet,
+    PlayerStatisticsFilterForm,
+)
 from .services.game_entry import create_game
 from .services.dashboard import (get_player_performance_summary, get_total_games_played,)
+from .services.game_result_selection import select_game_results
+from .services.player_general_stats import calculate_general_stats
 
 def get_available_months():
     """Returns a list of available months for which games have been played."""
@@ -289,3 +295,42 @@ class GameCreateView(StaffRequiredMixin, View):
             self.template_name,
             context,
         )
+
+def player_overview(request):
+    filter_form = PlayerStatisticsFilterForm(
+        request.GET or None,
+    )
+
+    general_stats = None
+    selected_player = None
+    selected_game_type_label = None
+
+    if filter_form.is_valid():
+        selected_player = filter_form.cleaned_data["player"]
+
+        game_type = Game.HumanPlayerMode(
+            filter_form.cleaned_data["game_type"],
+        )
+        selected_game_type_label = game_type.label
+
+        game_results = select_game_results(
+            player=selected_player,
+            game_type=game_type,
+        )
+
+        general_stats = calculate_general_stats(
+            game_results=game_results,
+        )
+
+    context = {
+        "filter_form": filter_form,
+        "selected_player": selected_player,
+        "selected_game_type_label": selected_game_type_label,
+        "general_stats": general_stats,
+    }
+
+    return render(
+        request,
+        "portal/player_overview.html",
+        context,
+    )

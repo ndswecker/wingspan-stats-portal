@@ -1,0 +1,157 @@
+{% extends "portal/base.html" %}
+
+{% block title %}
+    Player Overview | Wingspan Stats Portal
+{% endblock %}
+
+{% block content %}
+    <div class="mb-4">
+        <h1 class="mb-2">Player Overview</h1>
+        <p class="text-muted mb-0">
+            Select a player and game type to view their general performance statistics.
+        </p>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Select Results</h2>
+        </div>
+
+        <div class="card-body">
+            <form method="get">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-5">
+                        <label
+                            class="form-label"
+                            for="{{ filter_form.player.id_for_label }}"
+                        >
+                            Player
+                        </label>
+
+                        {{ filter_form.player }}
+
+                        {% for error in filter_form.player.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-12 col-md-5">
+                        <label
+                            class="form-label"
+                            for="{{ filter_form.game_type.id_for_label }}"
+                        >
+                            Game Type
+                        </label>
+
+                        {{ filter_form.game_type }}
+
+                        {% for error in filter_form.game_type.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-12 col-md-2 d-grid">
+                        <button
+                            class="btn btn-primary"
+                            type="submit"
+                        >
+                            View Overview
+                        </button>
+                    </div>
+                </div>
+
+                {% for error in filter_form.non_field_errors %}
+                    <div class="alert alert-danger mt-3 mb-0">
+                        {{ error }}
+                    </div>
+                {% endfor %}
+            </form>
+        </div>
+    </div>
+
+    {% if general_stats is not None %}
+        <div class="mb-3">
+            <h2 class="h3 mb-1">
+                {{ selected_player.name }}
+            </h2>
+
+            <p class="text-muted mb-0">
+                {{ selected_game_type_label }}
+            </p>
+        </div>
+
+        {% if general_stats.games_played > 0 %}
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">General Statistics</h2>
+                </div>
+
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">
+                                    Games Played
+                                </div>
+
+                                <div class="fs-3 fw-semibold">
+                                    {{ general_stats.games_played }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-lg-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">
+                                    Average Score
+                                </div>
+
+                                <div class="fs-3 fw-semibold">
+                                    {{ general_stats.average_score|floatformat:1 }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-lg-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">
+                                    Highest Score
+                                </div>
+
+                                <div class="fs-3 fw-semibold">
+                                    {{ general_stats.maximum_score }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-lg-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">
+                                    Lowest Score
+                                </div>
+
+                                <div class="fs-3 fw-semibold">
+                                    {{ general_stats.minimum_score }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                No matching games were found for
+                <strong>{{ selected_player.name }}</strong>
+                using the selected game type.
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-secondary">
+            Select a player and game type above to view an overview.
+        </div>
+    {% endif %}
+{% endblock %}
