@@ -6,15 +6,25 @@ from django.shortcuts import redirect, render
 from django.views import View
 
 from .models import Game, GameResult
+
 from .forms import (
     GameForm, 
     GameResultFormSet,
     PlayerStatisticsFilterForm,
+    PlayerScoreTrendsFilterForm,
 )
+
 from .services.game_entry import create_game
 from .services.dashboard import (get_player_performance_summary, get_total_games_played,)
 from .services.game_result_selection import select_game_results
 from .services.player_general_stats import calculate_general_stats
+from .services.player_score_trends import (
+    calculate_monthly_score_averages,
+    resolve_score_trend_period,
+)
+from .services.player_score_trend_chart import (
+    build_monthly_score_chart,
+)
 
 def get_available_months():
     """Returns a list of available months for which games have been played."""
@@ -332,5 +342,84 @@ def player_overview(request):
     return render(
         request,
         "portal/player_overview.html",
+        context,
+    )
+
+def player_score_trends(request):
+    filter_form = PlayerScoreTrendsFilterForm(
+        request.GET or None,
+    )
+
+    selected_player = None
+    selected_game_type_label = None
+    selected_period_label = None
+    monthly_scores = None
+    chart_html = None
+    has_results = False
+
+    if filter_form.is_valid():
+        selected_player = filter_form.cleaned_data["player"]
+
+        game_type = Game.HumanPlayerMode(
+            filter_form.cleaned_data["game_type"],
+        )
+
+        selected_game_type_label = game_type.label
+
+        period = resolve_score_trend_period(
+            selected_period=filter_form.cleaned_data["period"],
+        )
+
+        selected_period_label = period.label
+
+        game_results = select_game_results(
+            player=selected_player,
+            game_type=game_type,
+        )
+
+        monthly_scores = calculate_monthly_score_averages(
+            game_results=game_results,
+            start_date=period.start_date,
+            end_date=period.end_date,
+        )
+
+        has_results = any(
+            monthly_score.games_played > 0
+            for monthly_score in monthly_scores
+        )
+
+        if has_results:
+            figure = build_monthly_score_chart(
+                monthly_scores=monthly_scores,
+                player=selected_player,
+                game_type_label=selected_game_type_label,
+                period_label=selected_period_label,
+            )
+
+            chart_html = figure.to_html(
+                full_html=False,
+                include_plotlyjs="cdn",
+                config={
+                    "responsive": True,
+                    "displaylogo": False,
+                    "displayModeBar": False,
+                    "scrollZoom": False,
+                    "doubleClick": False,
+                },
+            )
+
+    context = {
+        "filter_form": filter_form,
+        "selected_player": selected_player,
+        "selected_game_type_label": selected_game_type_label,
+        "selected_period_label": selected_period_label,
+        "monthly_scores": monthly_scores,
+        "chart_html": chart_html,
+        "has_results": has_results,
+    }
+
+    return render(
+        request,
+        "portal/player_score_trends.html",
         context,
     )
