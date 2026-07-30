@@ -198,3 +198,67 @@ class PlayerStatisticsFilterForm(forms.Form):
         self.fields["player"].queryset = (
             Player.objects.filter(is_active=True)
         )
+
+class PlayerScoreTrendsFilterForm(forms.Form):
+    LAST_12_MONTHS = "last_12_months"
+
+    player = forms.ModelChoiceField(
+        queryset=Player.objects.none(),
+        empty_label="Select a Player",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    game_type = forms.ChoiceField(
+        choices=Game.HumanPlayerMode.choices,
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    period = forms.ChoiceField(
+        choices=(),
+        initial=LAST_12_MONTHS,
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["player"].queryset = (
+            Player.objects
+            .filter(is_active=True)
+            .order_by("name")
+        )
+
+        available_years = (
+            Game.objects
+            .dates(
+                "date_played",
+                "year",
+                order="DESC",
+            )
+        )
+
+        period_choices = [
+            (
+                self.LAST_12_MONTHS,
+                "Last 12 Months",
+            )
+        ]
+
+        period_choices.extend(
+            (str(year.year), str(year.year))
+            for year in available_years
+        )
+
+        self.fields["period"].choices = period_choices
