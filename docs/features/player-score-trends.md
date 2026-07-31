@@ -1,22 +1,27 @@
+
 # Player Score Trends
 
 ## Purpose
 
-Create a page that shows one player's average score by month for a selected calendar year.
+The Player Score Trends page provides a focused analytical view of a single player's scoring performance over a selected twelve-month period.
 
-The feature should help answer:
+Rather than presenting isolated charts, the page analyzes a single filtered collection of `GameResult` records and presents multiple complementary views of the same dataset.
 
-* How did the player's average score change during the year?
-* Which months had the highest and lowest averages?
-* How many games contributed to each monthly average?
+The page should help answer questions such as:
+
+- How has the player's average score changed over time?
+- Which months were strongest or weakest?
+- How consistent are the player's scores?
+- What score range occurs most frequently?
+- How unusual are exceptionally high or low scores?
+
+Every visualization and statistic on the page must represent the same filtered dataset.
 
 ---
 
-## Page Location
+# Page Location
 
-Create a separate page rather than adding more content to Player Overview.
-
-Recommended route:
+Route:
 
 ```text
 /players/score-trends/
@@ -32,348 +37,327 @@ template: player_score_trends.html
 
 ---
 
-## Filters
-
-The page will use a GET form with:
-
-* Player
-* Game type
-* Period
-* Submit button
-
-Only one player, one game type, and one period may be selected at a time.
-
-## Period Definitions
-
-The selected period determines the date range used during aggregation.
-
-### Calendar Year
-
-Selecting a year displays the full calendar year Example:
-```
-2026
-
-January 2026
-through
-December 2026
-```
-The chart always displays twelve months.
-
-### Last 12 Months
-Selecting the Last 12 Months displays the most recent twleve monthly buckets ending with the current month. 
-
-For example, if today is July 29, 2026, the chart displays:
-```August 2025
-through
-July 2026
-```
-This period automatically advances as time passes.
----
-
-## Chart
-
-Use Plotly to create a responsive vertical column chart.
-
-The chart shall display:
-
-  * one column per populated month;
-  * average score on the vertical axis;
-  * chronological months on the horizontal axis.
-
-The chart must remain a vertical column chart on both desktop and mobile.
-
-The axes should never rotate based on screen size.
-
-For missing months:
-
-```python
-average_score = None
-games_played = 0
-```
-
-Missing months should not be represented as zero. No column should appear for missing months.
-
-Tooltips should show:
+# Architectural Overview
 
 ```text
-March 2026
-Average score: 88.3
-Games played: 5
-```
-
-The legend should be hidden because there is only one data series.
-
----
-
-## Mobile Requirements
-
-The chart must remain a vertical column chart on mobile.
-
-Plotly should be configured responsively so the chart:
-
-* uses the full available width;
-* does not create page-level horizontal scrolling;
-* keeps abbreviated month labels;
-* remains usable on screens around 320 pixels wide;
-* provides touch-friendly tooltips.
-
-The chart may use a taller height on mobile if needed.
-
----
-
-## Monthly Data Table
-
-Display a table beneath the chart using the same monthly dataset.
-
-Required columns:
-
-| Month | Average Score | Games Played |
-| ----- | ------------: | -----------: |
-
-All twelve months should appear.
-
-Months without games should display:
-
-```text
-No games
-```
-
-The table provides exact values and a usable fallback for viewers who cannot interact with the chart.
-
----
-
-## Service Design
-
-Reuse the existing result-selection service:
-
-```python
-select_game_results(
-    player=player,
-    game_type=game_type,
-)
-```
-
-Instead of passing a year into the aggregation service, pass a resolved date range:
-```python
-calculate_monthly_score_averages(
-    game_results=game_results,
-    start_date=start_date,
-    end_date=end_date,
-)
-```
-
-The aggregation service should:
-
-1. Filter results to the supplied date range.
-2. Group results by month.
-3. Calculate average score.
-4. Count games played.
-5. Return twelve monthly buckets.
-6. Fill missing months with None and zero games.
-
-The database should handle grouping, averaging, and counting.
-
-Python should only fill in the missing months.
-
-Likely Django ORM tools:
-
-```python
-TruncMonth
-Avg
-Count
+User Selection
+        │
+        ▼
+Game Result Selection
+        │
+        ▼
+Player Analysis
+    ├── Trend Analysis
+    └── Distribution Analysis
+        │
+        ▼
+Presentation
 ```
 
 ---
 
-## Period Resolution
+# Filters
 
-Use a small helper to convert the selected period into a date range.
+The page contains a GET form with:
 
-Recommended function:
+- Player
+- Game Type
+- Period
+- Submit button
 
-```python
-resolve_score_trend_period(
-    selected_period=selected_period,
-)
-```
-
-Example results:
-```python
-"2026"
-# 2026-01-01 through 2026-12-31
-```
-```
-"last_12_months"
-# First day of the month eleven months ago
-# through the last day of the current month
-```
-
-This keeps date-range logic separate from aggregation and makes future periods easier to add.
+These filters produce one filtered collection of `GameResult` records. Every analytical service consumes this same collection.
 
 ---
 
-## Return Structure
+# Period Definitions
 
-Use a small dataclass for the monthly results.
+## Calendar Year
+
+Displays January through December of the selected year.
+
+Exactly twelve monthly buckets are returned.
+
+## Last 12 Months
+
+Displays the rolling twelve-month period ending with the current month.
+
+This period advances automatically as time passes.
+
+---
+
+# Responsibilities
+
+## Game Result Selection
+
+Responsible for:
+
+- selecting `GameResult` records
+
+Not responsible for:
+
+- statistics
+- chart generation
+- presentation
+
+---
+
+## Trend Analysis
+
+Responsible for:
+
+- monthly aggregation
+- monthly averages
+- monthly game counts
+
+Not responsible for:
+
+- chart generation
+
+---
+
+## Distribution Analysis
+
+Responsible for:
+
+- histogram bins
+- descriptive statistics
+- percentile calculations
+- fitted normal distribution values
+
+Not responsible for:
+
+- chart generation
+
+---
+
+## Chart Builders
+
+Responsible only for constructing chart objects from already-calculated analytical data.
+
+Chart builders must not:
+
+- query the database
+- calculate statistics
+
+---
+
+# Trend Analysis
+
+Continue using:
+
+```python
+resolve_score_trend_period()
+calculate_monthly_score_averages()
+build_monthly_score_chart()
+```
+
+The trend analysis displays:
+
+- Monthly average score chart
+- Monthly results table
+
+The monthly table remains the authoritative numerical representation of the trend chart.
+
+---
+
+# Distribution Analysis
+
+Introduce:
+
+```python
+calculate_score_distribution()
+build_score_distribution_chart()
+```
+
+The statistical service returns a dedicated domain model.
 
 ```python
 @dataclass(frozen=True)
-class MonthlyScoreAverage:
-    month_start: date
-    month_name: str
-    month_abbreviation: str
-    average_score: float | None
+class HistogramBin:
+    lower_bound: int
+    upper_bound: int
     games_played: int
+
+
+@dataclass(frozen=True)
+class NormalCurvePoint:
+    score: float
+    density: float
+
+
+@dataclass(frozen=True)
+class ScoreDistribution:
+    games_played: int
+
+    average_score: float
+    median_score: float
+    standard_deviation: float
+
+    minimum_score: int
+    percentile_25: float
+    percentile_75: float
+    percentile_90: float
+    maximum_score: int
+
+    histogram_bins: list[HistogramBin]
+    normal_curve_points: list[NormalCurvePoint]
 ```
-
-The aggregation service should return:
-
-```python
-list[MonthlyScoreAverage]
-```
-
-Using `month_start` rather than only `month_number` is important because the Last 12 Months period can span two calendar years.
 
 ---
 
-## Plotly Builder
+# Histogram Design
 
-Keep Plotly construction separate from database aggregation.
+The histogram uses exactly the same filtered dataset as the monthly trend chart.
 
-Recommended function:
+Recommended binning strategy:
 
-```python
-build_monthly_score_chart(
-    monthly_scores=monthly_scores,
-    player=selected_player,
-    game_type_label=selected_game_type_label,
-    period_label=selected_period_label,
-)
-```
+- Fixed-width bins
+- Five-point score intervals
+- Inclusive lower bound
+- Exclusive upper bound
+- Automatically expand to contain the entire observed score range
 
-The builder should:
+This keeps histograms visually comparable across players and periods.
 
-  * create the Plotly column chart;
-  * configure chronological month ordering;
-  * configure tooltips;
-  * hide the legend;
-  * apply responsive settings.
-
-It should not query the database.
-
-For calendar-year views, labels may use:
-```text
-Jan
-Feb
-Mar
-...
-```
-
-For Last 12 Months, labels should include the year to avoid ambiguity:
-
-```text
-Aug 25
-Sep 25
-...
-Jan 26
-...
-Jul 26
-```
 ---
 
-## Page States
+# Normal Distribution Reference
 
-### Initial state
+The fitted normal distribution exists only as a visual comparison against the observed score distribution.
+
+It is **not** intended to imply that Wingspan scores are normally distributed.
+
+The curve is calculated from:
+
+- sample mean
+- sample standard deviation
+
+The histogram remains the authoritative representation of the underlying data.
+
+---
+
+# Presentation
+
+The completed page contains:
+
+1. Filter controls
+2. Monthly trend chart
+3. Score distribution histogram
+4. Statistical summary
+5. Monthly results table
+
+All components visualize the same filtered `GameResult` collection.
+
+---
+
+# Page States
+
+## Initial
 
 Display:
-  * the filter form;
-  * an instructional message.
 
-```text
-Select a player, game type, and period to view monthly score trends.
-```
+- filter form
+- instructional message
 
-Do not show an empty chart.
+No charts are shown.
 
-### No results
+## No Results
 
-Show:
+Display a message indicating that no matching games were found.
 
-```text
-No matching games were found for this selection.
-```
+No charts are rendered.
 
-Do not show an empty Plotly chart.
+## Populated
 
-### Partial Data
+Display:
 
-Show all twelve months.
-
-Only months with data should display columns.
+- trend chart
+- histogram
+- statistics
+- monthly table
 
 ---
 
-## Implementation Sequence
+# Design Principles
 
-### Phase 1: Monthly Aggregation
-
-1. Create `MonthlyScoreAverage`.
-2. Implement date-range-based monthly aggregation.
-3. Normalize the result to twelve months.
-4. Verify results manually against existing game data.
-
-### Phase 2: Period Selection
-
-1. Create the player, game-type, and period form.
-2. Populate available calendar years.
-3. Add the 'Last 12 Months' option.
-4. Implement `resolve_score_trend_period()`.
-5. Confirm GET parameters work correctly.
-
-### Phase 3: Plotly
-
-1. Add Plotly to the project dependencies (probably alread done).
-2. Create the chart-building function.
-3. Configure responsive behavior and tooltips.
-4. Confirm missing months remain empty.
-
-### Phase 4: Page
-
-1. Add the URL and view.
-2. Add the template.
-3. Display the chart.
-4. Add the monthly table.
-5. Add initial and no-data states.
-
-### Phase 5: User Testing
-
-Manually verify:
-
-* correct monthly averages;
-* correct game counts;
-* correct period filtering;
-* correct game-type filtering;
-* missing-month behavior;
-* desktop layout;
-* mobile layout;
-* touch tooltips;
-* no unintended horizontal scrolling.
+- Thin Django views
+- Business logic in services
+- One reusable dataset selection service
+- Independent analytical services
+- Independent chart builders
+- Explicit domain models
+- Incremental development
+- Separation of data retrieval, analysis, and presentation
 
 ---
 
-## Completion Criteria
+# Future Expansion
+
+Future analytical modules may consume the same selected `GameResult` collection.
+
+Examples include:
+
+- Win probability
+- Rolling averages
+- Personal best tracking
+- Opponent comparisons
+- Score breakdowns
+- Achievement tracking
+
+---
+
+# Implementation Phases
+
+## Phase 1 — Selection
+
+- Shared filter form
+- Result selection
+- Period resolution
+
+## Phase 2 — Trend Analysis
+
+- Monthly aggregation
+- Monthly table
+- Trend chart
+
+## Phase 3 — Distribution Analysis
+
+- Summary statistics
+- Percentiles
+- Histogram bins
+- Normal curve values
+
+## Phase 4 — Visualization
+
+- Histogram
+- Statistical summary
+
+## Phase 5 — Integration
+
+- Responsive layout
+- Shared page behavior
+
+## Phase 6 — Validation
+
+Verify:
+
+- dataset selection
+- monthly aggregation
+- histogram frequencies
+- statistical calculations
+- percentile calculations
+- responsive behavior
+
+---
+
+# Completion Criteria
 
 The feature is complete when:
 
-  * one player can be selected;
-  * one game type can be selected;
-  * one period can be selected;
-  * both calendar-year and Last 12 Months periods work correctly;
-  * every period displays exactly twelve monthly buckets;
-  * monthly averages are correct;
-  * monthly game counts are correct;
-  * missing months use None, not zero;
-  * the Plotly chart remains a responsive vertical column chart;
-  * tooltips display average score and games played;
-  * the monthly table matches the chart;
-  * the feature works on desktop and mobile.
+- shared filters drive every analytical component
+- every visualization represents the same filtered dataset
+- trend analysis is accurate
+- distribution analysis is accurate
+- chart builders contain no business logic
+- analytical services perform no presentation logic
+- the page functions correctly on desktop and mobile

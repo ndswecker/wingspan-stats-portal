@@ -1,4 +1,5 @@
 import plotly.graph_objects as go
+import math
 
 from ..models import Player
 from .player_score_trends import MonthlyScoreAverage
@@ -32,6 +33,18 @@ def build_monthly_score_chart(
         for monthly_score in monthly_scores
     ]
 
+    visible_scores = [
+        score 
+        for score in average_scores
+        if score is not None
+    ]
+
+    minimum_score = min(visible_scores)
+    maximum_score = max(visible_scores)
+
+    y_axis_minimum = max(50, math.floor(minimum_score - 5))
+    y_axis_maximum = math.ceil(maximum_score +5)
+
     hover_data = [
         [
             monthly_score.month_start.strftime("%B %Y"),
@@ -40,11 +53,20 @@ def build_monthly_score_chart(
         for monthly_score in monthly_scores
     ]
 
+    score_labels=[]
+    for score in average_scores:
+        if score is None:
+            score_labels.append("")
+        else:
+            score_labels.append(f"{score:.1f}")
+
     figure = go.Figure(
         data=[
             go.Bar(
                 x=month_labels,
                 y=average_scores,
+                text=score_labels,
+                textposition="outside",
                 customdata=hover_data,
                 hovertemplate=(
                     "<b>%{customdata[0]}</b><br>"
@@ -70,12 +92,15 @@ def build_monthly_score_chart(
             "type": "category",
             "categoryorder": "array",
             "categoryarray": month_labels,
-            "tickangle": 0,
+            "tickangle": 45,
             "fixedrange": True,
         },
         yaxis={
             "title": "Average Score",
-            "rangemode": "tozero",
+            "range": [
+                y_axis_minimum,
+                y_axis_maximum,
+            ],
             "fixedrange": True,
         },
         dragmode=False,
