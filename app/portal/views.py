@@ -375,6 +375,8 @@ def player_score_trends(request):
         game_results = select_game_results(
             player=selected_player,
             game_type=game_type,
+            start_date=period.start_date,
+            end_date=period.end_date,
         )
 
         monthly_scores = calculate_monthly_score_averages(
