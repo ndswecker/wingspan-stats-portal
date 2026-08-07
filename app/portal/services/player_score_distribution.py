@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import math
 import statistics
 
 from django.db.models import QuerySet
@@ -73,6 +74,30 @@ def calculate_score_distribution(
     percentile_90 = _calculate_percentile(
         scores=scores,
         percentile=0.90,
+    )
+
+    histogram_bins = _build_histogram_bins(
+        scores=scores,
+    )
+
+    normal_curve_points = _build_normal_curve_points(
+        average_score=average_score,
+        standard_deviation=standard_deviation,
+        histogram_bins=histogram_bins,
+    )
+
+    return ScoreDistribution(
+        games_played=games_played,
+        average_score=average_score,
+        median_score=median_score,
+        standard_deviation=standard_deviation,
+        minimum_score=minimum_score,
+        maximum_score=maximum_score,
+        percentile_25=percentile_25,
+        percentile_75=percentile_75,
+        percentile_90=percentile_90,
+        histogram_bins=histogram_bins,
+        normal_curve_points=normal_curve_points,
     )
 
 
@@ -157,3 +182,48 @@ def _build_histogram_bins(
         current_lower_bound = current_upper_bound
 
     return histogram_bins
+
+def _build_normal_curve_points(
+        *,
+        average_score: float,
+        standard_deviation: float,
+        histogram_bins: list[HistogramBin],
+) -> list[NormalCurvePoint]:
+    """
+    build points for a fitted normal-distribution reference curve.
+
+    The curve uses the observed average score and sample standard deviation.
+    It is intended only as a visual comparison against the histogram.
+    """
+    if not histogram_bins:
+        raise ValueError("No histogram bins provided for normal curve calculation.")
+
+    # A normal distribution cannot be calculated when the standard deviation 
+    # is zero, which occurs when all scores are identical.
+    if standard_deviation == 0:
+        return []
+
+    # Use the full histogram range so the curve and histogram share 
+    # the same horizontal score range.
+    minimum_score = histogram_bins[0].lower_bound
+    maximum_score = histogram_bins[-1].upper_bound
+
+    normal_curve_points = []
+
+    # Generate one curve point per score value. Wingspan scores are 
+    # integers, so this provides sufficient resolution for a smooth
+    # visual curve without creating unnecessary data points.
+    for score in range(minimum_score, maximum_score + 1):
+        # Calculate the probability density of this score under a
+        # normal distribution fitted to the observed dataset.
+        exponent = -((score - average_score) ** 2) / (2 * (standard_deviation ** 2))
+        density = (1 / (standard_deviation * (math.sqrt(2 * math.pi)))) * math.exp(exponent)
+
+        normal_curve_points.append(
+            NormalCurvePoint(
+                score=float(score),
+                density=density
+            )
+        )
+
+    return normal_curve_points
