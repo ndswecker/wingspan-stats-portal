@@ -47,9 +47,6 @@ def calculate_monthly_score_averages(
 
     aggregated_results = (
         game_results
-        .filter(
-            game__date_played__range=(start_date, end_date),
-        )
         .annotate(
             month=TruncMonth("game__date_played"),
         )
