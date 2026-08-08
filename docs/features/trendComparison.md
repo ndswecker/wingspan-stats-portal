@@ -329,3 +329,125 @@ The feature is complete when:
 - Comparison mode remains readable and usable on mobile devices.
 - Existing single-player analytical services are reused rather than duplicated.
 - Comparison-specific calculations and chart construction remain separated from core dataset-selection and single-dataset statistical services.
+# Implementation Phases
+
+## Phase 1 — Extend the Filter Form
+
+Add:
+
+- Required **Primary Player**
+- Optional **Secondary Player**
+- Existing Game Type
+- Existing Period
+
+The Secondary Player should default to `No comparison`.
+
+Add validation preventing the same player from being selected as both Primary Player and Secondary Player.
+
+At the end of this phase, the form should be capable of expressing either single-player mode or comparison mode.
+
+## Phase 2 — Extend Dataset Selection and Comparison Services
+
+Ensure the existing Game Result Selection service can be used independently for both the Primary Player and Secondary Player over the same Game Type and Period.
+
+Build the service-layer capabilities required for comparison mode, including:
+
+- Preparing monthly results for both players.
+- Aligning both players to the same calendar months.
+- Calculating monthly Difference.
+- Calculating monthly Δ %.
+- Preparing Statistical Summary comparison rows.
+- Calculating statistical Difference.
+- Calculating statistical Δ %.
+- Handling missing comparison values consistently.
+
+Existing single-player analytical services should continue calculating one player's statistics independently.
+
+Comparison services should consume those existing analytical results rather than duplicating their calculations.
+
+## Phase 3 — Support Shared Histogram Distribution Data
+
+Add the comparison-specific distribution preparation required for valid histogram comparison.
+
+This should include:
+
+- Determining the combined score range of both players.
+- Building shared 10-point histogram bins.
+- Calculating each player's observations against those same bins.
+- Density-normalizing each player's histogram independently.
+- Retaining each player's independently calculated mean and standard deviation.
+- Preparing the data required for each player's normal reference curve.
+
+The existing single-player score-distribution behavior should remain available.
+
+## Phase 4 — Build Comparison Chart Services
+
+Add dedicated comparison chart builders.
+
+### Monthly Score Trends
+
+Implement:
+
+- Shared monthly axis.
+- P2 wider background bars.
+- P1 narrower foreground bars.
+- P1 persistent score labels.
+- Independent P1 and P2 hover/tap information.
+- Correct missing-month behavior.
+
+### Score Distribution
+
+Implement:
+
+- Shared histogram bins.
+- Density-normalized bars.
+- P2 wider background histogram.
+- P1 narrower foreground histogram.
+- Independent normal reference curves.
+- Independent hover/tap information.
+- Shared Score and Density axes.
+
+Existing single-player chart builders should remain available for single-player mode.
+
+## Phase 5 — Integrate Comparison Mode into the View
+
+Update the Trends view to orchestrate the completed service-layer capabilities.
+
+The view should:
+
+- Resolve the Primary Player.
+- Resolve the optional Secondary Player.
+- Resolve Game Type and Period.
+- Select each player's GameResult dataset.
+- Call the existing single-player analytical services.
+- Call comparison services when a Secondary Player is present.
+- Call the appropriate single-player or comparison chart builders.
+- Prepare a clean template context.
+
+The view should not perform statistical or comparison calculations directly.
+
+## Phase 6 — Update the Template
+
+Update the existing Trends template to render either:
+
+- The existing single-player presentation when no Secondary Player is selected.
+- The comparison presentation when a Secondary Player is selected.
+
+Template changes should remain primarily presentational because calculations and chart generation should already be completed before rendering.
+
+Avoid duplicating the entire page structure where the two modes can share markup.
+
+## Phase 7 — Mobile and Regression Testing
+
+Verify:
+
+- Existing single-player behavior remains functional.
+- Comparison mode activates only when a Secondary Player is selected.
+- Primary and Secondary Player validation works.
+- Both players always use the same Game Type and Period.
+- Missing months are handled correctly.
+- Players with different sample sizes compare correctly.
+- Players with different score ranges use valid shared histogram bins.
+- Comparison tables remain usable on mobile.
+- Both Plotly charts remain readable and interactive on mobile.
+- Single-player and comparison modes work for all supported periods and game types.
