@@ -36,6 +36,14 @@ class ScoreDistribution:
     histogram_bins: list[HistogramBin]
     normal_curve_points: list[NormalCurvePoint]
 
+@dataclass(frozen=True)
+class StatisticalComparison:
+    label: str
+    primary_value: float | None
+    secondary_value: float | None
+    difference: float | None
+    percentage_difference: float | None
+
 
 def calculate_score_distribution(
         *,
@@ -227,3 +235,82 @@ def _build_normal_curve_points(
         )
 
     return normal_curve_points
+
+def compare_score_distributions(
+    *,
+    primary_score_distribution: ScoreDistribution,
+    secondary_score_distribution: ScoreDistribution,
+) -> list[StatisticalComparison]:
+    statistics = [
+        (
+            "Games Played",
+            primary_score_distribution.games_played,
+            secondary_score_distribution.games_played,
+        ),
+        (
+            "Average Score",
+            primary_score_distribution.average_score,
+            secondary_score_distribution.average_score,
+        ),
+        (
+            "Median Score",
+            primary_score_distribution.median_score,
+            secondary_score_distribution.median_score,
+        ),
+        (
+            "Standard Deviation",
+            primary_score_distribution.standard_deviation,
+            secondary_score_distribution.standard_deviation,
+        ),
+        (
+            "Minimum Score",
+            primary_score_distribution.minimum_score,
+            secondary_score_distribution.minimum_score,
+        ),
+        (
+            "25th Percentile",
+            primary_score_distribution.percentile_25,
+            secondary_score_distribution.percentile_25,
+        ),
+        (
+            "75th Percentile",
+            primary_score_distribution.percentile_75,
+            secondary_score_distribution.percentile_75,
+        ),
+        (
+            "90th Percentile",
+            primary_score_distribution.percentile_90,
+            secondary_score_distribution.percentile_90,
+        ),
+        (
+            "Maximum Score",
+            primary_score_distribution.maximum_score,
+            secondary_score_distribution.maximum_score,
+        ),
+    ]
+
+    comparisons = []
+
+    for label, primary_value, secondary_value in statistics:
+        difference = primary_value - secondary_value
+
+        percentage_difference = None
+
+        if secondary_value != 0:
+            percentage_difference = (
+                difference
+                / secondary_value
+                * 100
+            )
+
+        comparisons.append(
+            StatisticalComparison(
+                label=label,
+                primary_value=primary_value,
+                secondary_value=secondary_value,
+                difference=difference,
+                percentage_difference=percentage_difference,
+            )
+        )
+
+    return comparisons

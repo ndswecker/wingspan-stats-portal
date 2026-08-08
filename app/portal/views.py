@@ -29,6 +29,7 @@ from .services.player_score_trend_chart import (
 
 from .services.player_score_distribution import (
     calculate_score_distribution,
+    compare_score_distributions,
 )
 
 from .services.player_score_distribution_chart import (
@@ -367,18 +368,19 @@ def player_score_trends(request):
     selected_player = None
     selected_secondary_player = None
     selected_game_type_label = None
+    selected_period_label = None
 
     is_comparison = False
 
-    selected_period_label = None
-
     monthly_scores = None
-    monthly_chart_html = None
-
     secondary_monthly_scores = None
     monthly_comparisons = None
+    monthly_chart_html = None
 
     score_distribution = None
+    secondary_score_distribution = None
+    statistical_comparisons = None
+    has_comparison_statistics = False
     distribution_chart_html = None
 
     has_results = False
@@ -441,6 +443,18 @@ def player_score_trends(request):
                 game_results=game_results,
             )
 
+            if is_comparison and secondary_game_results.exists():
+                secondary_score_distribution = calculate_score_distribution(
+                    game_results=secondary_game_results,
+                )
+
+                statistical_comparisons = compare_score_distributions(
+                    primary_score_distribution=score_distribution,
+                    secondary_score_distribution=secondary_score_distribution,
+                )
+
+                has_comparison_statistics = True
+
             if is_comparison:
                 monthly_figure = build_monthly_score_comparison_chart(
                     primary_monthly_scores=monthly_scores,
@@ -494,14 +508,17 @@ def player_score_trends(request):
         "selected_game_type_label": selected_game_type_label,
         "selected_period_label": selected_period_label,
 
-
         "monthly_scores": monthly_scores,
         "secondary_monthly_scores": secondary_monthly_scores,
         "monthly_comparisons": monthly_comparisons,
-
         "monthly_chart_html": monthly_chart_html,
+
         "score_distribution": score_distribution,
+        "secondary_score_distribution": secondary_score_distribution,
+        "statistical_comparisons": statistical_comparisons,
+        "has_comparison_statistics": has_comparison_statistics,
         "distribution_chart_html": distribution_chart_html,
+        
         "has_results": has_results,
     }
 
