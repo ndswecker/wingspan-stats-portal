@@ -140,6 +140,79 @@ Select a player, game type, and period to view score trends. </div>
         </div> 
 
         <h2 class="h4 mb-3">
+            Statistical Summary
+        </h2>
+
+        <div class="table-responsive mb-4">
+            <table class="table table-sm table-hover align-middle">
+                <tbody>
+                    <tr>
+                        <th scope="row">Games Played</th>
+                        <td class="text-end">
+                            {{ score_distribution.games_played }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Average Score</th>
+                        <td class="text-end">
+                            {{ score_distribution.average_score|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Median Score</th>
+                        <td class="text-end">
+                            {{ score_distribution.median_score|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Standard Deviation</th>
+                        <td class="text-end">
+                            {{ score_distribution.standard_deviation|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Minimum Score</th>
+                        <td class="text-end">
+                            {{ score_distribution.minimum_score }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">25th Percentile</th>
+                        <td class="text-end">
+                            {{ score_distribution.percentile_25|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">75th Percentile</th>
+                        <td class="text-end">
+                            {{ score_distribution.percentile_75|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">90th Percentile</th>
+                        <td class="text-end">
+                            {{ score_distribution.percentile_90|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Maximum Score</th>
+                        <td class="text-end">
+                            {{ score_distribution.maximum_score }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>        
+
+        <h2 class="h4 mb-3">
             Monthly Results
         </h2>
 

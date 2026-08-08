@@ -24,6 +24,7 @@ from .services.player_score_trends import (
 )
 from .services.player_score_trend_chart import (
     build_monthly_score_chart,
+    build_monthly_score_comparison_chart,
 )
 
 from .services.player_score_distribution import (
@@ -423,7 +424,7 @@ def player_score_trends(request):
                 start_date=period.start_date,
                 end_date=period.end_date,
             )
-            
+
             if is_comparison:
                 secondary_monthly_scores = calculate_monthly_score_averages(
                     game_results=secondary_game_results,
@@ -440,12 +441,22 @@ def player_score_trends(request):
                 game_results=game_results,
             )
 
-            monthly_figure = build_monthly_score_chart(
-                monthly_scores=monthly_scores,
-                player=selected_player,
-                game_type_label=selected_game_type_label,
-                period_label=selected_period_label,
-            )
+            if is_comparison:
+                monthly_figure = build_monthly_score_comparison_chart(
+                    primary_monthly_scores=monthly_scores,
+                    secondary_monthly_scores=secondary_monthly_scores,
+                    primary_player=selected_player,
+                    secondary_player=selected_secondary_player,
+                    game_type_label=selected_game_type_label,
+                    period_label=selected_period_label,
+                )
+            else:
+                monthly_figure = build_monthly_score_chart(
+                    monthly_scores=monthly_scores,
+                    player=selected_player,
+                    game_type_label=selected_game_type_label,
+                    period_label=selected_period_label,
+                )
 
             distribution_figure = build_score_distribution_chart(
                 score_distribution=score_distribution,
