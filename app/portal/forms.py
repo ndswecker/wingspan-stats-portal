@@ -212,6 +212,17 @@ class PlayerScoreTrendsFilterForm(forms.Form):
         ),
     )
 
+    secondary_player = forms.ModelChoiceField(
+        queryset=Player.objects.none(),
+        required=False,
+        empty_label = "No Comparison",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
     game_type = forms.ChoiceField(
         choices=Game.HumanPlayerMode.choices,
         widget=forms.Select(
@@ -234,11 +245,14 @@ class PlayerScoreTrendsFilterForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["player"].queryset = (
+        active_players = (
             Player.objects
             .filter(is_active=True)
             .order_by("name")
         )
+
+        self.fields["player"].queryset = active_players
+        self.fields["secondary_player"].queryset = active_players
 
         available_years = (
             Game.objects
@@ -262,3 +276,21 @@ class PlayerScoreTrendsFilterForm(forms.Form):
         )
 
         self.fields["period"].choices = period_choices
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        player = cleaned_data.get("player")
+        secondary_player = cleaned_data.get("secondary_player")
+
+        if (
+            player is not None
+            and secondary_player is not None
+            and player == secondary_player
+        ):
+            self.add_error(
+                "secondary_player",
+                "The comparison player must be different from the primary player.",
+            )
+
+        return cleaned_data

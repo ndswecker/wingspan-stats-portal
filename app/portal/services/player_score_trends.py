@@ -23,6 +23,19 @@ class ScoreTrendPeriod:
     end_date: date
     label: str
 
+@dataclass(frozen=True)
+class MonthlyScoreComparison:
+    month_start: date
+
+    primary_average_score: float | None
+    secondary_average_score: float | None
+
+    difference: float | None
+    percentage_difference: float | None
+
+    primary_games_played: int
+    secondary_games_played: int
+
 
 def calculate_monthly_score_averages(
     *,
@@ -195,3 +208,55 @@ def _shift_month(
         zero_based_month + 1,
         1,
     )
+
+def compare_monthly_score_averages(
+    *,
+    primary_monthly_scores: list[MonthlyScoreAverage],
+    secondary_monthly_scores: list[MonthlyScoreAverage],
+) -> list[MonthlyScoreComparison]:
+    if len(primary_monthly_scores) != len(secondary_monthly_scores):
+        raise ValueError(
+            "Primary and secondary monthly score lists must cover the same period."
+        )
+
+    comparisons = []
+
+    for primary_score, secondary_score in zip(
+        primary_monthly_scores,
+        secondary_monthly_scores,
+    ):
+        if primary_score.month_start != secondary_score.month_start:
+            raise ValueError(
+                "Primary and secondary monthly scores must contain matching months."
+            )
+
+        difference = None
+        percentage_difference = None
+
+        if (
+            primary_score.average_score is not None
+            and secondary_score.average_score is not None
+        ):
+            difference = (
+                primary_score.average_score - secondary_score.average_score
+            )
+
+            if secondary_score.average_score != 0:
+                percentage_difference = (
+                    difference / secondary_score.average_score * 100
+                )
+
+        comparisons.append(
+            MonthlyScoreComparison(
+                month_start=primary_score.month_start,
+                primary_average_score=primary_score.average_score,
+                secondary_average_score=secondary_score.average_score,
+                difference=difference,
+                percentage_difference=percentage_difference,
+                primary_games_played=primary_score.games_played,
+                secondary_games_played=secondary_score.games_played,
+            )
+        )
+
+    return comparisons
+    

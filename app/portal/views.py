@@ -33,6 +33,11 @@ from .services.player_score_distribution import (
 from .services.player_score_distribution_chart import (
     build_score_distribution_chart,
 )
+from .services.player_score_trends import (
+    calculate_monthly_score_averages,
+    compare_monthly_score_averages,
+    resolve_score_trend_period,
+)
 
 def get_available_months():
     """Returns a list of available months for which games have been played."""
@@ -359,11 +364,18 @@ def player_score_trends(request):
     )
 
     selected_player = None
+    selected_secondary_player = None
     selected_game_type_label = None
+
+    is_comparison = False
+
     selected_period_label = None
 
     monthly_scores = None
     monthly_chart_html = None
+
+    secondary_monthly_scores = None
+    monthly_comparisons = None
 
     score_distribution = None
     distribution_chart_html = None
@@ -372,17 +384,17 @@ def player_score_trends(request):
 
     if filter_form.is_valid():
         selected_player = filter_form.cleaned_data["player"]
+        selected_secondary_player = filter_form.cleaned_data["secondary_player"]
+        is_comparison = selected_secondary_player is not None
 
         game_type = Game.HumanPlayerMode(
             filter_form.cleaned_data["game_type"],
         )
-
         selected_game_type_label = game_type.label
 
         period = resolve_score_trend_period(
             selected_period=filter_form.cleaned_data["period"],
         )
-
         selected_period_label = period.label
 
         game_results = select_game_results(
@@ -392,14 +404,37 @@ def player_score_trends(request):
             end_date=period.end_date,
         )
 
+        secondary_game_results = None
+
+        if is_comparison:
+            secondary_game_results = select_game_results(
+                player=selected_secondary_player,
+                game_type=game_type,
+                start_date=period.start_date,
+                end_date=period.end_date,
+            )
+
         has_results = game_results.exists()
 
         if has_results:
+
             monthly_scores = calculate_monthly_score_averages(
                 game_results=game_results,
                 start_date=period.start_date,
                 end_date=period.end_date,
             )
+            
+            if is_comparison:
+                secondary_monthly_scores = calculate_monthly_score_averages(
+                    game_results=secondary_game_results,
+                    start_date=period.start_date,
+                    end_date=period.end_date,
+                )
+
+                monthly_comparisons = compare_monthly_score_averages(
+                    primary_monthly_scores=monthly_scores,
+                    secondary_monthly_scores=secondary_monthly_scores,
+                )
 
             score_distribution = calculate_score_distribution(
                 game_results=game_results,
@@ -443,9 +478,16 @@ def player_score_trends(request):
     context = {
         "filter_form": filter_form,
         "selected_player": selected_player,
+        "selected_secondary_player": selected_secondary_player,
+        "is_comparison": is_comparison,
         "selected_game_type_label": selected_game_type_label,
         "selected_period_label": selected_period_label,
+
+
         "monthly_scores": monthly_scores,
+        "secondary_monthly_scores": secondary_monthly_scores,
+        "monthly_comparisons": monthly_comparisons,
+
         "monthly_chart_html": monthly_chart_html,
         "score_distribution": score_distribution,
         "distribution_chart_html": distribution_chart_html,
