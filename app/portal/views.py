@@ -26,6 +26,14 @@ from .services.player_score_trend_chart import (
     build_monthly_score_chart,
 )
 
+from .services.player_score_distribution import (
+    calculate_score_distribution,
+)
+
+from .services.player_score_distribution_chart import (
+    build_score_distribution_chart,
+)
+
 def get_available_months():
     """Returns a list of available months for which games have been played."""
     return list(
@@ -353,8 +361,13 @@ def player_score_trends(request):
     selected_player = None
     selected_game_type_label = None
     selected_period_label = None
+
     monthly_scores = None
-    chart_html = None
+    monthly_chart_html = None
+
+    score_distribution = None
+    distribution_chart_html = None
+
     has_results = False
 
     if filter_form.is_valid():
@@ -379,28 +392,45 @@ def player_score_trends(request):
             end_date=period.end_date,
         )
 
-        monthly_scores = calculate_monthly_score_averages(
-            game_results=game_results,
-            start_date=period.start_date,
-            end_date=period.end_date,
-        )
-
-        has_results = any(
-            monthly_score.games_played > 0
-            for monthly_score in monthly_scores
-        )
+        has_results = game_results.exists()
 
         if has_results:
-            figure = build_monthly_score_chart(
+            monthly_scores = calculate_monthly_score_averages(
+                game_results=game_results,
+                start_date=period.start_date,
+                end_date=period.end_date,
+            )
+
+            score_distribution = calculate_score_distribution(
+                game_results=game_results,
+            )
+
+            monthly_figure = build_monthly_score_chart(
                 monthly_scores=monthly_scores,
                 player=selected_player,
                 game_type_label=selected_game_type_label,
                 period_label=selected_period_label,
             )
 
-            chart_html = figure.to_html(
+            distribution_figure = build_score_distribution_chart(
+                score_distribution=score_distribution,
+            )
+
+            monthly_chart_html = monthly_figure.to_html(
                 full_html=False,
                 include_plotlyjs="cdn",
+                config={
+                    "responsive": True,
+                    "displaylogo": False,
+                    "displayModeBar": False,
+                    "scrollZoom": False,
+                    "doubleClick": False,
+                },
+            )
+
+            distribution_chart_html = distribution_figure.to_html(
+                full_html=False,
+                include_plotlyjs=False,
                 config={
                     "responsive": True,
                     "displaylogo": False,
@@ -416,7 +446,9 @@ def player_score_trends(request):
         "selected_game_type_label": selected_game_type_label,
         "selected_period_label": selected_period_label,
         "monthly_scores": monthly_scores,
-        "chart_html": chart_html,
+        "monthly_chart_html": monthly_chart_html,
+        "score_distribution": score_distribution,
+        "distribution_chart_html": distribution_chart_html,
         "has_results": has_results,
     }
 

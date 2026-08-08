@@ -1,14 +1,15 @@
 {% extends "portal/base.html" %}
 
 {% block title %}
-    Player Score Trends | Wingspan Stats Portal
+Player Score Trends | Wingspan Stats Portal
 {% endblock %}
 
 {% block content %}
+
 <h1 class="mb-3">Player Score Trends</h1>
 
 <p class="text-muted">
-    View a player's monthly average score for competitive or solo games.
+    View a player's monthly score trends and score distribution for competitive or solo games.
 </p>
 
 <div class="card mb-4">
@@ -23,134 +24,238 @@
                         Player
                     </label>
 
-                    {{ filter_form.player }}
 
-                    {% for error in filter_form.player.errors %}
-                        <div class="text-danger small mt-1">
-                            {{ error }}
-                        </div>
-                    {% endfor %}
-                </div>
+                {{ filter_form.player }}
 
-                <div class="col-12 col-md-3">
-                    <label
-                        class="form-label"
-                        for="{{ filter_form.game_type.id_for_label }}"
-                    >
-                        Game Type
-                    </label>
-
-                    {{ filter_form.game_type }}
-
-                    {% for error in filter_form.game_type.errors %}
-                        <div class="text-danger small mt-1">
-                            {{ error }}
-                        </div>
-                    {% endfor %}
-                </div>
-
-                <div class="col-12 col-md-3">
-                    <label
-                        class="form-label"
-                        for="{{ filter_form.period.id_for_label }}"
-                    >
-                        Period
-                    </label>
-
-                    {{ filter_form.period }}
-
-                    {% for error in filter_form.period.errors %}
-                        <div class="text-danger small mt-1">
-                            {{ error }}
-                        </div>
-                    {% endfor %}
-                </div>
-
-                <div class="col-12 col-md-2">
-                    <button
-                        class="btn btn-primary w-100"
-                        type="submit"
-                    >
-                        View Trends
-                    </button>
-                </div>
+                {% for error in filter_form.player.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ error }}
+                    </div>
+                {% endfor %}
             </div>
-        </form>
-    </div>
+
+            <div class="col-12 col-md-3">
+                <label
+                    class="form-label"
+                    for="{{ filter_form.game_type.id_for_label }}"
+                >
+                    Game Type
+                </label>
+
+                {{ filter_form.game_type }}
+
+                {% for error in filter_form.game_type.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ error }}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label
+                    class="form-label"
+                    for="{{ filter_form.period.id_for_label }}"
+                >
+                    Period
+                </label>
+
+                {{ filter_form.period }}
+
+                {% for error in filter_form.period.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ error }}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="col-12 col-md-2">
+                <button
+                    class="btn btn-primary w-100"
+                    type="submit"
+                >
+                    View Trends
+                </button>
+            </div>
+        </div>
+    </form>
 </div>
 
-{% if not filter_form.is_bound %}
-    <div class="alert alert-info" role="status">
-        Select a player, game type, and period to view monthly score trends.
-    </div>
+
+</div>
+
+{% if not filter_form.is_bound %} <div class="alert alert-info" role="status">
+Select a player, game type, and period to view score trends. </div>
 
 {% elif filter_form.is_valid %}
-    {% if has_results %}
-        <section class="mb-5">
-            <h2 class="h4 mb-3">
-                {{ selected_player }}
-                <span class="text-muted">
-                    — {{ selected_game_type_label }}
-                </span>
-            </h2>
+{% if has_results %} <section class="mb-5"> <h2 class="h4 mb-3">
+{{ selected_player }} <span class="text-muted">
+— {{ selected_game_type_label }} </span> </h2>
 
-            <p class="text-muted">
-                {{ selected_period_label }}
-            </p>
 
-            <div class="card mb-4 overflow-hidden">
-                <div class="card-body p-2 p-md-3">
-                    {{ chart_html|safe }}
-                </div>
+        <p class="text-muted">
+            {{ selected_period_label }}
+        </p>
+
+        <h2 class="h4 mb-3">
+            Monthly Score Trends
+        </h2>
+
+        <div class="card mb-4 overflow-hidden">
+            <div class="card-body p-2 p-md-3">
+                {{ monthly_chart_html|safe }}
             </div>
-
-            <h2 class="h4 mb-3">Monthly Results</h2>
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th scope="col">Month</th>
-                            <th scope="col" class="text-end">
-                                Average Score
-                            </th>
-                            <th scope="col" class="text-end">
-                                Games Played
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {% for monthly_score in monthly_scores %}
-                            <tr>
-                                <th scope="row">
-                                    {{ monthly_score.month_start|date:"F Y" }}
-                                </th>
-
-                                <td class="text-end">
-                                    {% if monthly_score.average_score is not None %}
-                                        {{ monthly_score.average_score|floatformat:1 }}
-                                    {% else %}
-                                        <span class="text-muted">
-                                            No games
-                                        </span>
-                                    {% endif %}
-                                </td>
-
-                                <td class="text-end">
-                                    {{ monthly_score.games_played }}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-    {% else %}
-        <div class="alert alert-warning" role="status">
-            No matching games were found for this selection.
         </div>
-    {% endif %}
+
+        <h2 class="h4 mb-1">
+            Score Distribution
+        </h2>
+
+        <p class="text-muted mb-3">
+            {{ selected_player }}
+            — {{ selected_game_type_label }}
+            — {{ selected_period_label }}
+        </p>
+
+        <div class="card mb-4 overflow-hidden">
+            <div class="card-body p-2 p-md-3">
+                {{ distribution_chart_html|safe }}
+            </div>
+        </div> 
+
+        <h2 class="h4 mb-3">
+            Statistical Summary
+        </h2>
+
+        <div class="table-responsive mb-4">
+            <table class="table table-sm table-hover align-middle">
+                <tbody>
+                    <tr>
+                        <th scope="row">Games Played</th>
+                        <td class="text-end">
+                            {{ score_distribution.games_played }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Average Score</th>
+                        <td class="text-end">
+                            {{ score_distribution.average_score|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Median Score</th>
+                        <td class="text-end">
+                            {{ score_distribution.median_score|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Standard Deviation</th>
+                        <td class="text-end">
+                            {{ score_distribution.standard_deviation|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Minimum Score</th>
+                        <td class="text-end">
+                            {{ score_distribution.minimum_score }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">25th Percentile</th>
+                        <td class="text-end">
+                            {{ score_distribution.percentile_25|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">75th Percentile</th>
+                        <td class="text-end">
+                            {{ score_distribution.percentile_75|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">90th Percentile</th>
+                        <td class="text-end">
+                            {{ score_distribution.percentile_90|floatformat:1 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">Maximum Score</th>
+                        <td class="text-end">
+                            {{ score_distribution.maximum_score }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="h4 mb-3">
+            Monthly Results
+        </h2>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">
+                            Month
+                        </th>
+
+                        <th
+                            scope="col"
+                            class="text-end"
+                        >
+                            Average Score
+                        </th>
+
+                        <th
+                            scope="col"
+                            class="text-end"
+                        >
+                            Games Played
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for monthly_score in monthly_scores %}
+                        <tr>
+                            <th scope="row">
+                                {{ monthly_score.month_start|date:"F Y" }}
+                            </th>
+
+                            <td class="text-end">
+                                {% if monthly_score.average_score is not None %}
+                                    {{ monthly_score.average_score|floatformat:1 }}
+                                {% else %}
+                                    <span class="text-muted">
+                                        No games
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-end">
+                                {{ monthly_score.games_played }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+{% else %}
+    <div class="alert alert-warning" role="status">
+        No matching games were found for this selection.
+    </div>
+{% endif %}
+
+
 {% endif %}
 {% endblock %}

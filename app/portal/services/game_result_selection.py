@@ -24,7 +24,7 @@ def select_game_results(
 
     if start_date and end_date:
         query_set = query_set.filter(
-            game__date_played__gte=(start_date),
+            game__date_played__gte=start_date,
         )   
 
     if end_date:

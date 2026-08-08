@@ -212,7 +212,7 @@ The histogram uses exactly the same filtered dataset as the monthly trend chart.
 Recommended binning strategy:
 
 - Fixed-width bins
-- Five-point score intervals
+- Ten-point score intervals
 - Inclusive lower bound
 - Exclusive upper bound
 - Automatically expand to contain the entire observed score range

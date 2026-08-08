@@ -9,8 +9,8 @@ from ..models import GameResult
 
 @dataclass(frozen=True)
 class HistogramBin:
-    lower_bound: float
-    upper_bound: float
+    lower_bound: int
+    upper_bound: int
     games_played: int
 
 @dataclass(frozen=True)
