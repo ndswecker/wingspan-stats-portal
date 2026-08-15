@@ -29,11 +29,13 @@ from .services.player_score_trend_chart import (
 
 from .services.player_score_distribution import (
     calculate_score_distribution,
+    calculate_score_distribution_comparison,
     compare_score_distributions,
 )
 
 from .services.player_score_distribution_chart import (
     build_score_distribution_chart,
+    build_score_distribution_comparison_chart,
 )
 from .services.player_score_trends import (
     calculate_monthly_score_averages,
@@ -379,6 +381,7 @@ def player_score_trends(request):
 
     score_distribution = None
     secondary_score_distribution = None
+    score_distribution_comparison = None
     statistical_comparisons = None
     has_comparison_statistics = False
     distribution_chart_html = None
@@ -448,6 +451,13 @@ def player_score_trends(request):
                     game_results=secondary_game_results,
                 )
 
+                score_distribution_comparison = calculate_score_distribution_comparison(
+                    primary_game_results=game_results,
+                    secondary_game_results=secondary_game_results,
+                    primary_score_distribution=score_distribution,
+                    secondary_score_distribution=secondary_score_distribution,
+                )
+
                 statistical_comparisons = compare_score_distributions(
                     primary_score_distribution=score_distribution,
                     secondary_score_distribution=secondary_score_distribution,
@@ -472,9 +482,16 @@ def player_score_trends(request):
                     period_label=selected_period_label,
                 )
 
-            distribution_figure = build_score_distribution_chart(
-                score_distribution=score_distribution,
-            )
+            if is_comparison and score_distribution_comparison is not None:
+                distribution_figure = build_score_distribution_comparison_chart(
+                    score_distribution_comparison=score_distribution_comparison,
+                    primary_player=selected_player,
+                    secondary_player=selected_secondary_player,
+                )
+            else:
+                distribution_figure = build_score_distribution_chart(
+                    score_distribution=score_distribution,
+                )
 
             monthly_chart_html = monthly_figure.to_html(
                 full_html=False,
@@ -515,10 +532,11 @@ def player_score_trends(request):
 
         "score_distribution": score_distribution,
         "secondary_score_distribution": secondary_score_distribution,
+        "score_distribution_comparison": score_distribution_comparison,
         "statistical_comparisons": statistical_comparisons,
         "has_comparison_statistics": has_comparison_statistics,
         "distribution_chart_html": distribution_chart_html,
-        
+
         "has_results": has_results,
     }
 

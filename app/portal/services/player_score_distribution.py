@@ -44,6 +44,25 @@ class StatisticalComparison:
     difference: float | None
     percentage_difference: float | None
 
+@dataclass(frozen=True)
+class HistogramComparisonBin:
+    lower_bound: int
+    upper_bound: int
+    primary_games_played: int
+    secondary_games_played: int
+
+    primary_density: float
+    secondary_density: float
+
+    primary_percentage: float
+    secondary_percentage: float
+
+@dataclass(frozen=True)
+class ScoreDistributionComparison:
+    histogram_bins: list[HistogramComparisonBin]
+    primary_normal_curve_points: list[NormalCurvePoint]
+    secondary_normal_curve_points: list[NormalCurvePoint]
+
 
 def calculate_score_distribution(
         *,
@@ -148,46 +167,33 @@ def _calculate_percentile(
     return percentile_score
 
 def _build_histogram_bins(
-        *,
-        scores: list[int],
+    *,
+    scores: list[int],
 ) -> list[HistogramBin]:
     if not scores:
-        raise ValueError("No scores provided for histogram bin calculation.")
+        raise ValueError(
+            "No scores provided for histogram bin calculation."
+        )
 
     bin_width = 10
 
     minimum_score = min(scores)
     maximum_score = max(scores)
 
-    # Round the observed minimum down to the nearest multiple of the bin width
-    # to determine the lower bound of the first histogram bin.
-    first_bin_lower_bound = (minimum_score // bin_width) * bin_width
+    first_bin_lower_bound = (
+        minimum_score // bin_width
+    ) * bin_width
 
-    # Build enough bins to include the observed maximum score.
-    # The upper bound is exclusive, so a score of exactly 160 must 
-    # fall into the 160-170 bin rather than ending the histogram at 160.
-    final_bin_lower_bound = (maximum_score // bin_width) * bin_width
+    final_bin_lower_bound = (
+        maximum_score // bin_width
+    ) * bin_width
 
-    histogram_bins = []
-
-    current_lower_bound = first_bin_lower_bound
-    while current_lower_bound <= final_bin_lower_bound:
-        current_upper_bound = current_lower_bound + bin_width
-
-        games_played_in_bin = sum(
-            1 for score in scores
-            if current_lower_bound <= score < current_upper_bound
-        )
-
-        histogram_bins.append(
-            HistogramBin(
-                lower_bound=current_lower_bound,
-                upper_bound=current_upper_bound,
-                games_played=games_played_in_bin,
-            )
-        )
-
-        current_lower_bound = current_upper_bound
+    histogram_bins = _build_histogram_bins_for_range(
+        scores=scores,
+        first_bin_lower_bound=first_bin_lower_bound,
+        final_bin_lower_bound=final_bin_lower_bound,
+        bin_width=bin_width,
+    )
 
     return histogram_bins
 
@@ -314,3 +320,198 @@ def compare_score_distributions(
         )
 
     return comparisons
+
+def calculate_score_distribution_comparison(
+    *,
+    primary_game_results: QuerySet[GameResult],
+    secondary_game_results: QuerySet[GameResult],
+    primary_score_distribution: ScoreDistribution,
+    secondary_score_distribution: ScoreDistribution,
+) -> ScoreDistributionComparison:
+    """
+    Build comparison-ready histogram data for two players.
+
+    Both players are placed into the same 10-point score bins so their
+    distributions can share one histogram axis. Each player's counts are
+    normalized independently into density values so differences in sample
+    size do not distort the comparison. Normal reference curves are then
+    generated across the same shared score range.
+    """
+    # Extract each player's raw scores so they can be redistributed
+    # into one common set of histogram bins.
+    primary_scores = list(
+        primary_game_results.values_list(
+            "score",
+            flat=True,
+        )
+    )
+
+    secondary_scores = list(
+        secondary_game_results.values_list(
+            "score",
+            flat=True,
+        )
+    )
+
+    if not primary_scores or not secondary_scores:
+        raise ValueError(
+            "Both players must have results for score distribution comparison."
+        )
+
+    bin_width = 10
+
+    # The shared histogram range must cover the complete spread of both
+    # players so neither distribution is truncated or independently scaled.
+    combined_scores = (
+        primary_scores
+        + secondary_scores
+    )
+
+    minimum_score = min(combined_scores)
+    maximum_score = max(combined_scores)
+
+    first_bin_lower_bound = (
+        minimum_score // bin_width
+    ) * bin_width
+
+    final_bin_lower_bound = (
+        maximum_score // bin_width
+    ) * bin_width
+
+    # Build two separate histograms using the exact same score boundaries.
+    # This guarantees that corresponding P1 and P2 bars represent the
+    # same score interval when they are later overlaid in Plotly.
+    primary_histogram_bins = _build_histogram_bins_for_range(
+        scores=primary_scores,
+        first_bin_lower_bound=first_bin_lower_bound,
+        final_bin_lower_bound=final_bin_lower_bound,
+        bin_width=bin_width,
+    )
+
+    secondary_histogram_bins = _build_histogram_bins_for_range(
+        scores=secondary_scores,
+        first_bin_lower_bound=first_bin_lower_bound,
+        final_bin_lower_bound=final_bin_lower_bound,
+        bin_width=bin_width,
+    )
+
+    if len(primary_histogram_bins) != len(secondary_histogram_bins):
+        raise ValueError(
+            "Primary and secondary histograms must contain the same number of bins."
+        )
+
+    comparison_bins = []
+
+    # Combine the matching P1/P2 bins into one comparison record.
+    # Counts remain available for tooltips, while density is used for
+    # bar height so unequal sample sizes remain statistically comparable.
+    for primary_bin, secondary_bin in zip(
+        primary_histogram_bins,
+        secondary_histogram_bins,
+    ):
+        if (
+            primary_bin.lower_bound != secondary_bin.lower_bound
+            or primary_bin.upper_bound != secondary_bin.upper_bound
+        ):
+            raise ValueError(
+                "Primary and secondary histogram bins must match."
+            )
+
+        primary_density = (
+            primary_bin.games_played
+            / (
+                primary_score_distribution.games_played
+                * bin_width
+            )
+        )
+
+        secondary_density = (
+            secondary_bin.games_played
+            / (
+                secondary_score_distribution.games_played
+                * bin_width
+            )
+        )
+
+        primary_percentage = (
+            primary_bin.games_played
+            / primary_score_distribution.games_played
+            * 100
+        )
+
+        secondary_percentage = (
+            secondary_bin.games_played
+            / secondary_score_distribution.games_played
+            * 100
+        )
+
+        comparison_bin = HistogramComparisonBin(
+            lower_bound=primary_bin.lower_bound,
+            upper_bound=primary_bin.upper_bound,
+            primary_games_played=primary_bin.games_played,
+            secondary_games_played=secondary_bin.games_played,
+            primary_density=primary_density,
+            secondary_density=secondary_density,
+            primary_percentage=primary_percentage,
+            secondary_percentage=secondary_percentage,
+        )
+
+        comparison_bins.append(
+            comparison_bin
+        )
+
+    # Each player keeps an independently fitted normal curve, but both
+    # curves are evaluated across the same shared histogram range.
+    primary_normal_curve_points = _build_normal_curve_points(
+        average_score=primary_score_distribution.average_score,
+        standard_deviation=primary_score_distribution.standard_deviation,
+        histogram_bins=primary_histogram_bins,
+    )
+
+    secondary_normal_curve_points = _build_normal_curve_points(
+        average_score=secondary_score_distribution.average_score,
+        standard_deviation=secondary_score_distribution.standard_deviation,
+        histogram_bins=secondary_histogram_bins,
+    )
+
+    score_distribution_comparison = ScoreDistributionComparison(
+        histogram_bins=comparison_bins,
+        primary_normal_curve_points=primary_normal_curve_points,
+        secondary_normal_curve_points=secondary_normal_curve_points,
+    )
+
+    return score_distribution_comparison
+
+
+def _build_histogram_bins_for_range(
+    *,
+    scores: list[int],
+    first_bin_lower_bound: int,
+    final_bin_lower_bound: int,
+    bin_width: int = 10,
+) -> list[HistogramBin]:
+    histogram_bins = []
+
+    current_lower_bound = first_bin_lower_bound
+
+    while current_lower_bound <= final_bin_lower_bound:
+        current_upper_bound = current_lower_bound + bin_width
+
+        games_played_in_bin = sum(
+            1
+            for score in scores
+            if current_lower_bound <= score < current_upper_bound
+        )
+
+        histogram_bins.append(
+            HistogramBin(
+                lower_bound=current_lower_bound,
+                upper_bound=current_upper_bound,
+                games_played=games_played_in_bin,
+            )
+        )
+
+        current_lower_bound = current_upper_bound
+
+    return histogram_bins
+    

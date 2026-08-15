@@ -211,6 +211,21 @@ The x-axis continues to represent:
 
 `Score`
 
+### Comparison Semantics
+
+The comparison histogram must remain valid when the two players have different sample sizes, score ranges, and score variability.
+
+The two distributions must therefore be treated as independent samples displayed within one shared coordinate system:
+
+- Bin boundaries are determined from the combined P1/P2 score range, not independently for each player.
+- Both players use every shared bin, including bins containing zero observations for one player.
+- Each player's density is calculated using that player's own sample size.
+- A larger number of games must not inherently produce taller histogram bars.
+- A wider or narrower score distribution should remain visually apparent rather than being altered to force the players into similar shapes.
+- Each normal reference curve is fitted independently from that player's mean and standard deviation but evaluated across the same shared score range.
+
+The purpose of normalization is to compare the **shape and relative concentration of the two score distributions**, not their raw number of games. Raw sample sizes remain available through the Statistical Summary and histogram tooltips.
+
 ## Primary Player
 
 P1 should:
