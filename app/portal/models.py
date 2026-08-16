@@ -1,7 +1,17 @@
 from django.db import models
 
+from django.conf import settings
+
 # Create your models here.
 class Player(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="player",
+        null=True,
+        blank=True,
+    )
+
     name = models.CharField(
         max_length=50,
         unique=True,

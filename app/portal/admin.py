@@ -7,9 +7,33 @@ class GameResultInline(admin.TabularInline):
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ("name", "is_active")
+    list_display = (
+        "name", 
+        "username",
+        "email",
+        "is_active"
+    )
     list_filter = ("is_active",)
-    search_fields = ("name",)
+    search_fields = (
+        "name",
+        "user__username",
+        "user__email",
+    )
+    list_select_related = ("user",)
+
+    @admin.display(description="Username")
+    def username(self, obj):
+        if obj.user is None:
+            return "—"
+
+        return obj.user.username
+
+    @admin.display(description="Email")
+    def email(self, obj):
+        if obj.user is None:
+            return "—"
+
+        return obj.user.email
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
@@ -20,6 +44,18 @@ class GameAdmin(admin.ModelAdmin):
 
 @admin.register(GameResult)
 class GameResultAdmin(admin.ModelAdmin):
-    list_display = ("game", "player", "turn_order", "score")
-    list_filter = ("game", "player")
-    search_fields = ("player__name",)
+    list_display = (
+        "game__date_played",
+        "game__mode",
+        "game__id",
+        "player", 
+        "turn_order", 
+        "score",
+    )
+    list_filter = ("game__date_played", "game__human_player_mode", "player")
+    search_fields = ("player__name", "player__user__username", "player__user__email")
+    date_hierarchy = "game__date_played"
+
+    @admin.display(description="Game Type")
+    def game__mode(self, obj):
+        return obj.game.get_human_player_mode_display()

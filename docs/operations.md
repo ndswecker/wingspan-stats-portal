@@ -73,6 +73,38 @@ Finally, verify the deployment by:
 
 # Database Migrations
 
+## Local
+Ensure the local django service is running:
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.dev.yml \
+  up -d
+```
+
+Generate the migration file
+Then 
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.dev.yml \
+  exec django \
+  python manage.py makemigrations
+```
+
+Then apply the migration
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.dev.yml \
+  exec django \
+  python manage.py migrate
+```
+
+
+
+## Production
+
 If a deployment contains new Django migrations, apply them.
 
 ```bash
