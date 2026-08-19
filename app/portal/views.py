@@ -6,6 +6,8 @@ from django.shortcuts import redirect, render
 from django.views import View
 from django.contrib.auth.decorators import login_required
 
+from .forms import RegistrationForm
+
 from .models import Game, GameResult
 
 from .forms import (
@@ -13,6 +15,9 @@ from .forms import (
     GameResultFormSet,
     PlayerStatisticsFilterForm,
     PlayerScoreTrendsFilterForm,
+    create_registration,
+    PlayerAlreadyClaimedError,
+    PlayerNameUnavailableError,
 )
 
 from .services.game_entry import create_game
@@ -558,5 +563,54 @@ def account(request):
     return render(
         request,
         "portal/account.html",
+        context,
+    )
+
+def register(request):
+    if request.user.is_authenticated:
+        return redirect("portal:account")
+
+    if request.method == "POST":
+        form = RegistrationForm(request.POST)
+
+        if form.is_valid():
+            try:
+                create_registration(
+                    first_name=form.cleaned_data["first_name"],
+                    last_name=form.cleaned_data["last_name"],
+                    username=form.cleaned_data["username"],
+                    email=form.cleaned_data["email"],
+                    password=form.cleaned_data["password1"],
+                    existing_player=form.cleaned_data["existing_player"],
+                    new_player_name=form.cleaned_data["new_player_name"],
+                )
+            except PlayerAlreadyClaimedError:
+                form.add_error(
+                    "existing_player",
+                    "This player has already been linked to another account.",
+                )
+            except PlayerNameUnavailableError:
+                form.add_error(
+                    "new_player_name",
+                    "This player name is no longer available.",
+                )
+            else:
+                messages.success(
+                    request,
+                    "Your registration request was submitted and is awaiting approval.",
+                )
+
+                return redirect("login")
+
+    else:
+        form = RegistrationForm()
+
+    context = {
+        "form": form,
+    }
+
+    return render(
+        request,
+        "portal/register.html",
         context,
     )

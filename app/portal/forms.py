@@ -1,9 +1,17 @@
+import secrets
+
 from django import forms
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
+
 from django.core.exceptions import ValidationError
 from django.forms import BaseFormSet, formset_factory
 from django.utils import timezone
 
 from .models import Game, Player
+
+User = get_user_model()
 
 class GameForm(forms.ModelForm):
     class Meta:
@@ -291,6 +299,150 @@ class PlayerScoreTrendsFilterForm(forms.Form):
             self.add_error(
                 "secondary_player",
                 "The comparison player must be different from the primary player.",
+            )
+
+        return cleaned_data
+
+class RegistrationForm(UserCreationForm):
+    first_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+            }
+        ),
+    )
+
+    last_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+            }
+        ),
+    )
+
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+            }
+        ),
+    )
+
+    invite_code = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+            }
+        ),
+    )
+
+    existing_player = forms.ModelChoiceField(
+        queryset=Player.objects.none(),
+        required=False,
+        empty_label="Select an existing player",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    new_player_name = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+            }
+        ),
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+
+        fields = (
+            "first_name",
+            "last_name",
+            "username",
+            "email",
+            "password1",
+            "password2",
+            "invite_code",
+            "existing_player",
+            "new_player_name",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["existing_player"].queryset = (
+            Player.objects
+            .filter(user__isnull=True)
+            .order_by("name")
+        )
+
+        self.fields["username"].widget.attrs.update(
+            {
+                "class": "form-control",
+            }
+        )
+
+        self.fields["password1"].widget.attrs.update(
+            {
+                "class": "form-control",
+            }
+        )
+
+        self.fields["password2"].widget.attrs.update(
+            {
+                "class": "form-control",
+            }
+        )
+
+    def clean_invite_code(self):
+        invite_code = self.cleaned_data["invite_code"]
+
+        if not secrets.compare_digest(
+            invite_code,
+            settings.REGISTRATION_INVITE_CODE,
+        ):
+            raise ValidationError(
+                "Invalid invitation code."
+            )
+
+        return invite_code
+
+    def clean_new_player_name(self):
+        new_player_name = self.cleaned_data["new_player_name"].strip()
+
+        if (
+            new_player_name
+            and Player.objects.filter(name=new_player_name).exists()
+        ):
+            raise ValidationError(
+                "A player with this name already exists. "
+                "Select the existing player instead."
+            )
+
+        return new_player_name
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        existing_player = cleaned_data.get("existing_player")
+        new_player_name = cleaned_data.get("new_player_name")
+
+        if existing_player and new_player_name:
+            raise ValidationError(
+                "Select an existing player or enter a new player name, "
+                "not both."
+            )
+
+        if existing_player is None and not new_player_name:
+            raise ValidationError(
+                "Select an existing player or enter a new player name."
             )
 
         return cleaned_data

@@ -23,6 +23,7 @@ env = environ.Env()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("DJANGO_SECRET_KEY")
+REGISTRATION_INVITE_CODE = env("REGISTRATION_INVITE_CODE")
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 
