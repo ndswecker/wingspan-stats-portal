@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 from django.views import View
+from django.contrib.auth.decorators import login_required
 
 from .models import Game, GameResult
 
@@ -543,5 +544,19 @@ def player_score_trends(request):
     return render(
         request,
         "portal/player_score_trends.html",
+        context,
+    )
+
+@login_required
+def account(request):
+    player = getattr(request.user, "player", None)
+
+    context = {
+        "player": player,
+    }
+
+    return render(
+        request,
+        "portal/account.html",
         context,
     )

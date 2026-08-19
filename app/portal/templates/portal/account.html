@@ -1,0 +1,38 @@
+{% extends "portal/base.html" %}
+
+{% block title %}
+Account | Wingspan Stats Portal
+{% endblock %}
+
+{% block content %}
+
+<h1 class="mb-3">Account</h1>
+
+<div class="card">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Username</dt>
+            <dd class="col-sm-9">
+                {{ user.username }}
+            </dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">
+                {{ user.email|default:"—" }}
+            </dd>
+
+            <dt class="col-sm-3">Player</dt>
+            <dd class="col-sm-9">
+                {% if player %}
+                    {{ player.name }}
+                {% else %}
+                    <span class="text-muted">
+                        No Player linked
+                    </span>
+                {% endif %}
+            </dd>
+        </dl>
+    </div>
+</div>
+
+{% endblock %}

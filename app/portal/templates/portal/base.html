@@ -65,6 +65,14 @@
                     {% if user.is_authenticated %}
 
                         <li class="nav-item">
+                            <a 
+                            class="nav-link" 
+                            href="{% url 'portal:account' %}">
+                                Account
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
                             <form
                                 method="post"
                                 action="{% url 'logout' %}"
