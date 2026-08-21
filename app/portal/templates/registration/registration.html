@@ -1,3 +1,4 @@
+
 {% extends "portal/base.html" %}
 
 {% block title %}
@@ -17,14 +18,37 @@ Register | Wingspan Stats Portal
             they can be used to log in.
         </p>
 
+        {% if form.errors %}
+            <div class="alert alert-danger" role="alert">
+                <h2 class="h5 alert-heading">
+                    Registration could not be submitted.
+                </h2>
+
+                <p class="mb-2">
+                    Please correct the following errors and submit the form again:
+                </p>
+
+                <ul class="mb-0">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>
+                                <strong>{{ field.label }}:</strong>
+                                {{ error }}
+                            </li>
+                        {% endfor %}
+                    {% endfor %}
+
+                    {% for error in form.non_field_errors %}
+                        <li>
+                            {{ error }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
-
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger">
-                    {{ form.non_field_errors }}
-                </div>
-            {% endif %}
 
             <div class="card mb-4">
                 <div class="card-header">
@@ -43,7 +67,12 @@ Register | Wingspan Stats Portal
                             </label>
 
                             {{ form.first_name }}
-                            {{ form.first_name.errors }}
+
+                            {% for error in form.first_name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -55,7 +84,12 @@ Register | Wingspan Stats Portal
                             </label>
 
                             {{ form.last_name }}
-                            {{ form.last_name.errors }}
+
+                            {% for error in form.last_name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
                         </div>
                     </div>
 
@@ -68,7 +102,12 @@ Register | Wingspan Stats Portal
                         </label>
 
                         {{ form.username }}
-                        {{ form.username.errors }}
+
+                        {% for error in form.username.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
 
                         {% if form.username.help_text %}
                             <div class="form-text">
@@ -86,7 +125,12 @@ Register | Wingspan Stats Portal
                         </label>
 
                         {{ form.email }}
-                        {{ form.email.errors }}
+
+                        {% for error in form.email.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
                     </div>
 
                     <div class="mb-3">
@@ -98,7 +142,12 @@ Register | Wingspan Stats Portal
                         </label>
 
                         {{ form.password1 }}
-                        {{ form.password1.errors }}
+
+                        {% for error in form.password1.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
 
                         {% if form.password1.help_text %}
                             <div class="form-text">
@@ -116,7 +165,12 @@ Register | Wingspan Stats Portal
                         </label>
 
                         {{ form.password2 }}
-                        {{ form.password2.errors }}
+
+                        {% for error in form.password2.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
                     </div>
 
                 </div>
@@ -144,7 +198,12 @@ Register | Wingspan Stats Portal
                         </label>
 
                         {{ form.existing_player }}
-                        {{ form.existing_player.errors }}
+
+                        {% for error in form.existing_player.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
                     </div>
 
                     <div class="text-center text-muted mb-3">
@@ -160,7 +219,12 @@ Register | Wingspan Stats Portal
                         </label>
 
                         {{ form.new_player_name }}
-                        {{ form.new_player_name.errors }}
+
+                        {% for error in form.new_player_name.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
                     </div>
 
                 </div>
@@ -181,7 +245,12 @@ Register | Wingspan Stats Portal
                         </label>
 
                         {{ form.invite_code }}
-                        {{ form.invite_code.errors }}
+
+                        {% for error in form.invite_code.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -199,3 +268,4 @@ Register | Wingspan Stats Portal
 </div>
 
 {% endblock %}
+
