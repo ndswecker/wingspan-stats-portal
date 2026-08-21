@@ -1,50 +1,66 @@
 # Wingspan Portal Operations Guide
 
-This document describes the routine operational procedures for maintaining the production Wingspan Portal deployment.
+Routine procedures for operating the production Wingspan Stats Portal.
 
----
+## Production Environment
 
-# Production Architecture
+Production runs on an Ubuntu server using:
 
-Production consists of the following services:
-
-- Django
-- Gunicorn
+- Django / Gunicorn
 - PostgreSQL
 - Nginx
 - Certbot
+- Docker Compose
 
-The production environment is managed using layered Docker Compose files:
+The application uses layered Compose configuration:
 
 ```text
 docker-compose.yml
 docker-compose.prod.yml
 ```
 
----
+Production project directory:
 
-# Deployment
+```text
+~/projects/wingspan-stats-portal
+```
 
-Deploy the latest version of the application.
+Production site:
 
-## Update the application
+```text
+https://wingspanscores.com
+```
 
-Pull the latest changes and rebuild the application containers.
+## Standard Deployment
+
+Application changes should be merged into `main` and pushed before deployment.
+
+On the production server:
 
 ```bash
+cd ~/projects/wingspan-stats-portal
 git pull
+```
 
+Rebuild and recreate Django and Nginx:
+
+```bash
 docker compose \
   -f docker-compose.yml \
   -f docker-compose.prod.yml \
   up -d --build --force-recreate django nginx
 ```
 
-This rebuilds the Django image and recreates both the Django and Nginx containers to ensure Nginx reconnects to the current Gunicorn instance.
+The Django entrypoint automatically runs:
 
-## Verify the deployment
+```text
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput
+```
 
-Confirm the containers are running.
+Pending migrations are therefore applied automatically whenever the Django container starts.
+
+Verify the deployment:
 
 ```bash
 docker compose \
@@ -53,8 +69,6 @@ docker compose \
   ps
 ```
 
-Review the application logs.
-
 ```bash
 docker compose \
   -f docker-compose.yml \
@@ -62,28 +76,31 @@ docker compose \
   logs --tail=100 django nginx
 ```
 
-Finally, verify the deployment by:
+Then verify the public site and expected application changes in a browser.
 
-- Opening the public website.
-- Confirming the home page loads successfully.
-- Logging into the Django admin.
-- Checking that the expected application changes are present.
+## Environment Configuration
 
----
+The production `.env` is stored in the project root and is not committed to Git.
 
-# Database Migrations
+To copy the local `.env` to production, run from the local project directory:
 
-## Local
-Ensure the local django service is running:
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.dev.yml \
-  up -d
+scp .env \
+  <user>@<server>:~/projects/wingspan-stats-portal/.env
 ```
 
-Generate the migration file
-Then 
+Recreate affected containers after changing `.env` so the new environment is loaded.
+
+Use `.env.example` as the reference for required variables.
+
+Never commit the real `.env`.
+
+## Database Migrations
+
+Migration files are created during development, not production.
+
+After changing Django models:
+
 ```bash
 docker compose \
   -f docker-compose.yml \
@@ -92,20 +109,21 @@ docker compose \
   python manage.py makemigrations
 ```
 
-Then apply the migration
+Commit the generated migration files to Git.
+
+Pending migrations are applied automatically in production by the Django entrypoint.
+
+To inspect migration state manually:
+
 ```bash
 docker compose \
   -f docker-compose.yml \
-  -f docker-compose.dev.yml \
+  -f docker-compose.prod.yml \
   exec django \
-  python manage.py migrate
+  python manage.py showmigrations
 ```
 
-
-
-## Production
-
-If a deployment contains new Django migrations, apply them.
+To manually run migrations when troubleshooting:
 
 ```bash
 docker compose \
@@ -115,13 +133,157 @@ docker compose \
   python manage.py migrate
 ```
 
----
+## Container Status
 
-# Import Updated Game Data
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  ps
+```
 
-Copy the latest CSV to the server.
+## Logs
 
-Run the import command.
+All services:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  logs
+```
+
+Django:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  logs django
+```
+
+Nginx:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  logs nginx
+```
+
+## Service Management
+
+Restart the stack:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  restart
+```
+
+Restart one service:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  restart nginx
+```
+
+Recreate Django and Nginx:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  up -d --force-recreate django nginx
+```
+
+Stop production:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  down
+```
+
+## Django Administration
+
+Admin interface:
+
+```text
+https://wingspanscores.com/admin/
+```
+
+Create a superuser:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  exec django \
+  python manage.py createsuperuser
+```
+
+Open a Django shell:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  exec django \
+  python manage.py shell
+```
+
+## Database Backup
+
+Create a SQL backup:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  exec -T postgres \
+  pg_dump -U <database-user> <database-name> \
+  > wingspan-backup.sql
+```
+
+Store important backups outside the production server.
+
+## PostgreSQL Password Rotation
+
+Changing `POSTGRES_PASSWORD` in `.env` does not change the password in an existing database.
+
+Connect to PostgreSQL:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  exec postgres \
+  psql -U wingspan_user -d wingspan
+```
+
+At the PostgreSQL prompt:
+
+```sql
+\password wingspan_user
+```
+
+Then update both values in `.env`:
+
+```dotenv
+DATABASE_PASSWORD=<new-password>
+POSTGRES_PASSWORD=<new-password>
+```
+
+Recreate Django so it receives the updated credentials.
+
+## Game Data Import
+
+Import game data:
 
 ```bash
 docker compose \
@@ -131,7 +293,7 @@ docker compose \
   python manage.py import_games /workspace/data/wingspan_games.csv
 ```
 
-To completely rebuild game history from the CSV:
+Rebuild game history from the CSV:
 
 ```bash
 docker compose \
@@ -143,35 +305,13 @@ docker compose \
   /workspace/data/wingspan_games.csv
 ```
 
----
+Use `--clear` only when intentionally replacing existing imported game history.
 
-# Django Administration
-
-Create a production superuser.
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec django \
-  python manage.py createsuperuser
-```
-
-The Django administration interface is available at:
-
-```
-https://wingspanscores.com/admin/
-```
-
----
-
-# HTTPS Certificate Renewal
+## HTTPS Certificate Renewal
 
 Let's Encrypt certificates expire every 90 days.
 
-Renew approximately 30 days before expiration.
-
-Run:
+Renew:
 
 ```bash
 docker compose \
@@ -180,7 +320,7 @@ docker compose \
   run --rm certbot renew
 ```
 
-If renewal succeeds, reload Nginx.
+Reload Nginx after successful renewal:
 
 ```bash
 docker compose \
@@ -189,13 +329,11 @@ docker compose \
   exec nginx nginx -s reload
 ```
 
-Verify the certificate expiration using a web browser or another preferred certificate inspection tool.
+Verify the certificate from the public site.
 
----
+## Nginx
 
-# Nginx Configuration Changes
-
-Validate the configuration.
+Validate configuration:
 
 ```bash
 docker compose \
@@ -204,7 +342,7 @@ docker compose \
   exec nginx nginx -t
 ```
 
-Reload Nginx.
+Reload:
 
 ```bash
 docker compose \
@@ -213,7 +351,7 @@ docker compose \
   exec nginx nginx -s reload
 ```
 
-If a reload does not behave as expected, recreate the Nginx container.
+If necessary, recreate Nginx:
 
 ```bash
 docker compose \
@@ -222,126 +360,27 @@ docker compose \
   up -d --force-recreate nginx
 ```
 
----
+## Troubleshooting
 
-# Database Backup
+If production is unavailable:
 
-Create a SQL backup.
+1. Run `docker compose ... ps`.
+2. Review Django and Nginx logs.
+3. Confirm PostgreSQL is running.
+4. Check migration state with `showmigrations`.
+5. Validate Nginx with `nginx -t`.
+6. Recreate affected containers if necessary.
+7. Restore a database backup only if database recovery is required.
 
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec -T postgres \
-  pg_dump -U <database-user> <database-name> \
-  > wingspan-backup.sql
-```
+## Deployment Checklist
 
-Store backups outside of the production server whenever possible.
+After deployment verify:
 
----
-
-# Container Status
-
-View running containers.
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  ps
-```
-
----
-
-# View Logs
-
-View logs for all services.
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  logs
-```
-
-View logs for a single service.
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  logs django
-```
-
-Example:
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  logs nginx
-```
-
----
-
-# Restart Services
-
-Restart the complete application.
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  restart
-```
-
-Restart a single service.
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  restart nginx
-```
-
----
-
-# Shut Down Production
-
-Stop all running services.
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  down
-```
-
----
-
-# Disaster Recovery Checklist
-
-If a deployment fails:
-
-1. Inspect container status.
-2. Review container logs.
-3. Verify PostgreSQL is running.
-4. Verify Nginx configuration.
-5. Verify migrations completed successfully.
-6. Restore the latest database backup if required.
-
----
-
-# Production Checklist
-
-After each deployment verify:
-
+- Containers are running.
 - Home page loads.
-- Games page loads.
-- Django Admin loads.
-- Static CSS and JavaScript load correctly.
-- HTTPS certificate is valid.
-- HTTP redirects to HTTPS.
-- Database contains expected data.
-- No unexpected errors appear in the logs.
+- Games and statistics pages load.
+- Login and Django Admin work.
+- Expected changes are present.
+- Static assets load.
+- HTTPS works.
+- No unexpected errors appear in Django or Nginx logs.
