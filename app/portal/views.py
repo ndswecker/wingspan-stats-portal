@@ -15,9 +15,7 @@ from .forms import (
     GameResultFormSet,
     PlayerStatisticsFilterForm,
     PlayerScoreTrendsFilterForm,
-    create_registration,
-    PlayerAlreadyClaimedError,
-    PlayerNameUnavailableError,
+    RegistrationForm,
 )
 
 from .services.game_entry import create_game
@@ -47,6 +45,12 @@ from .services.player_score_trends import (
     calculate_monthly_score_averages,
     compare_monthly_score_averages,
     resolve_score_trend_period,
+)
+
+from .services.registration import (
+    create_registration,
+    PlayerAlreadyClaimedError,
+    PlayerNameUnavailableError,
 )
 
 def get_available_months():
@@ -611,6 +615,6 @@ def register(request):
 
     return render(
         request,
-        "portal/register.html",
+        "registration/registration.html",
         context,
     )

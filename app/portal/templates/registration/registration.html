@@ -1,0 +1,201 @@
+{% extends "portal/base.html" %}
+
+{% block title %}
+Register | Wingspan Stats Portal
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+
+        <h1 class="mb-3">Create an Account</h1>
+
+        <p class="text-muted">
+            Registration requires an invitation code.
+            New accounts must be approved by an administrator before
+            they can be used to log in.
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    Account Information
+                </div>
+
+                <div class="card-body">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label
+                                for="{{ form.first_name.id_for_label }}"
+                                class="form-label"
+                            >
+                                First Name
+                            </label>
+
+                            {{ form.first_name }}
+                            {{ form.first_name.errors }}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label
+                                for="{{ form.last_name.id_for_label }}"
+                                class="form-label"
+                            >
+                                Last Name
+                            </label>
+
+                            {{ form.last_name }}
+                            {{ form.last_name.errors }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.username.id_for_label }}"
+                            class="form-label"
+                        >
+                            Username
+                        </label>
+
+                        {{ form.username }}
+                        {{ form.username.errors }}
+
+                        {% if form.username.help_text %}
+                            <div class="form-text">
+                                {{ form.username.help_text }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.email.id_for_label }}"
+                            class="form-label"
+                        >
+                            Email
+                        </label>
+
+                        {{ form.email }}
+                        {{ form.email.errors }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.password1.id_for_label }}"
+                            class="form-label"
+                        >
+                            Password
+                        </label>
+
+                        {{ form.password1 }}
+                        {{ form.password1.errors }}
+
+                        {% if form.password1.help_text %}
+                            <div class="form-text">
+                                {{ form.password1.help_text }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.password2.id_for_label }}"
+                            class="form-label"
+                        >
+                            Confirm Password
+                        </label>
+
+                        {{ form.password2 }}
+                        {{ form.password2.errors }}
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    Wingspan Player
+                </div>
+
+                <div class="card-body">
+
+                    <p class="text-muted">
+                        If you already appear in the Wingspan Stats Portal,
+                        select your existing Player. Otherwise, enter the
+                        Player name you would like to create.
+                    </p>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.existing_player.id_for_label }}"
+                            class="form-label"
+                        >
+                            Existing Player
+                        </label>
+
+                        {{ form.existing_player }}
+                        {{ form.existing_player.errors }}
+                    </div>
+
+                    <div class="text-center text-muted mb-3">
+                        — or —
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.new_player_name.id_for_label }}"
+                            class="form-label"
+                        >
+                            New Player Name
+                        </label>
+
+                        {{ form.new_player_name }}
+                        {{ form.new_player_name.errors }}
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    Invitation
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.invite_code.id_for_label }}"
+                            class="form-label"
+                        >
+                            Invitation Code
+                        </label>
+
+                        {{ form.invite_code }}
+                        {{ form.invite_code.errors }}
+                    </div>
+                </div>
+            </div>
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Submit Registration Request
+            </button>
+
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}
