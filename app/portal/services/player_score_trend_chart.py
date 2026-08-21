@@ -27,7 +27,7 @@ def build_monthly_score_chart(
     period_label: str,
 ) -> go.Figure:
     """
-    Build a monthly average-score column chart.
+    Build a monthly average-score line chart.
 
     This function receives prepared monthly data and performs no database
     queries or statistical calculations. In single-player mode, the selected
@@ -74,27 +74,22 @@ def build_monthly_score_chart(
         for monthly_score in monthly_scores
     ]
 
-    score_labels = []
-
-    for score in average_scores:
-        if score is None:
-            score_labels.append("")
-        else:
-            score_labels.append(
-                f"{score:.1f}"
-            )
-
     figure = go.Figure(
         data=[
-            go.Bar(
+            go.Scatter(
                 x=month_labels,
                 y=average_scores,
-                text=score_labels,
-                textposition="outside",
-                opacity=PRIMARY_BAR_OPACITY,
+                mode="lines+markers",
+                line={
+                    "color": PRIMARY_PLAYER_COLOR,
+                    "width": 3,
+                },
                 marker={
                     "color": PRIMARY_PLAYER_COLOR,
+                    "size": 8,
                 },
+                opacity=PRIMARY_BAR_OPACITY,
+                connectgaps=False,
                 customdata=hover_data,
                 hovertemplate=(
                     "<b>%{customdata[0]}</b><br>"
@@ -132,7 +127,6 @@ def build_monthly_score_chart(
             "fixedrange": True,
         },
         showlegend=False,
-        barcornerradius=BAR_CORNER_RADIUS,
     )
 
     apply_common_chart_layout(
@@ -140,6 +134,7 @@ def build_monthly_score_chart(
     )
 
     return figure
+
 
 def build_monthly_score_comparison_chart(
     *,
@@ -151,12 +146,11 @@ def build_monthly_score_comparison_chart(
     period_label: str,
 ) -> go.Figure:
     """
-    Build an overlapping monthly average-score comparison chart.
+    Build a monthly average-score comparison line chart.
 
-    Both players share the same monthly axis and score scale. The Secondary
-    Player is rendered as the wider background series while the Primary
-    Player is rendered as the narrower foreground series using the shared
-    Wingspan chart styling.
+    Both players share the same monthly axis and score scale. The Primary
+    Player receives the stronger visual treatment while the Secondary Player
+    receives the lighter comparison treatment.
 
     This function receives prepared monthly data and performs no database
     queries or statistical calculations.
@@ -232,28 +226,23 @@ def build_monthly_score_comparison_chart(
         for monthly_score in secondary_monthly_scores
     ]
 
-    primary_score_labels = [
-        (
-            ""
-            if score is None
-            else f"{score:.1f}"
-        )
-        for score in primary_average_scores
-    ]
-
     figure = go.Figure()
 
-    # The Secondary Player is added first as the wider, lighter background
-    # series so the Primary Player remains visually dominant.
     figure.add_trace(
-        go.Bar(
+        go.Scatter(
             x=month_labels,
             y=secondary_average_scores,
-            width=SECONDARY_OVERLAY_BAR_WIDTH_RATIO,
-            opacity=SECONDARY_BAR_OPACITY,
+            mode="lines+markers",
+            line={
+                "color": SECONDARY_PLAYER_COLOR,
+                "width": 2,
+            },
             marker={
                 "color": SECONDARY_PLAYER_COLOR,
+                "size": 7,
             },
+            opacity=SECONDARY_BAR_OPACITY,
+            connectgaps=False,
             name=secondary_player.name,
             customdata=secondary_hover_data,
             hovertemplate=(
@@ -266,20 +255,22 @@ def build_monthly_score_comparison_chart(
         )
     )
 
-    # The Primary Player is added second as the narrower foreground series.
-    # Persistent labels remain exclusive to the Primary Player.
     figure.add_trace(
-        go.Bar(
+        go.Scatter(
             x=month_labels,
             y=primary_average_scores,
-            width=PRIMARY_OVERLAY_BAR_WIDTH_RATIO,
-            opacity=PRIMARY_BAR_OPACITY,
+            mode="lines+markers",
+            line={
+                "color": PRIMARY_PLAYER_COLOR,
+                "width": 3,
+            },
             marker={
                 "color": PRIMARY_PLAYER_COLOR,
+                "size": 9,
             },
+            opacity=PRIMARY_BAR_OPACITY,
+            connectgaps=False,
             name=primary_player.name,
-            text=primary_score_labels,
-            textposition="outside",
             customdata=primary_hover_data,
             hovertemplate=(
                 f"<b>{primary_player.name}</b><br>"
@@ -300,8 +291,6 @@ def build_monthly_score_comparison_chart(
             "x": 0.5,
             "xanchor": "center",
         },
-        barmode="overlay",
-        barcornerradius=BAR_CORNER_RADIUS,
         xaxis={
             "title": None,
             "type": "category",
@@ -335,4 +324,3 @@ def _build_month_label(
         return monthly_score.month_start.strftime("%b %y")
 
     return monthly_score.month_abbreviation
-
