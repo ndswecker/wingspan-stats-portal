@@ -118,13 +118,13 @@ def calculate_player_game_result(
         outcome=outcome,
     )
 
-def calculate_player_game_results(
+def build_player_game_results(
     *,
     games: QuerySet[Game],
     player: Player,
 ) -> list[PlayerGameResult]:
     """
-    Calculate the selected player's result for each competitive game.
+    Builds the selected player's result for each competitive game.
     """
     player_game_results = []
 
@@ -198,3 +198,64 @@ def calculate_player_daily_result(
         ties=ties,
         total_score=total_score,
     )
+
+def build_player_daily_results(
+    *,
+    player: Player,
+    grouped_player_game_results: dict[date, list[PlayerGameResult]],
+) -> list[PlayerDailyResult]:
+    """Build the player's daily results from game results grouped by date"""
+
+    player_daily_results = []
+
+    for date_played, player_game_results in grouped_player_game_results.items():
+        player_daily_result = calculate_player_daily_result(
+            player=player,
+            date_played=date_played,
+            player_game_results=player_game_results,
+        )
+
+        player_daily_results.append(player_daily_result)
+
+    player_daily_results.sort(
+        key=lambda daily_result: daily_result.date_played,
+        reverse=True,
+    )
+
+    return player_daily_results
+
+def build_player_history(
+    *,
+    player: Player,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> list[PlayerDailyResult]:
+    """Build a player's competitive game history grouped into daily results."""
+
+    # Select all competitive games involving the player within the requested date range.
+    games = select_player_competitive_games(
+        player=player,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    # Convert each selected game into a PlayerGameResult
+    # This is where the player's WIN, LOSS, or TIE outcome is determined.
+    player_game_results = build_player_game_results(
+        games=games,
+        player=player,
+    )
+
+    # Organize the individual game results by the date each game was played.
+    grouped_player_game_results = group_player_game_results_by_date(
+        player_game_results=player_game_results,
+    )
+
+    # Build one PlayerDailyResult for each date, including daily totals
+    # and the individual game results for that day.
+    player_daily_results = build_player_daily_results(
+        player=player,
+        grouped_player_game_results=grouped_player_game_results,
+    )
+
+    return player_daily_results
