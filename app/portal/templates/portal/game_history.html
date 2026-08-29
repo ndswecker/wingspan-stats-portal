@@ -1,116 +1,661 @@
 {% extends "portal/base.html" %}
 
-{% block title %}Games | Wingspan Stats Portal{% endblock %}
+{% block title %}
+Game History | Wingspan Stats Portal
+{% endblock %}
 
 {% block content %}
+
 <h1 class="mb-3">Game History</h1>
 
-{% if view_mode == "all" %}
-    <p class="text-muted">Showing all recorded games.</p>
-    <p>
-        <a class="btn btn-outline-primary btn-sm" href="{% url 'portal:game_history' %}">
-            Return to monthly view
-        </a>
-    </p>
-{% else %}
-    <p class="text-muted">
-        Showing games played during {{ current_month|date:"F Y" }}.
-    </p>
-    <p>
-        <a class="btn btn-outline-primary btn-sm" href="?view=all">
-            View all games
-        </a>
-    </p>
-{% endif %}
+<p class="text-muted">
+    View a player's competitive game history and optionally compare it with another player.
+</p>
 
-<h6 class="text-muted mb-2">Legend</h6>
 
-<div class="table-responsive mb-4">
-    <table class="table table-sm w-auto mb-0">
-        <tbody>
-            <tr>
-                <td class="table-success fw-bold">Game Winner</td>
-                <td class="night-winner-pattern">Night Winner</td>
-                <td class="table-success night-winner-pattern fw-bold">
-                    Game &amp; Night Winner
-                </td>
-            </tr>
-        </tbody>
-    </table>
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get">
+
+            <div class="row g-3">
+
+                <div class="col-12 col-md-6">
+                    <label
+                        class="form-label"
+                        for="{{ filter_form.player.id_for_label }}"
+                    >
+                        Player
+                    </label>
+
+                    {{ filter_form.player }}
+
+                    {% for error in filter_form.player.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+
+                <div class="col-12 col-md-6">
+                    <label
+                        class="form-label"
+                        for="{{ filter_form.secondary_player.id_for_label }}"
+                    >
+                        Comparison Player
+                    </label>
+
+                    {{ filter_form.secondary_player }}
+
+                    {% for error in filter_form.secondary_player.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+
+                <div class="col-12 col-md-6">
+                    <label
+                        class="form-label"
+                        for="{{ filter_form.start_date.id_for_label }}"
+                    >
+                        Start Date
+                    </label>
+
+                    {{ filter_form.start_date }}
+                    <div class="form-text">
+                        Leave blank to include games from the beginning
+                    </div>
+
+                    {% for error in filter_form.start_date.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+
+                <div class="col-12 col-md-6">
+                    <label
+                        class="form-label"
+                        for="{{ filter_form.end_date.id_for_label }}"
+                    >
+                        End Date
+                    </label>
+
+                    {{ filter_form.end_date }}
+                    <div class="form-text">
+                        Leave black to include games through today
+                    </div>
+
+                    {% for error in filter_form.end_date.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+
+
+            {% for error in filter_form.non_field_errors %}
+                <div class="alert alert-danger mt-3 mb-0">
+                    {{ error }}
+                </div>
+            {% endfor %}
+
+
+            <div class="d-flex flex-wrap gap-2 mt-3">
+
+                <button
+                    class="btn btn-primary"
+                    type="submit"
+                    name="action"
+                    value="custom"
+                >
+                    View Games
+                </button>
+
+                <button
+                    class="btn btn-outline-primary"
+                    type="submit"
+                    name="action"
+                    value="this_month"
+                >
+                    This Month
+                </button>
+
+                <button
+                    class="btn btn-outline-secondary"
+                    type="submit"
+                    name="action"
+                    value="all"
+                >
+                    All Games
+                </button>
+
+                    <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    onclick="
+                        document.getElementById('{{ filter_form.start_date.id_for_label }}').value = '';
+                        document.getElementById('{{ filter_form.end_date.id_for_label }}').value = '';
+                    "
+                >
+                    Clear Dates
+                </button>
+
+            </div>
+
+        </form>
+    </div>
 </div>
 
-{% if game_rows %}
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th scope="col">Date</th>
-                    <th scope="col">{{game_rows.0.player_one.player}}</th>
-                    <th scope="col">{{game_rows.0.player_two.player}}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for game in game_rows %}
-                    <tr class="{{ game.row_class }} {% if game.is_new_date_group %}game-night-start{% endif %}">
-                        <td>{{ game.date_played }}</td>
-                        <td class="{% if game.night_winner == game.player_one.player %}night-winner-pattern{% endif %} {% if game.winner == game.player_one %}fw-bold table-success{% endif %}">
-                            {{ game.player_one.score }}
-                        </td>
-                        <td class="{% if game.night_winner == game.player_two.player %}night-winner-pattern{% endif %} {% if game.winner == game.player_two %}fw-bold table-success{% endif %}">
-                            {{ game.player_two.score }}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+{% if not filter_form.is_bound %}
+
+    <div class="alert alert-info" role="status">
+        Select a player to view competitive game history.
     </div>
 
-    {% if view_mode != "all" %}
-        <nav aria-label="Game history month navigation">
-            <ul class="pagination justify-content-center mt-4">
-                {% if next_month %}
-                    <li class="page-item">
-                        <a class="page-link" href="?month={{ next_month|date:'Y-m' }}">
-                            &larr;
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">&larr;</span>
-                    </li>
-                {% endif %}
 
-                <li class="page-item disabled">
-                    <span class="page-link">
-                        {{ current_month|date:"F Y" }}
-                    </span>
-                </li>
+{% elif filter_form.is_valid %}
 
-                {% if previous_month %}
-                    <li class="page-item">
-                        <a class="page-link" href="?month={{ previous_month|date:'Y-m' }}">
-                            &rarr;
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">&rarr;</span>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
+    {% if has_results %}
 
-        {% if current_month != latest_month %}
-            <div class="text-center">
-                <a class="btn btn-outline-primary btn-sm" href="{% url 'portal:game_history' %}">
-                    Most Recent Month
-                </a>
+
+        {# Overall history summary #}
+
+        <div class="card mb-4">
+            <div class="card-body">
+
+                <h2 class="h5 mb-3">
+                    Summary
+                </h2>
+
+                <div class="row g-3">
+
+                    {# Primary player summary #}
+
+                    <div class="col-12 {% if is_comparison %}col-md-6{% endif %}">
+                        <div class="border rounded p-3 h-100">
+
+                            <div class="fw-bold mb-2">
+                                {{ player_history_summary.player }}
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-2 align-items-baseline">
+
+                                <span>
+                                    {{ player_history_summary.wins }}
+                                    Win{{ player_history_summary.wins|pluralize }}
+                                </span>
+
+                                <span class="text-muted">
+                                    ·
+                                </span>
+
+                                <span>
+                                    {{ player_history_summary.losses }}
+                                    Loss{{ player_history_summary.losses|pluralize:"es" }}
+                                </span>
+
+                                <span class="text-muted">
+                                    ·
+                                </span>
+
+                                <span>
+                                    {{ player_history_summary.ties }}
+                                    Tie{{ player_history_summary.ties|pluralize }}
+                                </span>
+
+                                <span class="text-muted">
+                                    ·
+                                </span>
+
+                                <span>
+                                    {{ player_history_summary.games_played }}
+                                    Game{{ player_history_summary.games_played|pluralize }}
+                                </span>
+
+                                <span class="text-muted">
+                                    ·
+                                </span>
+
+                                <strong>
+                                    {{ player_history_summary.total_score }} pts
+                                </strong>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+
+                    {# Secondary player summary, comparison mode only #}
+
+                    {% if is_comparison %}
+
+                        <div class="col-12 col-md-6">
+                            <div class="border rounded p-3 h-100">
+
+                                <div class="fw-bold mb-2">
+                                    {{ secondary_history_summary.player }}
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-2 align-items-baseline">
+
+                                    <span>
+                                        {{ secondary_history_summary.wins }}
+                                        Win{{ secondary_history_summary.wins|pluralize }}
+                                    </span>
+
+                                    <span class="text-muted">
+                                        ·
+                                    </span>
+
+                                    <span>
+                                        {{ secondary_history_summary.losses }}
+                                        Loss{{ secondary_history_summary.losses|pluralize:"es" }}
+                                    </span>
+
+                                    <span class="text-muted">
+                                        ·
+                                    </span>
+
+                                    <span>
+                                        {{ secondary_history_summary.ties }}
+                                        Tie{{ secondary_history_summary.ties|pluralize }}
+                                    </span>
+
+                                    <span class="text-muted">
+                                        ·
+                                    </span>
+
+                                    <span>
+                                        {{ secondary_history_summary.games_played }}
+                                        Game{{ secondary_history_summary.games_played|pluralize }}
+                                    </span>
+
+                                    <span class="text-muted">
+                                        ·
+                                    </span>
+
+                                    <strong>
+                                        {{ secondary_history_summary.total_score }} pts
+                                    </strong>
+
+                                </div>
+
+                            </div>
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
             </div>
+        </div>
+
+
+        {% if is_comparison %}
+
+            <div class="mb-4">
+                <h2 class="h4 mb-1">
+                    {{ selected_player }}
+                    <span class="text-muted">and</span>
+                    {{ selected_secondary_player }}
+                </h2>
+
+                <p class="text-muted mb-0">
+                    Competitive game history
+                </p>
+            </div>
+
+
+            {% for comparison_row in comparison_rows %}
+
+                <section class="card mb-4">
+
+                    <div class="card-header">
+                        <strong>
+                            {{ comparison_row.date_played|date:"F j, Y" }}
+                        </strong>
+                    </div>
+
+
+                    <div class="card-body">
+
+                        {# Primary player lane #}
+
+                        <div class="mb-4">
+
+                            <div class="row g-3 align-items-center">
+
+                                <div class="col-12 col-lg-2">
+                                    <strong>
+                                        {{ selected_player }}
+                                    </strong>
+                                </div>
+
+
+                                <div class="col-12 col-lg-7">
+
+                                    {% if comparison_row.primary_daily_result %}
+
+                                        <div class="d-flex flex-wrap gap-2">
+
+                                            {% for game_result in comparison_row.primary_daily_result.game_results %}
+
+                                                <div class="card">
+                                                    <div class="card-body py-2 px-3">
+
+                                                        <div class="fw-bold">
+                                                            {{ game_result.score }}
+                                                        </div>
+
+                                                        {% if game_result.outcome == "win" %}
+                                                            <span class="badge text-bg-success">
+                                                                WIN
+                                                            </span>
+
+                                                        {% elif game_result.outcome == "loss" %}
+                                                            <span class="badge text-bg-danger">
+                                                                LOSS
+                                                            </span>
+
+                                                        {% elif game_result.outcome == "tie" %}
+                                                            <span class="badge text-bg-warning">
+                                                                TIE
+                                                            </span>
+                                                        {% endif %}
+
+                                                        <div class="small text-muted mt-1">
+                                                            Game {{ game_result.game.id }}
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                            {% endfor %}
+
+                                        </div>
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            No games
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+
+                                <div class="col-12 col-lg-3">
+
+                                    {% if comparison_row.primary_daily_result %}
+
+                                        <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                                            <span class="small fw-bold">
+                                                {{ comparison_row.primary_daily_result.wins }}
+                                                Win{{ comparison_row.primary_daily_result.wins|pluralize }}
+                                                ·
+                                                {{ comparison_row.primary_daily_result.losses }}
+                                                Loss{{ comparison_row.primary_daily_result.losses|pluralize:"es" }}
+                                                ·
+                                                {{ comparison_row.primary_daily_result.ties }}
+                                                Tie{{ comparison_row.primary_daily_result.ties|pluralize }}
+                                                ·
+                                                {{ comparison_row.primary_daily_result.games_played }}
+                                                Game{{ comparison_row.primary_daily_result.games_played|pluralize }}
+                                            </span>
+
+                                            <span class="fw-bold fs-5">
+                                                · {{ comparison_row.primary_daily_result.total_score }} pts
+                                            </span>
+                                        </div>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <hr>
+
+
+                        {# Secondary player lane #}
+
+                        <div class="mt-4">
+
+                            <div class="row g-3 align-items-center">
+
+                                <div class="col-12 col-lg-2">
+                                    <strong>
+                                        {{ selected_secondary_player }}
+                                    </strong>
+                                </div>
+
+
+                                <div class="col-12 col-lg-7">
+
+                                    {% if comparison_row.secondary_daily_result %}
+
+                                        <div class="d-flex flex-wrap gap-2">
+
+                                            {% for game_result in comparison_row.secondary_daily_result.game_results %}
+
+                                                <div class="card">
+                                                    <div class="card-body py-2 px-3">
+
+                                                        <div class="fw-bold">
+                                                            {{ game_result.score }}
+                                                        </div>
+
+                                                        {% if game_result.outcome == "win" %}
+                                                            <span class="badge text-bg-success">
+                                                                WIN
+                                                            </span>
+
+                                                        {% elif game_result.outcome == "loss" %}
+                                                            <span class="badge text-bg-danger">
+                                                                LOSS
+                                                            </span>
+
+                                                        {% elif game_result.outcome == "tie" %}
+                                                            <span class="badge text-bg-warning">
+                                                                TIE
+                                                            </span>
+                                                        {% endif %}
+
+                                                        <div class="small text-muted mt-1">
+                                                            Game {{ game_result.game.id }}
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                            {% endfor %}
+
+                                        </div>
+
+                                    {% else %}
+
+                                        <span class="text-muted">
+                                            No games
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+
+                                <div class="col-12 col-lg-3">
+
+                                    {% if comparison_row.secondary_daily_result %}
+
+                                        <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                                            <span class="small fw-bold">
+                                                {{ comparison_row.secondary_daily_result.wins }}
+                                                Win{{ comparison_row.secondary_daily_result.wins|pluralize }}
+                                                ·
+                                                {{ comparison_row.secondary_daily_result.losses }}
+                                                Loss{{ comparison_row.secondary_daily_result.losses|pluralize:"es" }}
+                                                ·
+                                                {{ comparison_row.secondary_daily_result.ties }}
+                                                Tie{{ comparison_row.secondary_daily_result.ties|pluralize }}
+                                                ·
+                                                {{ comparison_row.secondary_daily_result.games_played }}
+                                                Game{{ comparison_row.secondary_daily_result.games_played|pluralize }}
+                                            </span>
+
+                                            <span class="fw-bold fs-5">
+                                                · {{ comparison_row.secondary_daily_result.total_score }} pts
+                                            </span>
+                                        </div>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+            {% endfor %}
+
+
+        {% else %}
+
+            <div class="mb-4">
+                <h2 class="h4 mb-1">
+                    {{ selected_player }}
+                </h2>
+
+                <p class="text-muted mb-0">
+                    Competitive game history
+                </p>
+            </div>
+
+
+            {% for daily_result in player_history %}
+
+                <section class="card mb-4">
+
+                    <div class="card-header">
+                        <strong>
+                            {{ daily_result.date_played|date:"F j, Y" }}
+                        </strong>
+                    </div>
+
+
+                    <div class="card-body">
+
+                        <div class="row g-3 align-items-center">
+
+                            <div class="col-12 col-lg-2">
+                                <strong>
+                                    {{ daily_result.player }}
+                                </strong>
+                            </div>
+
+
+                            <div class="col-12 col-lg-7">
+
+                                <div class="d-flex flex-wrap gap-2">
+
+                                    {% for game_result in daily_result.game_results %}
+
+                                        <div class="card">
+                                            <div class="card-body py-2 px-3">
+
+                                                <div class="fw-bold">
+                                                    {{ game_result.score }}
+                                                </div>
+
+                                                {% if game_result.outcome == "win" %}
+                                                    <span class="badge text-bg-success">
+                                                        WIN
+                                                    </span>
+
+                                                {% elif game_result.outcome == "loss" %}
+                                                    <span class="badge text-bg-danger">
+                                                        LOSS
+                                                    </span>
+
+                                                {% elif game_result.outcome == "tie" %}
+                                                    <span class="badge text-bg-warning">
+                                                        TIE
+                                                    </span>
+                                                {% endif %}
+
+                                                <div class="small text-muted mt-1">
+                                                    Game {{ game_result.game.id }}
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+                                    {% endfor %}
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-12 col-lg-3">
+
+                                <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                                    <span class="small fw-bold">
+                                        {{ daily_result.wins }}
+                                        Win{{ daily_result.wins|pluralize }}
+                                        ·
+                                        {{ daily_result.losses }}
+                                        Loss{{ daily_result.losses|pluralize:"es" }}
+                                        ·
+                                        {{ daily_result.ties }}
+                                        Tie{{ daily_result.ties|pluralize }}
+                                        ·
+                                        {{ daily_result.games_played }}
+                                        Game{{ daily_result.games_played|pluralize }}
+                                    </span>
+
+                                    <span class="fw-bold fs-5">
+                                        · {{ daily_result.total_score }} pts
+                                    </span>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+            {% endfor %}
+
+
         {% endif %}
+
+
+    {% else %}
+
+        <div class="alert alert-warning" role="status">
+            No matching competitive games were found for this selection.
+        </div>
 
     {% endif %}
 
-{% else %}
-    <p>No games have been recorded yet.</p>
 {% endif %}
+
 {% endblock %}

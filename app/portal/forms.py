@@ -446,3 +446,86 @@ class RegistrationForm(UserCreationForm):
             )
 
         return cleaned_data
+
+
+class PlayerGameHistoryFilterForm(forms.Form):
+    player = forms.ModelChoiceField(
+        queryset=Player.objects.none(),
+        empty_label="Select a Player",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    secondary_player = forms.ModelChoiceField(
+        queryset=Player.objects.none(),
+        required=False,
+        empty_label="No Comparison",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
+            }
+        ),
+    )
+
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        players = (
+            Player.objects.order_by("name")
+        )
+
+        self.fields["player"].queryset = players
+        self.fields["secondary_player"].queryset = players
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        player = cleaned_data.get("player")
+        secondary_player = cleaned_data.get("secondary_player")
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
+
+        if (
+            player is not None
+            and secondary_player is not None
+            and player == secondary_player
+        ):
+            self.add_error(
+                "secondary_player",
+                "The comparison player must be different from the primary player.",
+            )
+
+        if (
+            start_date is not None
+            and end_date is not None
+            and start_date > end_date
+        ):
+            self.add_error(
+                "end_date",
+                "End date cannot be earlier than start date.",
+            )
+
+        return cleaned_data
