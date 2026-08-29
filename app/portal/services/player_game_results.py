@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
+from collections import defaultdict
 
 from django.db.models import QuerySet
 
@@ -18,6 +19,17 @@ class PlayerGameResult:
     player: Player
     score: int
     outcome: GameOutcome
+
+@dataclass(frozen=True)
+class PlayerDailyResult:
+    player: Player
+    date_played: date
+    game_results: list[PlayerGameResult]
+    games_played: int
+    wins: int
+    losses: int
+    ties: int
+    total_score: int
 
 def select_player_competitive_games(
     *,
@@ -106,3 +118,83 @@ def calculate_player_game_result(
         outcome=outcome,
     )
 
+def calculate_player_game_results(
+    *,
+    games: QuerySet[Game],
+    player: Player,
+) -> list[PlayerGameResult]:
+    """
+    Calculate the selected player's result for each competitive game.
+    """
+    player_game_results = []
+
+    for game in games:
+        player_game_result = calculate_player_game_result(
+            game=game,
+            player=player,
+        )
+
+        player_game_results.append(player_game_result)
+
+    return player_game_results
+
+from collections import defaultdict
+
+
+def group_player_game_results_by_date(
+    *,
+    player_game_results: list[PlayerGameResult],
+) -> dict[date, list[PlayerGameResult]]:
+    """
+    Group a player's calculated game results by the date each game was played.
+    """
+    results_by_date = defaultdict(list)
+
+    for player_game_result in player_game_results:
+        date_played = player_game_result.game.date_played
+
+        results_by_date[date_played].append(
+            player_game_result,
+        )
+
+    return dict(results_by_date)
+
+def calculate_player_daily_result(
+    *,
+    player: Player,
+    date_played: date,
+    player_game_results: list[PlayerGameResult],
+) -> PlayerDailyResult:
+    """Calculate one player's aggregate competitive results for one date"""
+
+    wins = 0
+    losses = 0
+    ties = 0
+    total_score = 0
+
+    for player_game_result in player_game_results:
+        if player_game_result.player != player:
+            raise ValueError("All game results must belong to the selected player")
+
+        if player_game_result.game.date_played != date_played:
+            raise ValueError("All game results must belong to the selected date")
+
+        total_score += player_game_result.score
+
+        if player_game_result.outcome == GameOutcome.WIN:
+            wins += 1
+        elif player_game_result.outcome == GameOutcome.LOSS:
+            losses += 1
+        elif player_game_result.outcome == GameOutcome.TIE:
+            ties += 1
+
+    return PlayerDailyResult(
+        player=player,
+        date_played=date_played,
+        game_results=player_game_results,
+        games_played=len(player_game_results),
+        wins=wins,
+        losses=losses,
+        ties=ties,
+        total_score=total_score,
+    )

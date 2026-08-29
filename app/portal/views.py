@@ -270,7 +270,7 @@ class StaffRequiredMixin(LoginRequiredMixin):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
     
-class GameCreateView(StaffRequiredMixin, View):
+class GameCreateView(LoginRequiredMixin, View):
     template_name = "portal/game_create.html"
 
     def get(self, request):
