@@ -69,6 +69,10 @@ class GameResult(models.Model):
 
     score = models.PositiveSmallIntegerField()
 
+    is_confirmed = models.BooleanField(
+        default=False,
+    )
+
     class Meta:
         ordering = ["game", "-score", "player"]
         constraints = [

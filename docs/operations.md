@@ -101,6 +101,17 @@ Migration files are created during development, not production.
 
 After changing Django models:
 
+Run the Django service in detached mode
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.dev.yml \
+  up -d
+```
+
+Then make the migration. This writes the instructions. Django examines the models, detects changes, 
+and creates a migration python fie describing how the database schema should change. 
+It does not actually change the database.
 ```bash
 docker compose \
   -f docker-compose.yml \

@@ -45,6 +45,7 @@ class GameAdmin(admin.ModelAdmin):
 @admin.register(GameResult)
 class GameResultAdmin(admin.ModelAdmin):
     list_display = (
+        "is_confirmed",
         "game__date_played",
         "game__mode",
         "game__id",
@@ -52,7 +53,7 @@ class GameResultAdmin(admin.ModelAdmin):
         "turn_order", 
         "score",
     )
-    list_filter = ("game__date_played", "game__human_player_mode", "player")
+    list_filter = ("game__date_played", "game__human_player_mode", "player", "is_confirmed")
     search_fields = ("player__name", "player__user__username", "player__user__email")
     date_hierarchy = "game__date_played"
 
