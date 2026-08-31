@@ -234,3 +234,89 @@ This feature does not introduce:
 
 These may be added later without changing the core principle that
 confirmation belongs to an individual player's `GameResult`.
+
+------------------------------------------------------------------------
+
+## Production Data Migration Preparation
+
+Before deploying the `GameResult.is_confirmed` database migration, a manual PostgreSQL backup was created on the production server.
+
+The purpose of this backup is to provide a recovery point before applying migrations that modify the production database schema and existing data.
+
+### Backup Location
+
+Production database backups are stored outside the application Git repository:
+
+```text
+/home/ndswecker/backups/wingspan/
+```
+The directory was created with:
+```bash
+mkdir -p ~/backups/wingspan
+```
+
+This keeps database dumps separate from application source code and prevents them from accidentally being committed to Git.
+
+### Create the Database Backup
+
+From the Wingspan Portal project directory:
+
+`/home/ndswecker/projects/wingspan-stats-portal`
+
+the production PostgreSQL database was dumped with:
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  exec -T postgres \
+  pg_dump -U wingspan_user wingspan \
+  > ~/backups/wingspan/wingspan-2026-08-30.sql
+  ```
+
+This runs pg_dump inside the production PostgreSQL container and writes the resulting SQL dump to the host server.
+
+The database is:
+
+`wingspan`
+
+and the PostgreSQL user is:
+
+`wingspan_user`
+### Verify the Backup
+
+Verify that the backup file exists and is non-empty:
+
+`ls -lh ~/backups/wingspan/`
+
+The resulting backup was approximately 53 KB:
+
+`wingspan-2026-08-30.sql``
+
+Inspect the beginning of the dump:
+
+`head -n 10 ~/backups/wingspan/wingspan-2026-08-30.sql`
+
+The file should begin with a PostgreSQL dump header similar to:
+```text
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version ...
+-- Dumped by pg_dump version ...
+```
+
+This provides a basic sanity check that pg_dump produced the expected SQL dump rather than an empty file or command error.
+
+A full restore test was not performed as part of this migration preparation.
+
+### Reason for the Backup
+
+The upcoming migrations modify GameResult data:
+
+1. 0004_gameresult_is_confirmed adds the is_confirmed Boolean field with a default of False.
+1. 0005_confirm_existing_game_results sets all existing GameResult records to is_confirmed=True.
+
+Existing results are considered trusted historical data and therefore begin in the confirmed state. New results will continue to use the model default of False and will be confirmed according to the application's result-confirmation rules.
+
+The production backup was created before applying these migrations so the pre-migration database state is preserved if recovery is required.
