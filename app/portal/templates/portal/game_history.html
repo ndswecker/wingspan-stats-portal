@@ -372,8 +372,9 @@ Game History | Wingspan Stats Portal
                                                         {% endif %}
 
                                                         <div class="small text-muted mt-1">
-                                                            Game {{ game_result.game.id }}
-                                                        </div>
+                                                            <a href="{% url 'portal:game-detail' game_result.game.id %}">
+                                                                Game {{ game_result.game.id }}
+                                                            </a>                                                        </div>
 
                                                     </div>
                                                 </div>
@@ -474,7 +475,9 @@ Game History | Wingspan Stats Portal
                                                         {% endif %}
 
                                                         <div class="small text-muted mt-1">
-                                                            Game {{ game_result.game.id }}
+                                                            <a href="{% url 'portal:game-detail' game_result.game.id %}">
+                                                                Game {{ game_result.game.id }}
+                                                            </a>
                                                         </div>
 
                                                     </div>
@@ -599,7 +602,9 @@ Game History | Wingspan Stats Portal
                                                 {% endif %}
 
                                                 <div class="small text-muted mt-1">
-                                                    Game {{ game_result.game.id }}
+                                                    <a href="{% url 'portal:game-detail' game_result.game.id %}">
+                                                        Game {{ game_result.game.id }}
+                                                    </a>
                                                 </div>
 
                                             </div>

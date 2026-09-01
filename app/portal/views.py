@@ -6,6 +6,7 @@ from django.shortcuts import redirect, render
 from django.views import View
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import Game, GameResult
 
@@ -228,6 +229,26 @@ class GameCreateView(LoginRequiredMixin, View):
             self.template_name,
             context,
         )
+
+def game_detail(request, pk):
+    # When retrieving this game I'm going to need its game results, and the player associated
+    # with each result
+    game = get_object_or_404(
+        Game.objects.prefetch_related(
+            "results__player",
+        ),
+        pk=pk,
+    )
+    
+    context = {
+        "game": game,
+    }
+
+    return render(
+        request,
+        "portal/game_detail.html",
+        context,
+    )
 
 def player_overview(request):
     filter_form = PlayerStatisticsFilterForm(

@@ -1,0 +1,159 @@
+{% extends "portal/base.html" %}
+
+{% block title %}
+Game {{ game.id }} | Wingspan Stats Portal
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+
+    <div>
+        <h1 class="mb-1">
+            Game {{ game.id }}
+        </h1>
+
+        <p class="text-muted mb-0">
+            {{ game.date_played|date:"F j, Y" }}
+        </p>
+    </div>
+
+    <a
+        class="btn btn-outline-secondary"
+        href="{% url 'portal:game_history' %}"
+    >
+        Back to Game History
+    </a>
+
+</div>
+
+
+<div class="card mb-4">
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-12 col-md-6">
+                <div class="text-muted small">
+                    Date Played
+                </div>
+
+                <div class="fw-bold">
+                    {{ game.date_played|date:"F j, Y" }}
+                </div>
+            </div>
+
+
+            <div class="col-12 col-md-6">
+                <div class="text-muted small">
+                    Game Type
+                </div>
+
+                <div class="fw-bold">
+                    {{ game.get_human_player_mode_display }}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<h2 class="h4 mb-3">
+    Results
+</h2>
+
+
+<div class="card">
+
+    <div class="table-responsive">
+
+        <table class="table table-striped align-middle mb-0">
+
+            <thead>
+                <tr>
+                    <th scope="col">
+                        Player
+                    </th>
+
+                    <th scope="col">
+                        Score
+                    </th>
+
+                    <th scope="col">
+                        Turn Order
+                    </th>
+
+                    <th scope="col">
+                        Confirmation
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for result in game.results.all %}
+
+                    <tr>
+
+                        <td>
+                            {{ result.player.name }}
+                        </td>
+
+                        <td class="fw-bold">
+                            {{ result.score }}
+                        </td>
+
+                        <td>
+                            {% if result.turn_order %}
+                                {{ result.turn_order }}
+                            {% else %}
+                                <span class="text-muted">
+                                    —
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if result.is_confirmed %}
+
+                                <span class="badge text-bg-success">
+                                    Confirmed
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    Awaiting confirmation
+                                </span>
+
+                            {% endif %}
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+                        <td
+                            colspan="4"
+                            class="text-muted text-center py-4"
+                        >
+                            No results were recorded for this game.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
