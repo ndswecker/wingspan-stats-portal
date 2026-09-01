@@ -160,6 +160,10 @@ class GameCreateView(LoginRequiredMixin, View):
     template_name = "portal/game_create.html"
 
     def get(self, request):
+        acting_player = getattr(request.user, "player", None)
+        if acting_player is None:
+            raise PermissionDenied
+        
         game_form = GameForm()
 
         result_formset = GameResultFormSet(
@@ -178,6 +182,11 @@ class GameCreateView(LoginRequiredMixin, View):
         )
     
     def post(self, request):
+        acting_player = getattr(request.user, "player", None)
+
+        if acting_player is None:
+            raise PermissionDenied
+        
         game_form = GameForm(request.POST)
 
         game_form_is_valid = game_form.is_valid()
@@ -199,6 +208,7 @@ class GameCreateView(LoginRequiredMixin, View):
             game = create_game(
                 game_data=game_form.cleaned_data,
                 result_forms=result_formset.forms,
+                acting_player=acting_player,
             )
 
             messages.success(
