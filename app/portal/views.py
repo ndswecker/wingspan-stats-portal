@@ -57,6 +57,8 @@ from .services.registration import (
 from .services.player_game_results import build_player_history_with_summary
 from .services.player_game_history_comparison import build_player_history_comparison
 
+from .permissions import can_manage_game
+
 
 def game_history(request):
     filter_form = PlayerGameHistoryFilterForm(
@@ -239,7 +241,7 @@ def game_detail(request, pk):
         ),
         pk=pk,
     )
-    
+
     context = {
         "game": game,
     }
@@ -533,5 +535,30 @@ def register(request):
     return render(
         request,
         "registration/registration.html",
+        context,
+    )
+
+@login_required
+def game_edit(request, pk):
+    game = get_object_or_404(
+        Game.objects.prefetch_related(
+            "results__player",
+        ),
+        pk=pk,
+    )
+
+    if not can_manage_game(
+        request.user,
+        game,
+    ):
+        raise PermissionDenied
+
+    context = {
+        "game": game,
+    }
+
+    return render(
+        request,
+        "portal/game_edit.html",
         context,
     )

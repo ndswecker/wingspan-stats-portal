@@ -13,4 +13,5 @@ urlpatterns = [
     path("account/", views.account, name="account"),
     path("register/", views.register, name="register"),
     path("games/<int:pk>/", views.game_detail, name="game-detail"),
+    path("games/<int:pk>/edit/", views.game_edit, name="game-edit"),
 ]

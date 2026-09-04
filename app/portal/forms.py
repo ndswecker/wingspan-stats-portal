@@ -4,12 +4,12 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
-
 from django.core.exceptions import ValidationError
 from django.forms import BaseFormSet, formset_factory
 from django.utils import timezone
+from django.db import models
 
-from .models import Game, Player
+from .models import Game, GameResult, Player
 
 User = get_user_model()
 
@@ -183,6 +183,60 @@ GameResultFormSet = formset_factory(
     max_num=5,
     validate_max=True,
 )
+
+class GameResultEditForm(forms.ModelForm):
+    class Meta:
+        model = GameResult
+        fields = [
+            "player",
+            "score",
+            "turn_order"
+        ]
+        widgets = {
+            "player": forms.Select(
+                attrs={
+                    "class": "form-select",
+                }
+            ),
+            "score": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": 0,
+                }
+            ),
+            "turn_order": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": 1,
+                    "inputmode": "numeric",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        active_players = Player.objects.filter(
+            is_active=True,
+        )
+
+        if self.instance.pk:
+            current_player = self.instance.player
+
+            # When editing an existing result include every active player,
+            # OR the player already assigned to this GameResult
+            self.fields["player"].queryset = (
+                Player.objects.filter(
+                    models.Q(is_active=True) | models.Q(pk=current_player.pk)
+                )
+                .distinct()
+                .order_by("name")
+            )
+        else:
+            # This is a new GameResult being added to an existing game
+            self.fields["player"].queryset = (
+                active_players.order_by("name")
+            )
 
 class PlayerStatisticsFilterForm(forms.Form):
     player = forms.ModelChoiceField(
