@@ -1,0 +1,192 @@
+{% extends "portal/base.html" %}
+
+{% block title %}
+Edit Game {{ game.id }} | Wingspan Stats Portal
+{% endblock %}
+
+{% block content %}
+
+<h1 class="mb-3">
+    Edit Game {{ game.id }}
+</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <strong>Game Details</strong>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3">
+
+                <div class="col-12 col-md-6">
+                    <label
+                        class="form-label"
+                        for="{{ game_form.date_played.id_for_label }}"
+                    >
+                        Date Played
+                    </label>
+
+                    {{ game_form.date_played }}
+
+                    {% for error in game_form.date_played.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label
+                        class="form-label"
+                        for="{{ game_form.human_player_mode.id_for_label }}"
+                    >
+                        Game Type
+                    </label>
+
+                    {{ game_form.human_player_mode }}
+
+                    {% for error in game_form.human_player_mode.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+
+            {% for error in game_form.non_field_errors %}
+                <div class="alert alert-danger mt-3 mb-0">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <strong>Game Results</strong>
+        </div>
+
+        <div class="card-body">
+
+            {{ result_formset.management_form }}
+
+            {% for error in result_formset.non_form_errors %}
+                <div class="alert alert-danger">
+                    {{ error }}
+                </div>
+            {% endfor %}
+
+            {% for form in result_formset %}
+                <div class="border rounded p-3 mb-3">
+
+                    {% for hidden_field in form.hidden_fields %}
+                        {{ hidden_field }}
+                    {% endfor %}
+
+                    <div class="row g-3">
+
+                        <div class="col-12 col-md-4">
+                            <label
+                                class="form-label"
+                                for="{{ form.player.id_for_label }}"
+                            >
+                                Player
+                            </label>
+
+                            {{ form.player }}
+
+                            {% for error in form.player.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label
+                                class="form-label"
+                                for="{{ form.score.id_for_label }}"
+                            >
+                                Score
+                            </label>
+
+                            {{ form.score }}
+
+                            {% for error in form.score.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label
+                                class="form-label"
+                                for="{{ form.turn_order.id_for_label }}"
+                            >
+                                Turn Order
+                            </label>
+
+                            {{ form.turn_order }}
+
+                            {% for error in form.turn_order.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-12 col-md-2">
+                            {% if form.instance.pk %}
+                                <div class="form-check mt-md-4 pt-md-2">
+                                    {{ form.DELETE }}
+
+                                    <label
+                                        class="form-check-label"
+                                        for="{{ form.DELETE.id_for_label }}"
+                                    >
+                                        Remove
+                                    </label>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+                    {% for error in form.non_field_errors %}
+                        <div class="alert alert-danger mt-3 mb-0">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+
+                </div>
+            {% endfor %}
+
+        </div>
+    </div>
+
+
+    <div class="d-flex gap-2">
+        <button
+            type="submit"
+            class="btn btn-primary"
+        >
+            Save Changes
+        </button>
+
+        <a
+            class="btn btn-outline-secondary"
+            href="{% url 'portal:game-detail' game.pk %}"
+        >
+            Cancel
+        </a>
+    </div>
+
+</form>
+
+{% endblock %}

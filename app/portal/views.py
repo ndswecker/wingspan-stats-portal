@@ -17,9 +17,13 @@ from .forms import (
     PlayerScoreTrendsFilterForm,
     RegistrationForm,
     PlayerGameHistoryFilterForm,
+    GameResultEditFormSet,
 )
 
-from .services.game_entry import create_game
+from .services.game_entry import (
+    create_game,
+    update_game,
+)
 from .services.dashboard import (get_player_performance_summary, get_total_games_played,)
 from .services.game_result_selection import select_game_results
 from .services.player_general_stats import calculate_general_stats
@@ -553,8 +557,74 @@ def game_edit(request, pk):
     ):
         raise PermissionDenied
 
+    if request.method == "POST":
+        game_form = GameForm(
+            request.POST,
+            instance=game,
+        )
+
+        game_form_is_valid = game_form.is_valid()
+
+        human_player_mode = request.POST.get(
+            "human_player_mode"
+        )
+
+        if game_form_is_valid:
+            human_player_mode = (
+                game_form.cleaned_data["human_player_mode"]
+            )
+
+        result_formset = GameResultEditFormSet(
+            request.POST,
+            queryset=game.results.all(),
+            prefix="results",
+            human_player_mode=human_player_mode,
+        )
+
+        result_formset_is_valid = result_formset.is_valid()
+
+        if (
+            game_form_is_valid
+            and result_formset_is_valid
+        ):
+            acting_player = getattr(
+                request.user,
+                "player",
+                None,
+            )
+
+            update_game(
+                game=game,
+                game_data=game_form.cleaned_data,
+                result_forms=result_formset.forms,
+                acting_player=acting_player,
+            )
+
+            return redirect(
+                "portal:game-detail",
+                pk=game.pk,
+            )
+
+    else:
+        # Populate the Game form with the existing Game record.
+        game_form = GameForm(
+            instance=game,
+        )
+
+        # Populate the result formset with all existing GameResult records
+        # belonging to this game.
+        # The ModelFormSet will also provide extra blank forms so that
+        # another result can be added to the existing game.
+        result_formset = GameResultEditFormSet(
+            queryset=game.results.all(),
+            prefix="results",
+            human_player_mode=game.human_player_mode,
+        )
+
     context = {
         "game": game,
+        "game_form": game_form,
+        "result_formset": result_formset,
     }
 
     return render(

@@ -5,7 +5,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
-from django.forms import BaseFormSet, formset_factory
+from django.forms import (
+    BaseFormSet, 
+    BaseModelFormSet,
+    formset_factory,
+    modelformset_factory,
+)
 from django.utils import timezone
 from django.db import models
 
@@ -144,19 +149,6 @@ class BaseGameResultFormSet(BaseFormSet):
             if form.cleaned_data.get("is_populated"):
                 populated_forms.append(form)
 
-        player_count = len(populated_forms)
-        if (
-            self.human_player_mode == Game.HumanPlayerMode.SINGLE
-            and player_count !=1
-        ):
-            raise ValidationError("A solo game must have exactly one player")
-
-        if (
-            self.human_player_mode == Game.HumanPlayerMode.MULTIPLE
-            and player_count < 2
-        ):
-            raise ValidationError("A competitive game must have two or more players.")
-
         players = []
 
         for form in populated_forms:
@@ -170,11 +162,11 @@ class BaseGameResultFormSet(BaseFormSet):
             if turn_order is not None:
                 turn_orders.append(turn_order)
 
-        if len(players) != len(set(players)):
-            raise ValidationError("Each player may appear only once.")
-        
-        if len(turn_orders) != len(set(turn_orders)):
-            raise ValidationError("Each provided turn order must be unique.")
+        validate_game_result_structure(
+            human_player_mode=self.human_player_mode,
+            players=players,
+            turn_orders=turn_orders,
+        )
 
 GameResultFormSet = formset_factory(
     GameResultForm,
@@ -237,6 +229,70 @@ class GameResultEditForm(forms.ModelForm):
             self.fields["player"].queryset = (
                 active_players.order_by("name")
             )
+
+class BaseGameResultEditFormSet(BaseModelFormSet):
+    def __init__(
+        self,
+        *args,
+        human_player_mode=None,
+        **kwargs,
+    ):
+        self.human_player_mode = human_player_mode
+
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+
+        # If Django already found errors in one or more individual forms,
+        # stop here. We do not want to perform structural validation on 
+        # incomplete or invalid form data
+        if any(self.errors):
+            return
+
+        players = []
+        turn_orders = []
+
+        for form in self.forms:
+            # If an existing result is marked for deletion,
+            # it should not count toward the final structure of the game
+            if form.cleaned_data.get("DELETE"):
+                continue
+
+            existing_result = form.instance.pk is not None
+            new_result_was_entered = form.has_changed()
+
+            # Ignore unused extra blank rows
+            if (
+                not existing_result 
+                and not new_result_was_entered
+            ):
+                continue
+
+            player = form.cleaned_data.get("player")
+            turn_order = form.cleaned_data.get("turn_order")
+
+            if player is not None:
+                players.append(player)
+
+            if turn_order is not None:
+                turn_orders.append(turn_order)
+
+        validate_game_result_structure(
+            human_player_mode=self.human_player_mode,
+            players=players,
+            turn_orders=turn_orders,
+        )
+
+GameResultEditFormSet = modelformset_factory(
+    GameResult,
+    form=GameResultEditForm,
+    formset=BaseGameResultEditFormSet,
+    extra=5,
+    max_num=5,
+    validate_max=True,
+    can_delete=True,
+)
 
 class PlayerStatisticsFilterForm(forms.Form):
     player = forms.ModelChoiceField(
@@ -583,3 +639,30 @@ class PlayerGameHistoryFilterForm(forms.Form):
             )
 
         return cleaned_data
+
+def validate_game_result_structure(
+    *,
+    human_player_mode,
+    players,
+    turn_orders,
+):
+    player_count = len(players)
+
+    if (
+        human_player_mode == Game.HumanPlayerMode.SINGLE
+        and player_count != 1
+    ):
+        raise ValidationError("A solo game must have exactly one player.")
+
+    if (
+        human_player_mode == Game.HumanPlayerMode.MULTIPLE
+        and player_count < 2
+    ):
+        raise ValidationError( "A competitive game must have two or more players")
+
+    if len(players) != len(set(players)):
+        raise ValidationError( "Each player may appear only once.")
+
+    if len(turn_orders) != len(set(turn_orders)):
+        raise ValidationError("Each provided turn order must be unique.")
+    
