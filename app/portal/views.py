@@ -58,7 +58,10 @@ from .services.registration import (
     PlayerNameUnavailableError,
 )
 
-from .services.player_game_results import build_player_history_with_summary
+from .services.player_game_results import (
+    build_player_history_with_summary,
+    select_pending_game_results,
+)
 from .services.player_game_history_comparison import build_player_history_comparison
 
 from .permissions import can_manage_game
@@ -246,8 +249,14 @@ def game_detail(request, pk):
         pk=pk,
     )
 
+    user_can_manage_game = can_manage_game(
+        request.user,
+        game,
+    )
+
     context = {
         "game": game,
+        "user_can_manage_game": user_can_manage_game,
     }
 
     return render(
@@ -481,10 +490,22 @@ def player_score_trends(request):
 
 @login_required
 def account(request):
-    player = getattr(request.user, "player", None)
+    player = getattr(
+        request.user, 
+        "player", 
+        None,
+    )
+
+    pending_game_results = []
+
+    if player is not None:
+        pending_game_results = select_pending_game_results(
+            player=player,
+        )
 
     context = {
         "player": player,
+        "pending_game_results": pending_game_results,
     }
 
     return render(

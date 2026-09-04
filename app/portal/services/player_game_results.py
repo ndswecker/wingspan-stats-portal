@@ -5,7 +5,7 @@ from enum import StrEnum
 
 from django.db.models import QuerySet
 
-from ..models import Game, Player
+from ..models import Game, Player, GameResult
 
 
 class GameOutcome(StrEnum):
@@ -418,3 +418,24 @@ def build_player_history_with_summary(
         daily_results=player_daily_results,
         summary=summary,
     )
+
+def select_pending_game_results(
+    *,
+    player: Player,
+):
+    pending_game_results = (
+        GameResult.objects.filter(
+            player=player,
+            is_confirmed=False,
+        )
+        .select_related(
+            "game",
+            "player",
+        )
+        .order_by(
+            "-game__date_played",
+            "-game_id",
+        )
+    )
+
+    return pending_game_results

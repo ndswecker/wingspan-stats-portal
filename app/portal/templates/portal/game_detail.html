@@ -17,14 +17,22 @@ Game {{ game.id }} | Wingspan Stats Portal
             {{ game.date_played|date:"F j, Y" }}
         </p>
     </div>
-
-    <a
-        class="btn btn-outline-secondary"
-        href="{% url 'portal:game_history' %}"
-    >
-        Back to Game History
-    </a>
-
+    <div class="d-flex gap-2">
+        {% if user_can_manage_game %}
+            <a
+                class="btn btn-primary"
+                href="{% url 'portal:game-edit' game.pk %}"
+            >
+                Edit Game
+        </a>
+        {% endif %}
+        <a
+            class="btn btn-outline-secondary"
+            href="{% url 'portal:game_history' %}"
+        >
+            Back to Game History
+        </a>
+    </div>
 </div>
 
 
