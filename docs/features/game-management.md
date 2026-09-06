@@ -1,45 +1,61 @@
 # Feature Specification: Game Management and Result Confirmation
 
+> **Project status:** This feature is considered complete for its
+> current scope. Wingspan Portal as a product is still under active
+> development and is not considered fully shipped or complete.
+
 ## Purpose
 
 Allow players to view and correct recorded games while protecting the
 integrity of each player's score.
 
 A `Game` and its associated `GameResult` records are separate database
-models, but the portal should present them as one game-management
-workflow.
+models, but the portal presents them as one game-management workflow.
+
+This document reflects the completed feature as implemented. Whole-game
+deletion and success-message popups are not part of the completed scope.
 
 ------------------------------------------------------------------------
 
-## User Stories
+## Completed User Stories
 
 -   As a player, I can view the details of a recorded game.
 -   As a player, I can edit a game in which I participated.
 -   As a player, I can edit, add, or remove results within a game I
     participated in.
--   As a player, I can delete a game I participated in.
 -   As a player, I can see whether each result has been confirmed by its
     player.
--   As a player, I can confirm that my own recorded score is correct.
+-   As a player, I can review and explicitly confirm my own recorded
+    result.
 -   As a player, I can see unconfirmed results associated with me from
     my Account page.
--   As staff, I can edit or delete any game regardless of participation.
+-   As staff, I can edit any game regardless of participation.
+-   As a user, I can navigate from Competitive History to Game Detail.
 
 ------------------------------------------------------------------------
 
 ## Navigation
 
-### Game History
+### Competitive History
 
-Each game-result card on Game History links to its corresponding Game
-Detail page.
+The former **Game History** feature is now named **Competitive
+History**.
 
-Game History remains result-oriented: the card represents that player's
-performance, but the link opens the complete game.
+Competitive History remains result-oriented and focused on competitive
+games. A result entry can link to the corresponding Game Detail page,
+where the complete game and all participating players' results are
+shown.
+
+The feature uses the `competitive_history` naming convention for its
+route and view.
 
 ### Game Detail
 
-The Game Detail page displays:
+The Game Detail page is a neutral, shared destination that may be
+reached from multiple workflows, including Competitive History and the
+Account page.
+
+The page displays:
 
 -   Game ID
 -   Date played
@@ -50,6 +66,11 @@ The Game Detail page displays:
 -   Result confirmation status
 
 Authorized users are provided an **Edit Game** action.
+
+A logged-in player with an unconfirmed result in the displayed game is
+provided a **Confirm My Result** action for their own result only.
+
+The page also provides navigation to **Competitive History**.
 
 ### Edit Game
 
@@ -62,13 +83,16 @@ The edit page allows an authorized user to:
 -   Change turn order.
 -   Add players/results.
 -   Remove players/results.
--   Confirm their own result.
 -   Save all changes as one operation.
 
 There is no separate GameResult edit page.
 
-After a successful edit, redirect to Game Detail and display a success
-message.
+After a successful edit, the user is redirected to Game Detail.
+
+Explicit confirmation is not performed from the Edit Game form.
+Confirmation has its own narrow action on Game Detail. Score edits still
+affect confirmation automatically according to the confirmation rules
+below.
 
 ------------------------------------------------------------------------
 
@@ -79,12 +103,22 @@ A user may manage a game when:
 -   Their linked `Player` has a `GameResult` for the game, or
 -   `user.is_staff` is true.
 
-Authorization must be enforced server-side.
+Authorization is enforced server-side.
 
-Staff may edit or delete any game.
+Staff may edit any game through the portal even when they did not
+participate.
 
-Only the player who owns a `GameResult` may confirm that result. Staff
-privileges do not allow staff to confirm another player's score.
+Only the player who owns a `GameResult` may explicitly confirm that
+result. Staff privileges do not allow staff to confirm another player's
+result.
+
+A staff user may confirm a result only when that staff account is linked
+to the `Player` who owns that result.
+
+If a participant edits a game and removes their own result,
+authorization is evaluated against the pre-edit game state. The save may
+complete, after which that user no longer has participant-based
+management rights to the game unless they are staff.
 
 ------------------------------------------------------------------------
 
@@ -96,30 +130,35 @@ The existing structural rules remain authoritative:
 -   Competitive games require at least two results.
 -   A player may appear only once per game.
 -   Provided turn orders must be unique within the game.
+-   Turn order may be blank.
 -   Existing field validation, such as valid scores and dates, continues
     to apply.
 
 Changing game type is permitted only when the final result set satisfies
 the selected game type.
 
-Game and GameResult changes must be **atomic**. A failed validation must
+Game and GameResult changes are **atomic**. A failed validation must
 leave the entire game unchanged.
 
-### Removing Results
+### Adding and Removing Results
 
-Results may be removed while editing a game, but an edit must not leave
-the game structurally invalid.
+Authorized users may add or remove results while editing a game.
 
-The special case where a player needs to remove their own result for
-score-integrity reasons but doing so would invalidate the game should be
-handled deliberately during implementation rather than bypassing
-structural validation.
+An edit may not leave the game structurally invalid. This means, for
+example, that a competitive game cannot be saved with fewer than two
+results and a solo game cannot be saved with more than one result.
+
+Changing the player assigned to an existing result is treated as removal
+of the old player's result and creation of a result for the new player.
+
+Existing inactive players remain available when editing their historical
+result. New result rows are limited to active players.
 
 ------------------------------------------------------------------------
 
 ## Result Confirmation
 
-Add confirmation state to `GameResult`:
+`GameResult` includes confirmation state:
 
 ``` python
 is_confirmed = models.BooleanField(default=False)
@@ -133,7 +172,7 @@ Confirmation means:
 Confirmation does **not** mean approval of all game metadata or other
 players' results.
 
-### Confirmation Rules
+### Automatic Confirmation Rules
 
 When a player creates a result for themselves:
 
@@ -157,166 +196,165 @@ includes:
 -   Game date
 -   Turn order
 -   Another player's score
--   Adding/removing another participant
+-   Adding or removing another participant
 
-`is_confirmed` must not be exposed as a normal editable GameResult
-field.
+When the player assigned to a result changes, the old result is removed
+and a new result is created. The new result is confirmed only when the
+acting player is also the new result owner.
 
-On the Edit Game page, only the authenticated player's own result may
-provide a confirmation control.
+`is_confirmed` is not exposed as a normal editable GameResult form
+field. Confirmation transitions are controlled by application business
+logic.
+
+### Explicit Confirmation
+
+Explicit confirmation is performed from Game Detail rather than from
+Edit Game.
+
+The workflow is:
+
+``` text
+Account
+    ↓
+Pending Confirmation
+    ↓
+View Game
+    ↓
+Game Detail
+    ↓
+Confirm My Result
+    ↓
+POST confirmation action
+    ↓
+Game Detail
+```
+
+The confirmation endpoint:
+
+-   Requires authentication.
+-   Accepts POST requests only.
+-   Operates on one `GameResult`.
+-   Resolves the logged-in user's linked `Player`.
+-   Verifies that the acting player owns the result.
+-   Sets only that result's `is_confirmed` state to `True`.
+-   Redirects back to Game Detail.
+
+A user cannot confirm another player's result through the UI or by
+manipulating the confirmation URL.
 
 ------------------------------------------------------------------------
 
 ## Account Page
 
-The Account page should surface unconfirmed `GameResult` records
-belonging to the authenticated user's linked `Player`.
+The Account page acts as a personal management dashboard.
 
-Each pending result should provide enough information to identify the
-game and a link to its Game Detail page.
+It includes a dedicated **Pending Confirmation** section containing
+unconfirmed `GameResult` records belonging to the authenticated user's
+linked `Player`.
 
-An unconfirmed `GameResult` acts as the notification mechanism for this
-feature. A separate notification model is not required.
+Each pending item displays only the information needed to identify and
+review it:
 
-Players without user accounts may accumulate unconfirmed results. If
-they later receive an account linked to that `Player`, those results can
-then be surfaced.
+-   Game date
+-   Player's recorded score
+-   Link to Game Detail
+
+The Account page does not provide a direct confirmation button. The
+player must open Game Detail and review the complete game before
+explicitly confirming their result.
+
+Once a result is confirmed, it no longer appears in Pending Confirmation
+because the Account query selects only results where:
+
+``` python
+is_confirmed=False
+```
+
+An unconfirmed `GameResult` therefore acts as the notification mechanism
+for this feature. A separate notification model is not required.
+
+Players without user accounts may accumulate unconfirmed results. If an
+account is later linked to that `Player`, those pending results can then
+be surfaced on the Account page.
+
+A future **My Game Results** feature may provide a complete personal
+ledger of solo and competitive results. That is separate from the
+Account pending-confirmation dashboard and from Competitive History.
 
 ------------------------------------------------------------------------
 
 ## Game Deletion
 
-Authorized participants and staff may delete an entire game.
+Whole-game deletion is **not part of the completed feature scope**.
 
-Deletion requires an explicit confirmation step.
+Although deletion was considered during initial design, the business
+rules were not sufficiently defined for a shared game record. Deleting a
+`Game` would also affect `GameResult` records belonging to other
+participants, raising unresolved questions about ownership, consent,
+confirmed results, staff authority, and whether deletion should instead
+be represented by an archive or void state.
 
-Deleting a `Game` also deletes its associated `GameResult` records
-through the existing cascade relationship.
+Game deletion is therefore deliberately deferred rather than treated as
+incomplete implementation.
 
-After deletion, redirect to Game History and display a success message.
-
-------------------------------------------------------------------------
-
-## Implementation Direction
-
-Keep business rules outside templates and minimize duplication between
-creation and editing.
-
-Expected implementation areas:
-
-1.  Model migration for `GameResult.is_confirmed`.
-2.  Game-management authorization helper/service.
-3.  Game update service responsible for atomic Game + GameResult changes
-    and confirmation rules.
-4.  Game Detail view/template.
-5.  Game Edit view/form/template.
-6.  Game deletion workflow.
-7.  Game History links to Game Detail.
-8.  Account-page query/display for unconfirmed results.
-9.  Tests for authorization, structural validation, confirmation
-    transitions, and atomic updates.
-
-Reuse existing game/result validation where practical rather than
-creating competing rules.
+Any future deletion, archive, or void workflow should receive its own
+requirements review before implementation.
 
 ------------------------------------------------------------------------
 
-## Out of Scope
+## Completed Implementation Areas
 
-This feature does not introduce:
+The completed feature includes:
 
+1.  `GameResult.is_confirmed` confirmation state.
+2.  Reusable game-management authorization.
+3.  Shared structural validation for game results.
+4.  Atomic Game + GameResult update behavior.
+5.  Confirmation-state transitions during score/result edits.
+6.  Public Game Detail view and template.
+7.  Authorized Game Edit workflow.
+8.  Competitive History links to Game Detail.
+9.  Account-page Pending Confirmation query and display.
+10. Dedicated POST-only explicit confirmation action.
+11. Server-side ownership enforcement for explicit confirmation.
+12. Competitive History naming and routing cleanup.
+
+The implementation reuses existing game/result validation where
+practical rather than maintaining competing structural rules.
+
+------------------------------------------------------------------------
+
+## Deliberately Excluded
+
+The completed feature does not include:
+
+-   Whole-game deletion.
+-   Game archive or void workflows.
+-   Success-message popups after edit or confirmation.
 -   Game revision/history tracking.
 -   Detailed audit logs.
 -   A dispute-resolution system.
 -   Separate GameResult detail/edit pages.
 -   A separate notification model.
 -   Player confirmation of another player's result.
+-   A complete personal **My Game Results** browser.
 
-These may be added later without changing the core principle that
-confirmation belongs to an individual player's `GameResult`.
+These may be introduced as separate features later without changing the
+core principle that confirmation belongs to an individual player's
+`GameResult`.
 
 ------------------------------------------------------------------------
 
-## Production Data Migration Preparation
+## Completion Status
 
-Before deploying the `GameResult.is_confirmed` database migration, a manual PostgreSQL backup was created on the production server.
+**Game Management and Result Confirmation is complete for the currently
+accepted scope.**
 
-The purpose of this backup is to provide a recovery point before applying migrations that modify the production database schema and existing data.
+The implemented workflow supports viewing games, authorized correction
+of game data and results, structural integrity, per-result confirmation
+ownership, explicit self-confirmation, pending-confirmation management,
+and navigation through Competitive History.
 
-### Backup Location
-
-Production database backups are stored outside the application Git repository:
-
-```text
-/home/ndswecker/backups/wingspan/
-```
-The directory was created with:
-```bash
-mkdir -p ~/backups/wingspan
-```
-
-This keeps database dumps separate from application source code and prevents them from accidentally being committed to Git.
-
-### Create the Database Backup
-
-From the Wingspan Portal project directory:
-
-`/home/ndswecker/projects/wingspan-stats-portal`
-
-the production PostgreSQL database was dumped with:
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec -T postgres \
-  pg_dump -U wingspan_user wingspan \
-  > ~/backups/wingspan/wingspan-2026-08-30.sql
-  ```
-
-This runs pg_dump inside the production PostgreSQL container and writes the resulting SQL dump to the host server.
-
-The database is:
-
-`wingspan`
-
-and the PostgreSQL user is:
-
-`wingspan_user`
-### Verify the Backup
-
-Verify that the backup file exists and is non-empty:
-
-`ls -lh ~/backups/wingspan/`
-
-The resulting backup was approximately 53 KB:
-
-`wingspan-2026-08-30.sql``
-
-Inspect the beginning of the dump:
-
-`head -n 10 ~/backups/wingspan/wingspan-2026-08-30.sql`
-
-The file should begin with a PostgreSQL dump header similar to:
-```text
---
--- PostgreSQL database dump
---
-
--- Dumped from database version ...
--- Dumped by pg_dump version ...
-```
-
-This provides a basic sanity check that pg_dump produced the expected SQL dump rather than an empty file or command error.
-
-A full restore test was not performed as part of this migration preparation.
-
-### Reason for the Backup
-
-The upcoming migrations modify GameResult data:
-
-1. 0004_gameresult_is_confirmed adds the is_confirmed Boolean field with a default of False.
-1. 0005_confirm_existing_game_results sets all existing GameResult records to is_confirmed=True.
-
-Existing results are considered trusted historical data and therefore begin in the confirmed state. New results will continue to use the model default of False and will be confirmed according to the application's result-confirmation rules.
-
-The production backup was created before applying these migrations so the pre-migration database state is preserved if recovery is required.
+Whole-game deletion and success-message popups were intentionally
+removed from the accepted scope rather than left as unfinished
+requirements.
