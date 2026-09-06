@@ -7,6 +7,7 @@ from django.views import View
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from .models import Game, GameResult
 
@@ -61,13 +62,14 @@ from .services.registration import (
 from .services.player_game_results import (
     build_player_history_with_summary,
     select_pending_game_results,
+    confirm_game_result,
 )
 from .services.player_game_history_comparison import build_player_history_comparison
 
 from .permissions import can_manage_game
 
 
-def game_history(request):
+def competitive_history(request):
     filter_form = PlayerGameHistoryFilterForm(
         request.GET or None,
     )
@@ -148,7 +150,7 @@ def game_history(request):
 
     return render(
         request,
-        "portal/game_history.html",
+        "portal/competitive_history.html",
         context,
     )
 
@@ -652,4 +654,31 @@ def game_edit(request, pk):
         request,
         "portal/game_edit.html",
         context,
+    )
+
+@login_required
+@require_POST
+def confirm_game_result_view(request, result_id):
+    game_result = get_object_or_404(
+        GameResult,
+        pk=result_id,
+    )
+
+    acting_player = getattr(
+        request.user,
+        "player",
+        None,
+    )
+
+    if acting_player is None:
+        raise PermissionDenied
+
+    confirm_game_result(
+        game_result=game_result,
+        acting_player=acting_player,
+    )
+
+    return redirect(
+        "portal:game-detail",
+        pk=game_result.game_id,
     )

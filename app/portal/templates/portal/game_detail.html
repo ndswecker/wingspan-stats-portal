@@ -17,22 +17,27 @@ Game {{ game.id }} | Wingspan Stats Portal
             {{ game.date_played|date:"F j, Y" }}
         </p>
     </div>
+
     <div class="d-flex gap-2">
+
         {% if user_can_manage_game %}
             <a
                 class="btn btn-primary"
                 href="{% url 'portal:game-edit' game.pk %}"
             >
                 Edit Game
-        </a>
+            </a>
         {% endif %}
+
         <a
             class="btn btn-outline-secondary"
-            href="{% url 'portal:game_history' %}"
+            href="{% url 'portal:competitive_history' %}"
         >
-            Back to Game History
+            Competitive History
         </a>
+
     </div>
+
 </div>
 
 
@@ -43,6 +48,7 @@ Game {{ game.id }} | Wingspan Stats Portal
         <div class="row g-3">
 
             <div class="col-12 col-md-6">
+
                 <div class="text-muted small">
                     Date Played
                 </div>
@@ -50,10 +56,12 @@ Game {{ game.id }} | Wingspan Stats Portal
                 <div class="fw-bold">
                     {{ game.date_played|date:"F j, Y" }}
                 </div>
+
             </div>
 
 
             <div class="col-12 col-md-6">
+
                 <div class="text-muted small">
                     Game Type
                 </div>
@@ -61,6 +69,7 @@ Game {{ game.id }} | Wingspan Stats Portal
                 <div class="fw-bold">
                     {{ game.get_human_player_mode_display }}
                 </div>
+
             </div>
 
         </div>
@@ -82,7 +91,9 @@ Game {{ game.id }} | Wingspan Stats Portal
         <table class="table table-striped align-middle mb-0">
 
             <thead>
+
                 <tr>
+
                     <th scope="col">
                         Player
                     </th>
@@ -98,7 +109,9 @@ Game {{ game.id }} | Wingspan Stats Portal
                     <th scope="col">
                         Confirmation
                     </th>
+
                 </tr>
+
             </thead>
 
             <tbody>
@@ -116,16 +129,23 @@ Game {{ game.id }} | Wingspan Stats Portal
                         </td>
 
                         <td>
+
                             {% if result.turn_order %}
+
                                 {{ result.turn_order }}
+
                             {% else %}
+
                                 <span class="text-muted">
                                     —
                                 </span>
+
                             {% endif %}
+
                         </td>
 
                         <td>
+
                             {% if result.is_confirmed %}
 
                                 <span class="badge text-bg-success">
@@ -134,11 +154,40 @@ Game {{ game.id }} | Wingspan Stats Portal
 
                             {% else %}
 
-                                <span class="badge text-bg-secondary">
-                                    Awaiting confirmation
-                                </span>
+                                <div class="d-flex align-items-center gap-2">
+
+                                    <span class="badge text-bg-secondary">
+                                        Awaiting confirmation
+                                    </span>
+
+                                    {% if user.is_authenticated %}
+
+                                        {% if user.player == result.player %}
+
+                                            <form
+                                                method="post"
+                                                action="{% url 'portal:game-result-confirm' result.pk %}"
+                                                class="mb-0"
+                                            >
+                                                {% csrf_token %}
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-success btn-sm"
+                                                >
+                                                    Confirm My Result
+                                                </button>
+
+                                            </form>
+
+                                        {% endif %}
+
+                                    {% endif %}
+
+                                </div>
 
                             {% endif %}
+
                         </td>
 
                     </tr>
@@ -146,12 +195,14 @@ Game {{ game.id }} | Wingspan Stats Portal
                 {% empty %}
 
                     <tr>
+
                         <td
                             colspan="4"
                             class="text-muted text-center py-4"
                         >
                             No results were recorded for this game.
                         </td>
+
                     </tr>
 
                 {% endfor %}

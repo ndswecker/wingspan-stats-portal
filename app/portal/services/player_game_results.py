@@ -4,6 +4,8 @@ from datetime import date
 from enum import StrEnum
 
 from django.db.models import QuerySet
+from django.db import transaction
+from django.core.exceptions import PermissionDenied
 
 from ..models import Game, Player, GameResult
 
@@ -439,3 +441,20 @@ def select_pending_game_results(
     )
 
     return pending_game_results
+
+@transaction.atomic
+def confirm_game_result(
+    *,
+    game_result: GameResult,
+    acting_player: Player,
+):
+    if game_result.player_id != acting_player.pk:
+        raise PermissionDenied
+
+    game_result.is_confirmed = True
+
+    game_result.save(
+        update_fields=[
+            "is_confirmed",
+        ]
+    )
