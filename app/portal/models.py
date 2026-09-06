@@ -27,8 +27,8 @@ class Player(models.Model):
 
     handle = models.CharField(
         max_length=32,
-        null=True,
-        blank=True,
+        unique=True,
+        validators=[handle_validator]
     )
 
     is_active = models.BooleanField(
