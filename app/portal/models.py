@@ -1,6 +1,14 @@
 from django.db import models
-
 from django.conf import settings
+from django.core.validators import RegexValidator
+
+handle_validator = RegexValidator(
+    regex=r"^[a-z][a-z0-9_]{2,31}$",
+    message=(
+        "Handle must be 3–32 characters, start with a lowercase letter, "
+        "and contain only lowercase letters, numbers, and underscores."
+    ),
+)
 
 # Create your models here.
 class Player(models.Model):
@@ -15,6 +23,12 @@ class Player(models.Model):
     name = models.CharField(
         max_length=50,
         unique=True,
+    )
+
+    handle = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
     )
 
     is_active = models.BooleanField(

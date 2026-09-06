@@ -10,6 +10,7 @@ class PlayerAdmin(admin.ModelAdmin):
     list_display = (
         "name", 
         "username",
+        "handle",
         "email",
         "is_active"
     )
