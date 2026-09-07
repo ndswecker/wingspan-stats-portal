@@ -102,3 +102,122 @@ class GameResult(models.Model):
 
     def __str__(self):
         return f"{self.game} - {self.player} - ({self.score})"
+
+class Friendship(models.Model):
+    player_a = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name="friendships_as_player_a"
+    )
+
+    player_b = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name="friendships_as_player_b"
+    )
+
+    established_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    ended_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    ended_by_player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="friendships_ended"
+    )
+
+    class Meta:
+        ordering=["-established_at"]
+
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(player_a__lt=models.F("player_b")),
+                name="friendship_canonical_player_order",
+            ),
+
+            models.UniqueConstraint(
+                fields=["player_a", "player_b"],
+                condition=models.Q(ended_at__isnull=True),
+                name="friendship_one_active_per_pair",
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f"friendship between {self.player_a} and {self.player_b},"
+            f"est. {self.established_at}, ended {self.ended_at}"
+        )
+
+class FriendRequestStatus(models.TextChoices):
+    PENDING = "pending", "Pending Request"
+    ACCEPTED = "accepted", "Accepted Request"
+    DECLINED = "declined", "Declined Request"
+    CANCELLED = "cancelled", "Cancelled Request"
+class FriendRequest(models.Model):
+
+    requested_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=FriendRequestStatus.choices,
+        default=FriendRequestStatus.PENDING,
+    )
+
+    requestor = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name="sent_friend_requests",
+    )
+
+    requestee = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name="received_friend_requests",
+    )
+
+    class Meta:
+        ordering = ["-requested_at"]
+
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        status=FriendRequestStatus.PENDING,
+                        resolved_at__isnull=True,
+                    )
+                    |
+                    models.Q(
+                        status__in=[
+                            FriendRequestStatus.ACCEPTED,
+                            FriendRequestStatus.DECLINED,
+                            FriendRequestStatus.CANCELLED,
+                        ],
+                        resolved_at__isnull=False,
+                    )
+                ),
+                name="friend_request_status_resolution_valid",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(
+                    requestor=models.F("requestee")
+                ),
+                name="friend_request_no_self_request"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.requestor} requesting friendship with {self.requestee} with status of {self.status}"

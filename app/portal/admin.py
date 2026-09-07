@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import Player, Game, GameResult
+from .models import (
+    Player, 
+    Game, 
+    GameResult,
+    FriendRequest,
+    Friendship,
+)
 
 class GameResultInline(admin.TabularInline):
     model = GameResult
@@ -61,3 +67,67 @@ class GameResultAdmin(admin.ModelAdmin):
     @admin.display(description="Game Type")
     def game__mode(self, obj):
         return obj.game.get_human_player_mode_display()
+
+@admin.register(FriendRequest)
+class FriendRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "requestor",
+        "requestee",
+        "status",
+        "requested_at",
+        "resolved_at",
+    )
+
+    list_filter = (
+        "status",
+        "requested_at",
+        "resolved_at",
+    )
+
+    search_fields = (
+        "requestor__name",
+        "requestor__handle",
+        "requestee__name",
+        "requestee__handle",
+    )
+
+    ordering = (
+        "-requested_at",
+    )
+
+    readonly_fields = (
+        "requested_at",
+    )
+
+
+@admin.register(Friendship)
+class FriendshipAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "player_a",
+        "player_b",
+        "established_at",
+        "ended_at",
+        "ended_by_player",
+    )
+
+    list_filter = (
+        "established_at",
+        "ended_at",
+    )
+
+    search_fields = (
+        "player_a__name",
+        "player_a__handle",
+        "player_b__name",
+        "player_b__handle",
+    )
+
+    ordering = (
+        "-established_at",
+    )
+
+    readonly_fields = (
+        "established_at",
+    )
