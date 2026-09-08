@@ -31,10 +31,20 @@ Account | Wingspan Stats Portal
                     </span>
                 {% endif %}
             </dd>
+
+            <dt class="col-sm-3">Handle</dt>
+            <dd class="col-sm-9">
+                {% if player %}
+                    @{{ player.handle }}
+                {% else %}
+                    <span class="text-muted">
+                        —
+                    </span>
+                {% endif %}
+            </dd>
         </dl>
     </div>
 </div>
-
 <div class="card mb-4">
 
     <div class="card-header">

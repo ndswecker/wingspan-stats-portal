@@ -57,6 +57,7 @@ from .services.registration import (
     create_registration,
     PlayerAlreadyClaimedError,
     PlayerNameUnavailableError,
+    PlayerHandleUnavailableError,
 )
 
 from .services.player_game_results import (
@@ -533,6 +534,7 @@ def register(request):
                     password=form.cleaned_data["password1"],
                     existing_player=form.cleaned_data["existing_player"],
                     new_player_name=form.cleaned_data["new_player_name"],
+                    new_player_handle=form.cleaned_data["new_player_handle"],
                 )
             except PlayerAlreadyClaimedError:
                 form.add_error(
@@ -543,6 +545,11 @@ def register(request):
                 form.add_error(
                     "new_player_name",
                     "This player name is no longer available.",
+                )
+            except PlayerHandleUnavailableError:
+                form.add_error(
+                    "new_player_handle",
+                    "This player handle is no longer available.",
                 )
             else:
                 messages.success(

@@ -14,7 +14,12 @@ from django.forms import (
 from django.utils import timezone
 from django.db import models
 
-from .models import Game, GameResult, Player
+from .models import (
+    Game, 
+    GameResult, 
+    Player, 
+    handle_validator,
+)
 
 User = get_user_model()
 
@@ -469,6 +474,16 @@ class RegistrationForm(UserCreationForm):
         ),
     )
 
+    new_player_handle = forms.CharField(
+        max_length=32,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+            }
+        ),
+    )
+
     class Meta(UserCreationForm.Meta):
         model = User
 
@@ -482,6 +497,7 @@ class RegistrationForm(UserCreationForm):
             "invite_code",
             "existing_player",
             "new_player_name",
+            "new_player_handle"
         )
 
     def __init__(self, *args, **kwargs):
@@ -538,21 +554,45 @@ class RegistrationForm(UserCreationForm):
 
         return new_player_name
 
+    def clean_new_player_handle(self):
+        new_player_handle = self.cleaned_data["new_player_handle"].strip()
+
+        if not new_player_handle:
+            return new_player_handle
+
+        handle_validator(new_player_handle)
+
+        if Player.objects.filter(
+            handle=new_player_handle,
+        ).exists():
+            raise ValidationError("This handle is already in use.")
+
+        return new_player_handle
+
+
     def clean(self):
         cleaned_data = super().clean()
 
         existing_player = cleaned_data.get("existing_player")
         new_player_name = cleaned_data.get("new_player_name")
+        new_player_handle = cleaned_data.get("new_player_handle")
 
-        if existing_player and new_player_name:
+        if existing_player and (new_player_name or new_player_handle):
             raise ValidationError(
-                "Select an existing player or enter a new player name, "
-                "not both."
+                "Select an existing player or enter a new player name "
+                "and handle, not both."
             )
 
         if existing_player is None and not new_player_name:
-            raise ValidationError(
-                "Select an existing player or enter a new player name."
+            self.add_error(
+                "new_player_name",
+                "Enter a name for the new player.",
+            )
+
+        if existing_player is None and not new_player_handle:
+            self.add_error(
+                "new_player_handle",
+                "Enter a handle for the new player",
             )
 
         return cleaned_data

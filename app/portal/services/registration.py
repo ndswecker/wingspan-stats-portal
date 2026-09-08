@@ -15,6 +15,10 @@ class PlayerNameUnavailableError(Exception):
     """Raised when a requested new Player name is no longer available."""
 
 
+class PlayerHandleUnavailableError(Exception):
+    """Raised when a requested new Player handle is no longer available."""
+
+
 @transaction.atomic
 def create_registration(
     *,
@@ -25,6 +29,7 @@ def create_registration(
     password: str,
     existing_player: Player | None,
     new_player_name: str,
+    new_player_handle: str,
 ) -> User:
     user = User.objects.create_user(
         first_name=first_name,
@@ -53,14 +58,29 @@ def create_registration(
         )
 
     else:
+        if Player.objects.filter(
+            name=new_player_name,
+        ).exists():
+            raise PlayerNameUnavailableError(
+                "This player name is no longer available."
+            )
+
+        if Player.objects.filter(
+            handle=new_player_handle,
+        ).exists():
+            raise PlayerHandleUnavailableError(
+                "This player handle is no longer available."
+            )
+
         try:
             Player.objects.create(
                 name=new_player_name,
+                handle=new_player_handle,
                 user=user,
             )
         except IntegrityError as error:
             raise PlayerNameUnavailableError(
-                "This player name is no longer available."
+                "This player name or handle is no longer available."
             ) from error
 
     return user
