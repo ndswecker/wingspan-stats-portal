@@ -9,7 +9,11 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from .models import Game, GameResult
+from .models import (
+    Game, 
+    GameResult,
+    FriendRequest,
+)
 
 from .forms import (
     GameForm, 
@@ -66,6 +70,16 @@ from .services.player_game_results import (
     confirm_game_result,
 )
 from .services.player_game_history_comparison import build_player_history_comparison
+
+from .services.friendship import (
+    get_friends_for_player,
+    get_pending_incoming_requests,
+    get_pending_outgoing_requests,
+    get_player_by_handle,
+    FriendshipError,
+    send_friend_request,
+    accept_friend_request,
+)
 
 from .permissions import can_manage_game
 
@@ -689,3 +703,106 @@ def confirm_game_result_view(request, result_id):
         "portal:game-detail",
         pk=game_result.game_id,
     )
+
+@login_required
+def friends(request):
+    player = request.user.player
+
+    friends = get_friends_for_player(
+        player=player,
+    )
+
+    incoming_requests = get_pending_incoming_requests(
+        player=player,
+    )
+
+    outgoing_requests = get_pending_outgoing_requests(
+        player=player,
+    )
+
+    context = {
+        "player": player,
+        "friends": friends,
+        "incoming_requests": incoming_requests,
+        "outgoing_requests": outgoing_requests,
+    }
+
+    return render(
+        request,
+        "friends.html",
+        context,
+    )
+
+@login_required
+@require_POST
+def send_friend_request_view(request):
+    player = request.user.player
+
+    handle = request.POST.get(
+        "handle",
+        "",
+    ).strip()
+
+    if handle.startswith("@"):
+        handle=handle[1:]
+
+    requestee = get_player_by_handle(
+        handle=handle,
+    )
+
+    if requestee is None:
+        messages.error(
+            request,
+            "No player was found with that handle.",
+        )
+
+        return redirect("portal:friends")
+
+    try:
+        send_friend_request(
+            requestor=player,
+            requestee=requestee,
+        )
+    except FriendshipError as error:
+        messages.error(
+            request,
+            str(error),
+        )
+    else:
+        messages.success(
+            request,
+            f"Friend request sent to @{requestee.handle}.",
+        )
+
+    return redirect("portal:friends")
+
+@login_required
+@require_POST
+def accept_friend_request_view(
+    request,
+    friend_request_id,
+):
+    player = request.user.player
+
+    friend_request = get_object_or_404(
+        FriendRequest,
+        pk=friend_request_id,
+    )
+
+    try:
+        accept_friend_request(
+            friend_request=friend_request,
+            acting_player=player,
+        )
+    except FriendshipError as error:
+        messages.error(
+            request,
+            str(error),
+        )
+    else:
+        messages.success(
+            request,
+            f"You are now friends with @{friend_request.requestor.handle}.",
+        )
+
+    return redirect("portal:friends")

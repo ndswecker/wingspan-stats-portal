@@ -55,4 +55,19 @@ urlpatterns = [
         views.confirm_game_result_view,
         name="game-result-confirm",
     ),
+    path(
+        "friends/",
+        views.friends,
+        name="friends"
+    ),
+    path(
+        "friends/send/",
+        views.send_friend_request_view,
+        name="send_friend_request",
+    ),
+    path(
+        "friends/<int:friend_request_id>/accept",
+        views.accept_friend_request_view,
+        name="accept_friend_request"
+    )
 ]

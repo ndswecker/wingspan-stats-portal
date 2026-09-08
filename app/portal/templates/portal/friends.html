@@ -1,0 +1,177 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Friends{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+        <div class="mb-4">
+            <h1 class="h2 mb-1">Friends</h1>
+            <p class="text-muted mb-0">
+                Find players, manage friend requests, and view your current friends.
+            </p>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Find Player</h2>
+            </div>
+
+            <div class="card-body">
+                <form
+                    method="post"
+                    action="{% url 'portal:send-friend-request' %}"
+                >
+                    {% csrf_token %}
+
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-8">
+                            <label
+                                for="handle"
+                                class="form-label"
+                            >
+                                Player Handle
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="handle"
+                                name="handle"
+                                placeholder="@player_handle"
+                                required
+                            >
+
+                            <div class="form-text">
+                                Enter the exact handle of the player you want to add.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <button
+                                type="submit"
+                                class="btn btn-primary w-100"
+                            >
+                                Send Friend Request
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Incoming Requests</h2>
+            </div>
+
+            <div class="card-body">
+                {% if incoming_requests %}
+                    <div class="list-group list-group-flush">
+                        {% for friend_request in incoming_requests %}
+                            <div
+                                class="list-group-item px-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3"
+                            >
+                                <div>
+                                    <div class="fw-semibold">
+                                        {{ friend_request.requestor.name }}
+                                    </div>
+
+                                    <div class="text-muted small">
+                                        @{{ friend_request.requestor.handle }}
+                                    </div>
+                                </div>
+
+                                <form
+                                    method="post"
+                                    action="{% url 'portal:accept-friend-request' friend_request.id %}"
+                                    class="mb-0"
+                                >
+                                    {% csrf_token %}
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary"
+                                    >
+                                        Accept
+                                    </button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">
+                        You have no pending friend requests.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Sent Requests</h2>
+            </div>
+
+            <div class="card-body">
+                {% if outgoing_requests %}
+                    <div class="list-group list-group-flush">
+                        {% for friend_request in outgoing_requests %}
+                            <div
+                                class="list-group-item px-0 d-flex justify-content-between align-items-center"
+                            >
+                                <div>
+                                    <div class="fw-semibold">
+                                        {{ friend_request.requestee.name }}
+                                    </div>
+
+                                    <div class="text-muted small">
+                                        @{{ friend_request.requestee.handle }}
+                                    </div>
+                                </div>
+
+                                <span class="badge text-bg-secondary">
+                                    Pending
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">
+                        You have no pending sent requests.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Your Friends</h2>
+            </div>
+
+            <div class="card-body">
+                {% if friends %}
+                    <div class="list-group list-group-flush">
+                        {% for friend in friends %}
+                            <div class="list-group-item px-0">
+                                <div class="fw-semibold">
+                                    {{ friend.name }}
+                                </div>
+
+                                <div class="text-muted small">
+                                    @{{ friend.handle }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">
+                        You have not added any friends yet.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
