@@ -63,11 +63,11 @@ urlpatterns = [
     path(
         "friends/send/",
         views.send_friend_request_view,
-        name="send_friend_request",
+        name="send-friend-request",
     ),
     path(
         "friends/<int:friend_request_id>/accept",
         views.accept_friend_request_view,
-        name="accept_friend_request"
+        name="accept-friend-request"
     )
 ]

@@ -729,7 +729,7 @@ def friends(request):
 
     return render(
         request,
-        "friends.html",
+        "portal/friends.html",
         context,
     )
 
