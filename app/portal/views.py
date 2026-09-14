@@ -13,6 +13,8 @@ from .models import (
     Game, 
     GameResult,
     FriendRequest,
+    FriendRequest,
+    Player,
 )
 
 from .forms import (
@@ -79,6 +81,9 @@ from .services.friendship import (
     FriendshipError,
     send_friend_request,
     accept_friend_request,
+    remove_friendship,
+    cancel_friend_request,
+    decline_friend_request,
 )
 
 from .permissions import can_manage_game
@@ -803,6 +808,100 @@ def accept_friend_request_view(
         messages.success(
             request,
             f"You are now friends with @{friend_request.requestor.handle}.",
+        )
+
+    return redirect("portal:friends")
+
+@login_required
+@require_POST
+def remove_friend_view(
+    request,
+    player_id,
+):
+    acting_player = request.user.player
+
+    other_player = get_object_or_404(
+        Player,
+        pk=player_id,
+        is_active=True,
+    )
+
+    try:
+        remove_friendship(
+            acting_player=acting_player,
+            other_player=other_player,
+        )
+    except FriendshipError as error:
+        messages.error(
+            request,
+            str(error),
+        )
+    else:
+        messages.success(
+            request,
+            f"@{other_player.handle} was removed from your friends.",
+        )
+
+    return redirect("portal:friends")
+
+@login_required
+@require_POST
+def cancel_friend_request_view(
+    request,
+    friend_request_id,
+):
+    player = request.user.player
+
+    friend_request = get_object_or_404(
+        FriendRequest,
+        pk=friend_request_id,
+    )
+
+    try:
+        cancel_friend_request(
+            friend_request=friend_request,
+            acting_player=player,
+        )
+    except FriendshipError as error:
+        messages.error(
+            request,
+            str(error),
+        )
+    else:
+        messages.success(
+            request,
+            f"Friend request to @{friend_request.requestee.handle} was cancelled.",
+        )
+
+    return redirect("portal:friends")
+
+@login_required
+@require_POST
+def decline_friend_request_view(
+    request,
+    friend_request_id,
+):
+    player = request.user.player
+
+    friend_request = get_object_or_404(
+        FriendRequest,
+        pk=friend_request_id,
+    )
+
+    try:
+        decline_friend_request(
+            friend_request=friend_request,
+            acting_player=player,
+        )
+    except FriendshipError as error:
+        messages.error(
+            request,
+            str(error),
+        )
+    else:
+        messages.success(
+            request,
+            f"Friend request from @{friend_request.requestor.handle} was declined.",
         )
 
     return redirect("portal:friends")

@@ -51,7 +51,7 @@ urlpatterns = [
         name="game-edit",
     ),
     path(
-        "game-results/<int:result_id>/confirm",
+        "game-results/<int:result_id>/confirm/",
         views.confirm_game_result_view,
         name="game-result-confirm",
     ),
@@ -66,8 +66,23 @@ urlpatterns = [
         name="send-friend-request",
     ),
     path(
-        "friends/<int:friend_request_id>/accept",
+        "friends/<int:friend_request_id>/accept/",
         views.accept_friend_request_view,
         name="accept-friend-request"
-    )
+    ),
+    path(
+        "friends/<int:player_id>/remove/",
+        views.remove_friend_view,
+        name="remove-friend"
+    ),
+    path(
+        "friends/<int:friend_request_id>/cancel/",
+        views.cancel_friend_request_view,
+        name="cancel-friend-request"
+    ),
+    path(
+        "friends/<int:friend_request_id>/decline/",
+        views.decline_friend_request_view,
+        name="decline-friend-request"
+    ),
 ]

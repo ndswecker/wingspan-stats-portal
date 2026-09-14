@@ -6,6 +6,7 @@
 
 <div class="row justify-content-center">
     <div class="col-12 col-xl-10">
+
         <div class="mb-4">
             <h1 class="h2 mb-1">Friends</h1>
             <p class="text-muted mb-0">
@@ -83,20 +84,37 @@
                                     </div>
                                 </div>
 
-                                <form
-                                    method="post"
-                                    action="{% url 'portal:accept-friend-request' friend_request.id %}"
-                                    class="mb-0"
-                                >
-                                    {% csrf_token %}
-
-                                    <button
-                                        type="submit"
-                                        class="btn btn-primary"
+                                <div class="d-flex align-items-center gap-2">
+                                    <form
+                                        method="post"
+                                        action="{% url 'portal:accept-friend-request' friend_request.id %}"
+                                        class="mb-0"
                                     >
-                                        Accept
-                                    </button>
-                                </form>
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-primary"
+                                        >
+                                            Accept
+                                        </button>
+                                    </form>
+
+                                    <form
+                                        method="post"
+                                        action="{% url 'portal:decline-friend-request' friend_request.id %}"
+                                        class="mb-0"
+                                    >
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-outline-danger"
+                                        >
+                                            Decline
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
@@ -118,7 +136,7 @@
                     <div class="list-group list-group-flush">
                         {% for friend_request in outgoing_requests %}
                             <div
-                                class="list-group-item px-0 d-flex justify-content-between align-items-center"
+                                class="list-group-item px-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3"
                             >
                                 <div>
                                     <div class="fw-semibold">
@@ -130,9 +148,26 @@
                                     </div>
                                 </div>
 
-                                <span class="badge text-bg-secondary">
-                                    Pending
-                                </span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge text-bg-secondary">
+                                        Pending
+                                    </span>
+
+                                    <form
+                                        method="post"
+                                        action="{% url 'portal:cancel-friend-request' friend_request.pk %}"
+                                        class="mb-0"
+                                    >
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-outline-danger btn-sm"
+                                        >
+                                            Cancel Request
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
@@ -152,17 +187,95 @@
             <div class="card-body">
                 {% if friends %}
                     <div class="list-group list-group-flush">
+
                         {% for friend in friends %}
-                            <div class="list-group-item px-0">
-                                <div class="fw-semibold">
-                                    {{ friend.name }}
+
+                            <div
+                                class="list-group-item px-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3"
+                            >
+                                <div>
+                                    <div class="fw-semibold">
+                                        {{ friend.name }}
+                                    </div>
+
+                                    <div class="text-muted small">
+                                        @{{ friend.handle }}
+                                    </div>
                                 </div>
 
-                                <div class="text-muted small">
-                                    @{{ friend.handle }}
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-danger btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#removeFriendModal{{ friend.pk }}"
+                                >
+                                    Remove Friend
+                                </button>
+                            </div>
+
+                            <div
+                                class="modal fade"
+                                id="removeFriendModal{{ friend.pk }}"
+                                tabindex="-1"
+                                aria-labelledby="removeFriendModalLabel{{ friend.pk }}"
+                                aria-hidden="true"
+                            >
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+
+                                        <div class="modal-header">
+                                            <h2
+                                                class="modal-title fs-5"
+                                                id="removeFriendModalLabel{{ friend.pk }}"
+                                            >
+                                                Remove Friend
+                                            </h2>
+
+                                            <button
+                                                type="button"
+                                                class="btn-close"
+                                                data-bs-dismiss="modal"
+                                                aria-label="Close"
+                                            ></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            Are you sure you want to remove
+                                            <strong>@{{ friend.handle }}</strong>
+                                            from your friends?
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button
+                                                type="button"
+                                                class="btn btn-secondary"
+                                                data-bs-dismiss="modal"
+                                            >
+                                                Cancel
+                                            </button>
+
+                                            <form
+                                                method="post"
+                                                action="{% url 'portal:remove-friend' friend.pk %}"
+                                                class="mb-0"
+                                            >
+                                                {% csrf_token %}
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-danger"
+                                                >
+                                                    Remove Friend
+                                                </button>
+                                            </form>
+                                        </div>
+
+                                    </div>
                                 </div>
                             </div>
+
                         {% endfor %}
+
                     </div>
                 {% else %}
                     <p class="text-muted mb-0">
@@ -171,6 +284,7 @@
                 {% endif %}
             </div>
         </div>
+
     </div>
 </div>
 

@@ -112,6 +112,119 @@ def accept_friend_request(
 
     return friendship
 
+@transaction.atomic
+def remove_friendship(
+    *,
+    acting_player: Player,
+    other_player: Player,
+) -> Friendship:
+    """End an active friendship between two Players."""
+
+    if acting_player.pk == other_player.pk:
+        raise FriendshipError("You cannot remove yourself as a friend")
+
+    player_a_id = min(acting_player.pk, other_player.pk)
+    player_b_id = max(acting_player.pk, other_player.pk)
+
+    friendship = (
+        Friendship.objects
+        .select_for_update()
+        .filter(
+            player_a_id=player_a_id,
+            player_b_id=player_b_id,
+            ended_at__isnull=True,
+        )
+        .first()
+    )
+
+    if friendship is None:
+        raise FriendshipError("These players are not currently friends.")
+
+    friendship.ended_at = timezone.now()
+    friendship.ended_by_player = acting_player
+
+    friendship.save(
+        update_fields=[
+            "ended_at",
+            "ended_by_player",
+        ]
+    )
+
+    return friendship
+
+@transaction.atomic
+def cancel_friend_request(
+    *,
+    friend_request: FriendRequest,
+    acting_player: Player,
+) -> FriendRequest:
+    """Cancel a pending friend request sent by the acting Player."""
+
+    friend_request = (
+        FriendRequest.objects
+        .select_for_update()
+        .get(pk=friend_request.pk)
+    )
+
+    if acting_player.pk != friend_request.requestor_id:
+        raise FriendshipError(
+            "Only the player who sent this request can cancel it."
+        )
+
+    if friend_request.status != FriendRequestStatus.PENDING:
+        raise FriendshipError(
+            "This friend request is no longer pending."
+        )
+
+    friend_request.status = FriendRequestStatus.CANCELLED
+    friend_request.resolved_at = timezone.now()
+
+    friend_request.save(
+        update_fields=[
+            "status",
+            "resolved_at",
+        ]
+    )
+
+    return friend_request
+
+@transaction.atomic
+def decline_friend_request(
+    *,
+    friend_request: FriendRequest,
+    acting_player: Player,
+) -> FriendRequest:
+    """Decline a pending friend request received by the acting Player."""
+
+    friend_request = (
+        FriendRequest.objects
+        .select_for_update()
+        .get(pk=friend_request.pk)
+    )
+
+    if acting_player.pk != friend_request.requestee_id:
+        raise FriendshipError(
+            "Only the player who received this request can decline it."
+        )
+
+    if friend_request.status != FriendRequestStatus.PENDING:
+        raise FriendshipError(
+            "This friend request is no longer pending."
+        )
+
+    friend_request.status = FriendRequestStatus.DECLINED
+    friend_request.resolved_at = timezone.now()
+
+    friend_request.save(
+        update_fields=[
+            "status",
+            "resolved_at",
+        ]
+    )
+
+    return friend_request
+
+
 def get_player_by_handle(
     *,
     handle: str,
