@@ -339,11 +339,20 @@ class PlayerStatisticsFilterForm(forms.Form):
         ),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self, 
+        *args, 
+        acting_player=None,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
 
-        self.fields["player"].queryset = (
-            Player.objects.filter(is_active=True)
+        if acting_player is None:
+            self.fields["player"].queryset = Player.objects.none()
+            return
+
+        self.fields["player"].queryset = get_allowed_result_players(
+            acting_player=acting_player,
         )
 
 class PlayerScoreTrendsFilterForm(forms.Form):
@@ -389,17 +398,24 @@ class PlayerScoreTrendsFilterForm(forms.Form):
         ),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self, 
+        *args, 
+        acting_player=None,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
 
-        active_players = (
-            Player.objects
-            .filter(is_active=True)
-            .order_by("name")
-        )
+        if acting_player is None:
+            self.fields["player"].queryset = Player.objects.none()
+            self.fields["secondary_player"].queryset = Player.objects.none()
+        else:
+            allowed_players = get_allowed_result_players(
+                acting_player=acting_player,
+            )
 
-        self.fields["player"].queryset = active_players
-        self.fields["secondary_player"].queryset = active_players
+            self.fields["player"].queryset = allowed_players
+            self.fields["secondary_player"].queryset = allowed_players
 
         available_years = (
             Game.objects
@@ -664,15 +680,25 @@ class PlayerGameHistoryFilterForm(forms.Form):
         ),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self, 
+        *args, 
+        acting_player=None,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
 
-        players = (
-            Player.objects.order_by("name")
+        if acting_player is None:
+            self.fields["player"].queryset = Player.objects.none()
+            self.fields["secondary_player"].queryset = Player.objects.none()
+            return
+
+        allowed_players = get_allowed_result_players(
+            acting_player=acting_player,
         )
 
-        self.fields["player"].queryset = players
-        self.fields["secondary_player"].queryset = players
+        self.fields["player"].queryset = allowed_players
+        self.fields["secondary_player"].queryset = allowed_players
 
     def clean(self):
         cleaned_data = super().clean()

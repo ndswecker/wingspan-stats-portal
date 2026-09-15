@@ -62,12 +62,7 @@ def update_game(
 
     Confirmation state is determined by who performed each result change.
     """
-
-    _validate_result_players(
-        result_forms=result_forms,
-        acting_player=acting_player,
-    )
-
+    
     # Snapshot the existing GameResult records before making any changes.
     #
     # A validated ModelForm may already have applied submitted values to

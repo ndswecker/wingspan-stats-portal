@@ -88,10 +88,13 @@ from .services.friendship import (
 
 from .permissions import can_manage_game
 
-
+@login_required
 def competitive_history(request):
+    acting_player = request.user.player
+
     filter_form = PlayerGameHistoryFilterForm(
         request.GET or None,
+        acting_player=acting_player,
     )
 
     selected_player = None
@@ -289,9 +292,13 @@ def game_detail(request, pk):
         context,
     )
 
+@login_required
 def player_overview(request):
+    acting_player = request.user.player
+
     filter_form = PlayerStatisticsFilterForm(
         request.GET or None,
+        acting_player=acting_player,
     )
 
     general_stats = None
@@ -329,8 +336,11 @@ def player_overview(request):
     )
 
 def player_score_trends(request):
+    acting_player = request.user.player
+
     filter_form = PlayerScoreTrendsFilterForm(
         request.GET or None,
+        acting_player=acting_player,
     )
 
     selected_player = None
