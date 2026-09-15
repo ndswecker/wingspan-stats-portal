@@ -2,6 +2,11 @@ from django.db import transaction
 
 from ..models import Game, GameResult, Player
 
+from .friendship import get_friends_for_player
+
+class GameEntryError(Exception):
+    """Raised when a game entry operation violates a business rule."""
+
 @transaction.atomic
 def create_game(
     *,
@@ -9,6 +14,12 @@ def create_game(
     result_forms,
     acting_player: Player,
 ):
+
+    _validate_result_players(
+        result_forms=result_forms,
+        acting_player=acting_player,
+    )
+
     game = Game.objects.create(
         date_played=game_data["date_played"],
         human_player_mode=game_data["human_player_mode"],
@@ -27,7 +38,7 @@ def create_game(
 
         GameResult.objects.create(
             game=game,
-            player=result_data["player"],
+            player=result_player,
             score=result_data["score"],
             turn_order=result_data["turn_order"],
             is_confirmed=is_confirmed
@@ -41,7 +52,7 @@ def update_game(
     game: Game,
     game_data: dict,
     result_forms,
-    acting_player: Player | None,
+    acting_player: Player,
 ):
     """
     Update an existing game and its associated results.
@@ -51,6 +62,11 @@ def update_game(
 
     Confirmation state is determined by who performed each result change.
     """
+
+    _validate_result_players(
+        result_forms=result_forms,
+        acting_player=acting_player,
+    )
 
     # Snapshot the existing GameResult records before making any changes.
     #
@@ -154,11 +170,9 @@ def update_game(
             != original_result.score
         )
 
-        acting_player_owns_result = False
-
-        if acting_player is not None:
-            if acting_player.pk == original_result.player_id:
-                acting_player_owns_result = True
+        acting_player_owns_result = (
+            acting_player.pk == original_result.player_id
+        )
 
         is_confirmed = original_result.is_confirmed
 
@@ -211,11 +225,9 @@ def update_game(
 
         result_player = result_data["player"]
 
-        is_confirmed = False
-
-        if acting_player is not None:
-            if acting_player.pk == result_player.pk:
-                is_confirmed = True
+        is_confirmed = (
+            acting_player.pk == result_player.pk
+        )
 
         GameResult.objects.create(
             game=game,
@@ -224,3 +236,66 @@ def update_game(
             turn_order=result_data["turn_order"],
             is_confirmed=is_confirmed,
         )
+
+def get_allowed_result_players(
+    *,
+    acting_player: Player,
+):
+    """Return active Players the acting Player may enter game results for.
+    The acting Player may enter results for themselves and any of their friends."""
+
+    friends = get_friends_for_player(
+        player=acting_player,
+    )
+
+    allowed_player_ids = {
+        friend.pk
+        for friend in friends
+    }
+
+    allowed_player_ids.add(acting_player.pk)
+
+    return (
+        Player.objects
+        .filter(
+            pk__in=allowed_player_ids,
+            is_active=True,
+        )
+        .order_by("name")
+    )
+
+def _validate_result_players(
+    *,
+    result_forms,
+    acting_player: Player,
+) -> None:
+    """
+    Validate that all populated results belong to allowed Players.
+
+    Raises GameEntryError if the acting Player attempts to create or
+    update a result for anyone other than themselves or a current friend.
+    """
+    allowed_players = get_allowed_result_players(
+        acting_player=acting_player,
+    )
+
+    allowed_player_ids = set(
+        allowed_players.values_list(
+            "pk",
+            flat=True,
+        )
+    )
+
+    for result_form in result_forms:
+        result_data = result_form.cleaned_data
+
+        if not result_data.get("is_populated"):
+            continue
+
+        result_player = result_data["player"]
+
+        if result_player.pk not in allowed_player_ids:
+            raise GameEntryError(
+                "You can only create or update game results "
+                "for yourself or your friends."
+            )

@@ -21,6 +21,8 @@ from .models import (
     handle_validator,
 )
 
+from .services.game_entry import get_allowed_result_players
+
 User = get_user_model()
 
 class GameForm(forms.ModelForm):
@@ -93,11 +95,20 @@ class GameResultForm(forms.Form):
         ),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self, 
+        *args, 
+        acting_player=None, 
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
 
-        self.fields["player"].queryset = (
-            Player.objects.filter(is_active=True).order_by("name")
+        if acting_player is None:
+            self.fields["player"].queryset = Player.objects.none()
+            return
+
+        self.fields["player"].queryset = get_allowed_result_players(
+            acting_player=acting_player,
         )
 
     def clean(self):
@@ -137,10 +148,22 @@ class GameResultForm(forms.Form):
     
 class BaseGameResultFormSet(BaseFormSet):
     def __init__(
-        self, *args, human_player_mode=None, **kwargs
+        self, 
+        *args, 
+        human_player_mode=None, 
+        acting_player=None,
+        **kwargs
     ):
         self.human_player_mode = human_player_mode
+        self.acting_player = acting_player
         super().__init__(*args, **kwargs)
+
+    def get_form_kwargs(self, index):
+        kwargs = super().get_form_kwargs(index)
+
+        kwargs["acting_player"] = self.acting_player
+
+        return kwargs
         
     def clean(self):
         super().clean()
@@ -210,47 +233,47 @@ class GameResultEditForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self, 
+        *args, 
+        acting_player=None,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
 
-        active_players = Player.objects.filter(
-            is_active=True,
+        if acting_player is None:
+            self.fields["player"].queryset = Player.objects.none()
+            return
+
+        self.fields["player"].queryset = get_allowed_result_players(
+            acting_player=acting_player,
         )
-
-        if self.instance.pk:
-            current_player = self.instance.player
-
-            # When editing an existing result include every active player,
-            # OR the player already assigned to this GameResult
-            self.fields["player"].queryset = (
-                Player.objects.filter(
-                    models.Q(is_active=True) | models.Q(pk=current_player.pk)
-                )
-                .distinct()
-                .order_by("name")
-            )
-        else:
-            # This is a new GameResult being added to an existing game
-            self.fields["player"].queryset = (
-                active_players.order_by("name")
-            )
 
 class BaseGameResultEditFormSet(BaseModelFormSet):
     def __init__(
         self,
         *args,
         human_player_mode=None,
+        acting_player=None,
         **kwargs,
     ):
         self.human_player_mode = human_player_mode
+        self.acting_player = acting_player
 
         super().__init__(*args, **kwargs)
+
+    def get_form_kwargs(self, index):
+        kwargs = super().get_form_kwargs(index)
+
+        kwargs["acting_player"] = self.acting_player
+
+        return kwargs
 
     def clean(self):
         super().clean()
 
         # If Django already found errors in one or more individual forms,
-        # stop here. We do not want to perform structural validation on 
+        # stop here. We do not want to perform structural validation on
         # incomplete or invalid form data
         if any(self.errors):
             return
@@ -269,7 +292,7 @@ class BaseGameResultEditFormSet(BaseModelFormSet):
 
             # Ignore unused extra blank rows
             if (
-                not existing_result 
+                not existing_result
                 and not new_result_was_entered
             ):
                 continue
@@ -288,6 +311,7 @@ class BaseGameResultEditFormSet(BaseModelFormSet):
             players=players,
             turn_orders=turn_orders,
         )
+
 
 GameResultEditFormSet = modelformset_factory(
     GameResult,

@@ -200,6 +200,7 @@ class GameCreateView(LoginRequiredMixin, View):
 
         result_formset = GameResultFormSet(
             prefix="results",
+            acting_player=acting_player,
         )
 
         context = {
@@ -232,6 +233,7 @@ class GameCreateView(LoginRequiredMixin, View):
             request.POST,
             prefix="results",
             human_player_mode=human_player_mode,
+            acting_player=acting_player,
         )
 
         result_formset_is_valid = result_formset.is_valid()
@@ -606,6 +608,8 @@ def game_edit(request, pk):
     ):
         raise PermissionDenied
 
+    acting_player = request.user.player
+
     if request.method == "POST":
         game_form = GameForm(
             request.POST,
@@ -628,6 +632,7 @@ def game_edit(request, pk):
             queryset=game.results.all(),
             prefix="results",
             human_player_mode=human_player_mode,
+            acting_player=acting_player,
         )
 
         result_formset_is_valid = result_formset.is_valid()
@@ -636,12 +641,6 @@ def game_edit(request, pk):
             game_form_is_valid
             and result_formset_is_valid
         ):
-            acting_player = getattr(
-                request.user,
-                "player",
-                None,
-            )
-
             update_game(
                 game=game,
                 game_data=game_form.cleaned_data,
@@ -668,6 +667,7 @@ def game_edit(request, pk):
             queryset=game.results.all(),
             prefix="results",
             human_player_mode=game.human_player_mode,
+            acting_player=acting_player,
         )
 
     context = {
