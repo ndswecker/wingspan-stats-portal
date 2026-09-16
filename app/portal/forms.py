@@ -328,20 +328,44 @@ class PlayerStatisticsFilterForm(forms.Form):
         queryset=Player.objects.none(),
         empty_label="Select a player",
         widget=forms.Select(
-            attrs={"class": "form-select",}
+            attrs={
+                "class": "form-select",
+            }
         ),
     )
 
     game_type = forms.ChoiceField(
         choices=Game.HumanPlayerMode.choices,
         widget=forms.Select(
-            attrs={"class": "form-select",}
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
+            }
+        ),
+    )
+
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
+            }
         ),
     )
 
     def __init__(
-        self, 
-        *args, 
+        self,
+        *args,
         acting_player=None,
         **kwargs
     ):
@@ -354,6 +378,24 @@ class PlayerStatisticsFilterForm(forms.Form):
         self.fields["player"].queryset = get_allowed_result_players(
             acting_player=acting_player,
         )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
+
+        if (
+            start_date is not None
+            and end_date is not None
+            and start_date > end_date
+        ):
+            self.add_error(
+                "end_date",
+                "End date must be on or after the start date.",
+            )
+
+        return cleaned_data
 
 class PlayerScoreTrendsFilterForm(forms.Form):
     LAST_12_MONTHS = "last_12_months"

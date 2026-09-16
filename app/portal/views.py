@@ -302,20 +302,38 @@ def player_overview(request):
     )
 
     general_stats = None
+    game_results = None
     selected_player = None
     selected_game_type_label = None
+    selected_start_date = None
+    selected_end_date = None
 
     if filter_form.is_valid():
         selected_player = filter_form.cleaned_data["player"]
-
         game_type = Game.HumanPlayerMode(
-            filter_form.cleaned_data["game_type"],
+            filter_form.cleaned_data["game_type"]
         )
         selected_game_type_label = game_type.label
+
+        selected_start_date = filter_form.cleaned_data["start_date"]
+        selected_end_date = filter_form.cleaned_data["end_date"]
+
+        action = request.GET.get("action")
+
+        if action == "this_month":
+            today = timezone.localdate()
+            selected_start_date = today.replace(day=1)
+            selected_end_date = today
+
+        elif action == "all":
+            selected_start_date = None
+            selected_end_date = None
 
         game_results = select_game_results(
             player=selected_player,
             game_type=game_type,
+            start_date=selected_start_date,
+            end_date=selected_end_date,
         )
 
         general_stats = calculate_general_stats(
@@ -324,9 +342,12 @@ def player_overview(request):
 
     context = {
         "filter_form": filter_form,
+        "general_stats": general_stats,
+        "game_results": game_results,
         "selected_player": selected_player,
         "selected_game_type_label": selected_game_type_label,
-        "general_stats": general_stats,
+        "selected_start_date": selected_start_date,
+        "selected_end_date": selected_end_date,
     }
 
     return render(
