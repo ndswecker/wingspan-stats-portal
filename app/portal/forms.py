@@ -398,7 +398,6 @@ class PlayerStatisticsFilterForm(forms.Form):
         return cleaned_data
 
 class PlayerScoreTrendsFilterForm(forms.Form):
-    LAST_12_MONTHS = "last_12_months"
 
     player = forms.ModelChoiceField(
         queryset=Player.objects.none(),
@@ -430,12 +429,22 @@ class PlayerScoreTrendsFilterForm(forms.Form):
         ),
     )
 
-    period = forms.ChoiceField(
-        choices=(),
-        initial=LAST_12_MONTHS,
-        widget=forms.Select(
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
             attrs={
-                "class": "form-select",
+                "class": "form-control",
+                "type": "date",
+            }
+        ),
+    )
+
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
             }
         ),
     )
@@ -459,34 +468,14 @@ class PlayerScoreTrendsFilterForm(forms.Form):
             self.fields["player"].queryset = allowed_players
             self.fields["secondary_player"].queryset = allowed_players
 
-        available_years = (
-            Game.objects
-            .dates(
-                "date_played",
-                "year",
-                order="DESC",
-            )
-        )
-
-        period_choices = [
-            (
-                self.LAST_12_MONTHS,
-                "Last 12 Months",
-            )
-        ]
-
-        period_choices.extend(
-            (str(year.year), str(year.year))
-            for year in available_years
-        )
-
-        self.fields["period"].choices = period_choices
 
     def clean(self):
         cleaned_data = super().clean()
 
         player = cleaned_data.get("player")
         secondary_player = cleaned_data.get("secondary_player")
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
 
         if (
             player is not None
@@ -496,6 +485,14 @@ class PlayerScoreTrendsFilterForm(forms.Form):
             self.add_error(
                 "secondary_player",
                 "The comparison player must be different from the primary player.",
+            )
+
+        if (
+            start_date and end_date and start_date > end_date
+        ):
+            self.add_error(
+                "end_date",
+                "End date cannot be earlier than start date.",
             )
 
         return cleaned_data

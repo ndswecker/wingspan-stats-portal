@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from calendar import monthrange
 
 from django.db.models import Avg, Count, QuerySet
 from django.db.models.functions import TruncMonth
-from django.utils import timezone
 
 from ..models import GameResult
 
@@ -18,12 +16,6 @@ class MonthlyScoreAverage:
     games_played: int
 
 @dataclass(frozen=True)
-class ScoreTrendPeriod:
-    start_date: date
-    end_date: date
-    label: str
-
-@dataclass(frozen=True)
 class MonthlyScoreComparison:
     month_start: date
 
@@ -35,6 +27,11 @@ class MonthlyScoreComparison:
 
     primary_games_played: int
     secondary_games_played: int
+
+@dataclass(frozen=True)
+class ScoreTrendDateRange:
+    start_date: date
+    end_date: date
 
 
 def calculate_monthly_score_averages(
@@ -50,6 +47,7 @@ def calculate_monthly_score_averages(
     requested range. Months without game results use an average score of None
     and a games-played count of zero.
     """
+
     if start_date > end_date:
         raise ValueError("start_date cannot be later than end_date.")
 
@@ -142,73 +140,6 @@ def _build_monthly_score_average(
         games_played=aggregated_result["games_played"],
     )
 
-def resolve_score_trend_period(
-    *,
-    selected_period: str,
-) -> ScoreTrendPeriod:
-    if selected_period == "last_12_months":
-        return _resolve_last_12_months()
-
-    try:
-        selected_year = int(selected_period)
-    except (TypeError, ValueError) as error:
-        raise ValueError(
-            f"Unsupported score trend period: {selected_period}"
-        ) from error
-
-    return ScoreTrendPeriod(
-        start_date=date(selected_year, 1, 1),
-        end_date=date(selected_year, 12, 31),
-        label=str(selected_year),
-    )
-
-
-def _resolve_last_12_months() -> ScoreTrendPeriod:
-    current_date = timezone.localdate()
-    current_month = current_date.replace(day=1)
-
-    start_month = _shift_month(
-        month_start=current_month,
-        month_offset=-11,
-    )
-
-    final_day = monthrange(
-        current_month.year,
-        current_month.month,
-    )[1]
-
-    end_date = current_month.replace(day=final_day)
-
-    return ScoreTrendPeriod(
-        start_date=start_month,
-        end_date=end_date,
-        label="Last 12 Months",
-    )
-
-
-def _shift_month(
-    *,
-    month_start: date,
-    month_offset: int,
-) -> date:
-    absolute_month = (
-        month_start.year * 12
-        + month_start.month
-        - 1
-        + month_offset
-    )
-
-    year, zero_based_month = divmod(
-        absolute_month,
-        12,
-    )
-
-    return date(
-        year,
-        zero_based_month + 1,
-        1,
-    )
-
 def compare_monthly_score_averages(
     *,
     primary_monthly_scores: list[MonthlyScoreAverage],
@@ -259,4 +190,53 @@ def compare_monthly_score_averages(
         )
 
     return comparisons
+
+def resolve_score_trend_date_range(
+    *,
+    primary_game_results: QuerySet[GameResult],
+    secondary_game_results: QuerySet[GameResult] | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> ScoreTrendDateRange:
+    """
+    Resolve concrete date boundaries for score-trend calculations,
     
+    Explicit date boundaries are preserved. Missing boundaries are derived
+    from available game results. When comparison results are provided, the
+    resolved range covers the complete span of both datasets.
+    """
+
+    if not primary_game_results.exists():
+        raise ValueError("Primary game results are required to resolve a score-trend date range.")
+
+    if start_date is None:
+        earliest_dates = [
+            primary_game_results.earliest("game__date_played").game.date_played,
+        ]
+
+        if secondary_game_results is not None and secondary_game_results.exists():
+            earliest_dates.append(
+                secondary_game_results.earliest("game__date_played").game.date_played,
+            )
+
+        start_date = min(earliest_dates)
+
+    if end_date is None:
+        latest_dates = [
+            primary_game_results.latest("game__date_played").game.date_played,
+        ]
+
+        if secondary_game_results is not None and secondary_game_results.exists():
+            latest_dates.append(
+                secondary_game_results.latest("game__date_played").game.date_played,
+            )
+
+        end_date = max(latest_dates)
+
+    if start_date > end_date:
+        raise ValueError("start_date cannot be later than end_date.")
+
+    return ScoreTrendDateRange(
+        start_date=start_date,
+        end_date=end_date,
+    )

@@ -16,7 +16,8 @@ Player Score Trends | Wingspan Stats Portal
     <div class="card-body">
         <form method="get">
             <div class="row g-3 align-items-end">
-                <div class="col-12 col-md-3">
+
+                <div class="col-12 col-md-4 col-lg-3">
                     <label
                         class="form-label"
                         for="{{ filter_form.player.id_for_label }}"
@@ -33,7 +34,7 @@ Player Score Trends | Wingspan Stats Portal
                     {% endfor %}
                 </div>
 
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-4 col-lg-3">
                     <label
                         class="form-label"
                         for="{{ filter_form.secondary_player.id_for_label }}"
@@ -50,7 +51,7 @@ Player Score Trends | Wingspan Stats Portal
                     {% endfor %}
                 </div>
 
-                <div class="col-12 col-md-2">
+                <div class="col-12 col-md-4 col-lg-2">
                     <label
                         class="form-label"
                         for="{{ filter_form.game_type.id_for_label }}"
@@ -67,111 +68,363 @@ Player Score Trends | Wingspan Stats Portal
                     {% endfor %}
                 </div>
 
-                <div class="col-12 col-md-2">
+                <div class="col-12 col-md-6 col-lg-2">
                     <label
                         class="form-label"
-                        for="{{ filter_form.period.id_for_label }}"
+                        for="{{ filter_form.start_date.id_for_label }}"
                     >
-                        Period
+                        Start Date
                     </label>
 
-                    {{ filter_form.period }}
+                    {{ filter_form.start_date }}
 
-                    {% for error in filter_form.period.errors %}
+                    {% for error in filter_form.start_date.errors %}
                         <div class="text-danger small mt-1">
                             {{ error }}
                         </div>
                     {% endfor %}
                 </div>
 
-                <div class="col-12 col-md-2">
-                    <button
-                        class="btn btn-primary w-100"
-                        type="submit"
+                <div class="col-12 col-md-6 col-lg-2">
+                    <label
+                        class="form-label"
+                        for="{{ filter_form.end_date.id_for_label }}"
                     >
-                        View Trends
-                    </button>
+                        End Date
+                    </label>
+
+                    {{ filter_form.end_date }}
+
+                    {% for error in filter_form.end_date.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
                 </div>
+
+            </div>
+
+            {% for error in filter_form.non_field_errors %}
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button
+                    class="btn btn-primary"
+                    type="submit"
+                >
+                    View Trends
+                </button>
+
+                <button
+                    class="btn btn-outline-secondary"
+                    type="submit"
+                    name="action"
+                    value="this_month"
+                >
+                    This Month
+                </button>
+
+                <button
+                    class="btn btn-outline-secondary"
+                    type="submit"
+                    name="action"
+                    value="all"
+                >
+                    All Time
+                </button>
+            </div>
+
+            <div class="form-text mt-2">
+                Leave Start Date or End Date blank to leave that side of the date range open.
             </div>
         </form>
     </div>
 </div>
 
 
-</div>
+{% if not filter_form.is_bound %}
 
-{% if not filter_form.is_bound %} <div class="alert alert-info" role="status">
-Select a player, game type, and period to view score trends. </div>
+    <div class="alert alert-info" role="status">
+        Select a player and game type to view score trends.
+        Date filters are optional.
+    </div>
 
 {% elif filter_form.is_valid %}
-{% if has_results %} <section class="mb-5"> <h2 class="h4 mb-3">
-{{ selected_player }} <span class="text-muted">
-— {{ selected_game_type_label }} </span> </h2>
+
+    {% if has_results %}
+
+        <section class="mb-5">
+
+            <h2 class="h4 mb-1">
+                {{ selected_player }}
+                <span class="text-muted">
+                    — {{ selected_game_type_label }}
+                </span>
+            </h2>
+
+            {% if is_comparison %}
+                <p class="text-muted mb-4">
+                    Compared with {{ selected_secondary_player }}
+                </p>
+            {% else %}
+                <div class="mb-4"></div>
+            {% endif %}
 
 
-        <p class="text-muted">
-            {{ selected_period_label }}
-        </p>
+            <h2 class="h4 mb-3">
+                Monthly Score Trends
+            </h2>
 
-        <h2 class="h4 mb-3">
-            Monthly Score Trends
-        </h2>
-
-        <div class="card mb-4 overflow-hidden">
-            <div class="card-body p-2 p-md-3">
-                {{ monthly_chart_html|safe }}
+            <div class="card mb-4 overflow-hidden">
+                <div class="card-body p-2 p-md-3">
+                    {{ monthly_chart_html|safe }}
+                </div>
             </div>
-        </div>
 
-        <h2 class="h4 mb-1">
-            Score Distribution
-        </h2>
 
-        <p class="text-muted mb-3">
-            {{ selected_player }}
-            — {{ selected_game_type_label }}
-            — {{ selected_period_label }}
-        </p>
+            <h2 class="h4 mb-1">
+                Score Distribution
+            </h2>
 
-        <div class="card mb-4 overflow-hidden">
-            <div class="card-body p-2 p-md-3">
-                {{ distribution_chart_html|safe }}
+            <p class="text-muted mb-3">
+                {{ selected_player }}
+                — {{ selected_game_type_label }}
+
+                {% if is_comparison %}
+                    — compared with {{ selected_secondary_player }}
+                {% endif %}
+            </p>
+
+            <div class="card mb-4 overflow-hidden">
+                <div class="card-body p-2 p-md-3">
+                    {{ distribution_chart_html|safe }}
+                </div>
             </div>
-        </div> 
 
-        <h2 class="h4 mb-3">
-            Statistical Summary
-        </h2>
 
-        {% if is_comparison %}
+            <h2 class="h4 mb-3">
+                Statistical Summary
+            </h2>
 
-            {% if has_comparison_statistics %}
+            {% if is_comparison %}
+
+                {% if has_comparison_statistics %}
+
+                    <p class="text-muted small mb-3">
+                        P1 — {{ selected_player }}
+                        <span class="mx-2">|</span>
+                        P2 — {{ selected_secondary_player }}
+                    </p>
+
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        Statistic
+                                    </th>
+
+                                    <th
+                                        scope="col"
+                                        class="text-end"
+                                    >
+                                        {{ selected_player }}
+                                    </th>
+
+                                    <th
+                                        scope="col"
+                                        class="text-end"
+                                    >
+                                        {{ selected_secondary_player }}
+                                    </th>
+
+                                    <th
+                                        scope="col"
+                                        class="text-end"
+                                    >
+                                        Diff
+                                    </th>
+
+                                    <th
+                                        scope="col"
+                                        class="text-end"
+                                    >
+                                        Δ %
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for comparison in statistical_comparisons %}
+                                    <tr>
+                                        <th scope="row">
+                                            {{ comparison.label }}
+                                        </th>
+
+                                        <td class="text-end">
+                                            {{ comparison.primary_value|floatformat:1 }}
+                                        </td>
+
+                                        <td class="text-end">
+                                            {{ comparison.secondary_value|floatformat:1 }}
+                                        </td>
+
+                                        <td class="text-end">
+                                            {% if comparison.difference is not None %}
+                                                {% if comparison.difference > 0 %}+{% endif %}{{ comparison.difference|floatformat:1 }}
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <td class="text-end">
+                                            {% if comparison.percentage_difference is not None %}
+                                                {% if comparison.percentage_difference > 0 %}+{% endif %}{{ comparison.percentage_difference|floatformat:1 }}%
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                {% else %}
+
+                    <div class="alert alert-secondary" role="status">
+                        Not enough results to generate a statistical comparison.
+                    </div>
+
+                {% endif %}
+
+            {% else %}
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-hover align-middle">
+                        <tbody>
+                            <tr>
+                                <th scope="row">
+                                    Games Played
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.games_played }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row">
+                                    Average Score
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.average_score|floatformat:1 }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row">
+                                    Median Score
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.median_score|floatformat:1 }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row">
+                                    Standard Deviation
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.standard_deviation|floatformat:1 }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row">
+                                    Minimum Score
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.minimum_score }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row">
+                                    25th Percentile
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.percentile_25|floatformat:1 }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row">
+                                    75th Percentile
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.percentile_75|floatformat:1 }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row">
+                                    90th Percentile
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.percentile_90|floatformat:1 }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row">
+                                    Maximum Score
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.maximum_score }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            {% endif %}
+
+
+            <h2 class="h4 mb-3">
+                Monthly Results
+            </h2>
+
+            {% if is_comparison %}
+
                 <p class="text-muted small mb-3">
                     P1 — {{ selected_player }}
                     <span class="mx-2">|</span>
                     P2 — {{ selected_secondary_player }}
                 </p>
 
-                <div class="table-responsive mb-4">
+                <div class="table-responsive">
                     <table class="table table-sm table-hover align-middle">
                         <thead>
                             <tr>
                                 <th scope="col">
-                                    Statistic
+                                    Month
                                 </th>
 
                                 <th
                                     scope="col"
                                     class="text-end"
                                 >
-                                    {{ selected_player }}
+                                    {{ selected_player }} Avg
                                 </th>
 
                                 <th
                                     scope="col"
                                     class="text-end"
                                 >
-                                    {{ selected_secondary_player }}
+                                    {{ selected_secondary_player }} Avg
                                 </th>
 
                                 <th
@@ -185,24 +438,46 @@ Select a player, game type, and period to view score trends. </div>
                                     scope="col"
                                     class="text-end"
                                 >
+                                    {{ selected_player }} Games
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="text-end"
+                                >
+                                    {{ selected_secondary_player }} Games
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="text-end"
+                                >
                                     Δ %
                                 </th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            {% for comparison in statistical_comparisons %}
+                            {% for comparison in monthly_comparisons %}
                                 <tr>
                                     <th scope="row">
-                                        {{ comparison.label }}
+                                        {{ comparison.month_start|date:"M ’y" }}
                                     </th>
 
                                     <td class="text-end">
-                                        {{ comparison.primary_value|floatformat:1 }}
+                                        {% if comparison.primary_average_score is not None %}
+                                            {{ comparison.primary_average_score|floatformat:1 }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
                                     </td>
 
                                     <td class="text-end">
-                                        {{ comparison.secondary_value|floatformat:1 }}
+                                        {% if comparison.secondary_average_score is not None %}
+                                            {{ comparison.secondary_average_score|floatformat:1 }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
                                     </td>
 
                                     <td class="text-end">
@@ -211,6 +486,14 @@ Select a player, game type, and period to view score trends. </div>
                                         {% else %}
                                             <span class="text-muted">—</span>
                                         {% endif %}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ comparison.primary_games_played }}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ comparison.secondary_games_played }}
                                     </td>
 
                                     <td class="text-end">
@@ -227,260 +510,69 @@ Select a player, game type, and period to view score trends. </div>
                 </div>
 
             {% else %}
-                <div class="alert alert-secondary" role="status">
-                    Not enough results to generate a statistical comparison.
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">
+                                    Month
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="text-end"
+                                >
+                                    Average Score
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="text-end"
+                                >
+                                    Games Played
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for monthly_score in monthly_scores %}
+                                <tr>
+                                    <th scope="row">
+                                        {{ monthly_score.month_start|date:"F Y" }}
+                                    </th>
+
+                                    <td class="text-end">
+                                        {% if monthly_score.average_score is not None %}
+                                            {{ monthly_score.average_score|floatformat:1 }}
+                                        {% else %}
+                                            <span class="text-muted">
+                                                No games
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ monthly_score.games_played }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
+
             {% endif %}
 
-        {% else %}
+        </section>
 
-            <div class="table-responsive mb-4">
-                <table class="table table-sm table-hover align-middle">
-                    <tbody>
-                        <tr>
-                            <th scope="row">Games Played</th>
-                            <td class="text-end">
-                                {{ score_distribution.games_played }}
-                            </td>
-                        </tr>
+    {% else %}
 
-                        <tr>
-                            <th scope="row">Average Score</th>
-                            <td class="text-end">
-                                {{ score_distribution.average_score|floatformat:1 }}
-                            </td>
-                        </tr>
+        <div class="alert alert-warning" role="status">
+            No matching games were found for this selection.
+        </div>
 
-                        <tr>
-                            <th scope="row">Median Score</th>
-                            <td class="text-end">
-                                {{ score_distribution.median_score|floatformat:1 }}
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">Standard Deviation</th>
-                            <td class="text-end">
-                                {{ score_distribution.standard_deviation|floatformat:1 }}
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">Minimum Score</th>
-                            <td class="text-end">
-                                {{ score_distribution.minimum_score }}
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">25th Percentile</th>
-                            <td class="text-end">
-                                {{ score_distribution.percentile_25|floatformat:1 }}
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">75th Percentile</th>
-                            <td class="text-end">
-                                {{ score_distribution.percentile_75|floatformat:1 }}
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">90th Percentile</th>
-                            <td class="text-end">
-                                {{ score_distribution.percentile_90|floatformat:1 }}
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">Maximum Score</th>
-                            <td class="text-end">
-                                {{ score_distribution.maximum_score }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-        {% endif %}        
-
-        <h2 class="h4 mb-3">
-            Monthly Results
-        </h2>
-
-        {% if is_comparison %}
-            <p class="text-muted small mb-3">
-                P1 — {{ selected_player }}
-                <span class="mx-2">|</span>
-                P2 — {{ selected_secondary_player }}
-            </p>
-
-            <div class="table-responsive">
-                <table class="table table-sm table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th scope="col">
-                                Month
-                            </th>
-
-                            <th
-                                scope="col"
-                                class="text-end"
-                            >
-                                {{ selected_player }} Avg
-                            </th>
-
-                            <th
-                                scope="col"
-                                class="text-end"
-                            >
-                                {{ selected_secondary_player }} Avg
-                            </th>
-
-                            <th
-                                scope="col"
-                                class="text-end"
-                            >
-                                Diff
-                            </th>
-
-                            <th
-                                scope="col"
-                                class="text-end"
-                            >
-                                {{ selected_player }} Games
-                            </th>
-
-                            <th
-                                scope="col"
-                                class="text-end"
-                            >
-                                {{ selected_secondary_player }} Games
-                            </th>
-
-                            <th
-                                scope="col"
-                                class="text-end"
-                            >
-                                Δ %
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {% for comparison in monthly_comparisons %}
-                            <tr>
-                                <th scope="row">
-                                    {{ comparison.month_start|date:"M ’y" }}
-                                </th>
-
-                                <td class="text-end">
-                                    {% if comparison.primary_average_score is not None %}
-                                        {{ comparison.primary_average_score|floatformat:1 }}
-                                    {% else %}
-                                        <span class="text-muted">—</span>
-                                    {% endif %}
-                                </td>
-
-                                <td class="text-end">
-                                    {% if comparison.secondary_average_score is not None %}
-                                        {{ comparison.secondary_average_score|floatformat:1 }}
-                                    {% else %}
-                                        <span class="text-muted">—</span>
-                                    {% endif %}
-                                </td>
-
-                                <td class="text-end">
-                                    {% if comparison.difference is not None %}
-                                        {% if comparison.difference > 0 %}+{% endif %}{{ comparison.difference|floatformat:1 }}
-                                    {% else %}
-                                        <span class="text-muted">—</span>
-                                    {% endif %}
-                                </td>
-
-                                <td class="text-end">
-                                    {{ comparison.primary_games_played }}
-                                </td>
-
-                                <td class="text-end">
-                                    {{ comparison.secondary_games_played }}
-                                </td>
-
-                                <td class="text-end">
-                                    {% if comparison.percentage_difference is not None %}
-                                        {% if comparison.percentage_difference > 0 %}+{% endif %}{{ comparison.percentage_difference|floatformat:1 }}%
-                                    {% else %}
-                                        <span class="text-muted">—</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-        {% else %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th scope="col">
-                                Month
-                            </th>
-
-                            <th
-                                scope="col"
-                                class="text-end"
-                            >
-                                Average Score
-                            </th>
-
-                            <th
-                                scope="col"
-                                class="text-end"
-                            >
-                                Games Played
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {% for monthly_score in monthly_scores %}
-                            <tr>
-                                <th scope="row">
-                                    {{ monthly_score.month_start|date:"F Y" }}
-                                </th>
-
-                                <td class="text-end">
-                                    {% if monthly_score.average_score is not None %}
-                                        {{ monthly_score.average_score|floatformat:1 }}
-                                    {% else %}
-                                        <span class="text-muted">
-                                            No games
-                                        </span>
-                                    {% endif %}
-                                </td>
-
-                                <td class="text-end">
-                                    {{ monthly_score.games_played }}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
-
-
-    </section>
-
-{% else %}
-    <div class="alert alert-warning" role="status">
-        No matching games were found for this selection.
-    </div>
-{% endif %}
-
+    {% endif %}
 
 {% endif %}
+
 {% endblock %}

@@ -36,7 +36,8 @@ from .services.game_result_selection import select_game_results
 from .services.player_general_stats import calculate_general_stats
 from .services.player_score_trends import (
     calculate_monthly_score_averages,
-    resolve_score_trend_period,
+    compare_monthly_score_averages,
+    resolve_score_trend_date_range,
 )
 from .services.player_score_trend_chart import (
     build_monthly_score_chart,
@@ -52,11 +53,6 @@ from .services.player_score_distribution import (
 from .services.player_score_distribution_chart import (
     build_score_distribution_chart,
     build_score_distribution_comparison_chart,
-)
-from .services.player_score_trends import (
-    calculate_monthly_score_averages,
-    compare_monthly_score_averages,
-    resolve_score_trend_period,
 )
 
 from .services.registration import (
@@ -362,15 +358,32 @@ def player_overview(request):
 def player_score_trends(request):
     acting_player = request.user.player
 
+    form_data = request.GET.copy() if request.GET else None
+
+    if form_data is not None:
+        action = form_data.get("action")
+
+        if action == "this_month":
+            today = timezone.localdate()
+            form_data["start_date"] = today.replace(day=1).isoformat()
+            form_data["end_date"] = today.isoformat()
+
+        elif action == "all":
+            form_data["start_date"] = ""
+            form_data["end_date"] = ""
+
     filter_form = PlayerScoreTrendsFilterForm(
-        request.GET or None,
+        form_data,
         acting_player=acting_player,
     )
 
     selected_player = None
     selected_secondary_player = None
+
     selected_game_type_label = None
-    selected_period_label = None
+
+    selected_start_date = None
+    selected_end_date = None
 
     is_comparison = False
 
@@ -398,16 +411,14 @@ def player_score_trends(request):
         )
         selected_game_type_label = game_type.label
 
-        period = resolve_score_trend_period(
-            selected_period=filter_form.cleaned_data["period"],
-        )
-        selected_period_label = period.label
+        selected_start_date = filter_form.cleaned_data["start_date"]
+        selected_end_date = filter_form.cleaned_data["end_date"]
 
         game_results = select_game_results(
             player=selected_player,
             game_type=game_type,
-            start_date=period.start_date,
-            end_date=period.end_date,
+            start_date=selected_start_date,
+            end_date=selected_end_date,
         )
 
         secondary_game_results = None
@@ -416,25 +427,32 @@ def player_score_trends(request):
             secondary_game_results = select_game_results(
                 player=selected_secondary_player,
                 game_type=game_type,
-                start_date=period.start_date,
-                end_date=period.end_date,
+                start_date=selected_start_date,
+                end_date=selected_end_date,
             )
 
         has_results = game_results.exists()
 
         if has_results:
 
+            score_trend_date_range = resolve_score_trend_date_range(
+                primary_game_results=game_results,
+                secondary_game_results=secondary_game_results,
+                start_date=selected_start_date,
+                end_date=selected_end_date,
+            )
+
             monthly_scores = calculate_monthly_score_averages(
                 game_results=game_results,
-                start_date=period.start_date,
-                end_date=period.end_date,
+                start_date=score_trend_date_range.start_date,
+                end_date=score_trend_date_range.end_date,
             )
 
             if is_comparison:
                 secondary_monthly_scores = calculate_monthly_score_averages(
                     game_results=secondary_game_results,
-                    start_date=period.start_date,
-                    end_date=period.end_date,
+                    start_date=score_trend_date_range.start_date,
+                    end_date=score_trend_date_range.end_date,
                 )
 
                 monthly_comparisons = compare_monthly_score_averages(
@@ -472,14 +490,12 @@ def player_score_trends(request):
                     primary_player=selected_player,
                     secondary_player=selected_secondary_player,
                     game_type_label=selected_game_type_label,
-                    period_label=selected_period_label,
                 )
             else:
                 monthly_figure = build_monthly_score_chart(
                     monthly_scores=monthly_scores,
                     player=selected_player,
                     game_type_label=selected_game_type_label,
-                    period_label=selected_period_label,
                 )
 
             if is_comparison and score_distribution_comparison is not None:
@@ -523,7 +539,6 @@ def player_score_trends(request):
         "selected_secondary_player": selected_secondary_player,
         "is_comparison": is_comparison,
         "selected_game_type_label": selected_game_type_label,
-        "selected_period_label": selected_period_label,
 
         "monthly_scores": monthly_scores,
         "secondary_monthly_scores": secondary_monthly_scores,

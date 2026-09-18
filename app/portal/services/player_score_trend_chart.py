@@ -24,7 +24,6 @@ def build_monthly_score_chart(
     monthly_scores: list[MonthlyScoreAverage],
     player: Player,
     game_type_label: str,
-    period_label: str,
 ) -> go.Figure:
     """
     Build a monthly average-score line chart.
@@ -33,12 +32,16 @@ def build_monthly_score_chart(
     queries or statistical calculations. In single-player mode, the selected
     player receives the shared Primary Player chart styling.
     """
-    use_year_in_labels = period_label == "Last 12 Months"
+
+    include_year = (
+        monthly_scores[0].month_start.year
+        != monthly_scores[-1].month_start.year
+    )
 
     month_labels = [
         _build_month_label(
             monthly_score=monthly_score,
-            include_year=use_year_in_labels,
+            include_year=include_year,
         )
         for monthly_score in monthly_scores
     ]
@@ -105,7 +108,6 @@ def build_monthly_score_chart(
         title={
             "text": (
                 f"{player.name} — {game_type_label}"
-                f"<br><sup>{period_label}</sup>"
             ),
             "x": 0.5,
             "xanchor": "center",
@@ -143,7 +145,6 @@ def build_monthly_score_comparison_chart(
     primary_player: Player,
     secondary_player: Player,
     game_type_label: str,
-    period_label: str,
 ) -> go.Figure:
     """
     Build a monthly average-score comparison line chart.
