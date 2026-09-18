@@ -8,7 +8,7 @@
     <div class="mb-4">
         <h1 class="mb-2">Player Overview</h1>
         <p class="text-muted mb-0">
-            Select a player and game type to view their general performance statistics.
+            Select a player, game type, and optional date range to view their performance.
         </p>
     </div>
 
@@ -19,8 +19,8 @@
 
         <div class="card-body">
             <form method="get">
-                <div class="row g-3 align-items-end">
-                    <div class="col-12 col-md-5">
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
                         <label
                             class="form-label"
                             for="{{ filter_form.player.id_for_label }}"
@@ -37,7 +37,7 @@
                         {% endfor %}
                     </div>
 
-                    <div class="col-12 col-md-5">
+                    <div class="col-12 col-md-6">
                         <label
                             class="form-label"
                             for="{{ filter_form.game_type.id_for_label }}"
@@ -54,13 +54,46 @@
                         {% endfor %}
                     </div>
 
-                    <div class="col-12 col-md-2 d-grid">
-                        <button
-                            class="btn btn-primary"
-                            type="submit"
+                    <div class="col-12 col-md-6">
+                        <label
+                            class="form-label"
+                            for="{{ filter_form.start_date.id_for_label }}"
                         >
-                            View Overview
-                        </button>
+                            Start Date
+                        </label>
+
+                        {{ filter_form.start_date }}
+
+                        <div class="form-text">
+                            Leave empty to include games from the beginning.
+                        </div>
+
+                        {% for error in filter_form.start_date.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label
+                            class="form-label"
+                            for="{{ filter_form.end_date.id_for_label }}"
+                        >
+                            End Date
+                        </label>
+
+                        {{ filter_form.end_date }}
+
+                        <div class="form-text">
+                            Leave empty to include games through today.
+                        </div>
+
+                        {% for error in filter_form.end_date.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
 
@@ -69,6 +102,33 @@
                         {{ error }}
                     </div>
                 {% endfor %}
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button
+                        class="btn btn-primary"
+                        type="submit"
+                    >
+                        View Overview
+                    </button>
+
+                    <button
+                        class="btn btn-outline-primary"
+                        type="submit"
+                        name="action"
+                        value="this_month"
+                    >
+                        This Month
+                    </button>
+
+                    <button
+                        class="btn btn-outline-secondary"
+                        type="submit"
+                        name="action"
+                        value="all"
+                    >
+                        All Time
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -81,18 +141,39 @@
 
             <p class="text-muted mb-0">
                 {{ selected_game_type_label }}
+
+                {% if selected_start_date or selected_end_date %}
+                    <span class="mx-1">&middot;</span>
+
+                    {% if selected_start_date %}
+                        {{ selected_start_date|date:"M j, Y" }}
+                    {% else %}
+                        Beginning
+                    {% endif %}
+
+                    &ndash;
+
+                    {% if selected_end_date %}
+                        {{ selected_end_date|date:"M j, Y" }}
+                    {% else %}
+                        Today
+                    {% endif %}
+                {% else %}
+                    <span class="mx-1">&middot;</span>
+                    All Time
+                {% endif %}
             </p>
         </div>
 
         {% if general_stats.games_played > 0 %}
-            <div class="card shadow-sm">
+            <div class="card shadow-sm mb-4">
                 <div class="card-header">
                     <h2 class="h5 mb-0">General Statistics</h2>
                 </div>
 
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="col-6 col-lg-3">
                             <div class="border rounded p-3 h-100">
                                 <div class="text-muted small">
                                     Games Played
@@ -104,7 +185,7 @@
                             </div>
                         </div>
 
-                        <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="col-6 col-lg-3">
                             <div class="border rounded p-3 h-100">
                                 <div class="text-muted small">
                                     Average Score
@@ -116,7 +197,7 @@
                             </div>
                         </div>
 
-                        <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="col-6 col-lg-3">
                             <div class="border rounded p-3 h-100">
                                 <div class="text-muted small">
                                     Highest Score
@@ -128,7 +209,7 @@
                             </div>
                         </div>
 
-                        <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="col-6 col-lg-3">
                             <div class="border rounded p-3 h-100">
                                 <div class="text-muted small">
                                     Lowest Score
@@ -142,16 +223,74 @@
                     </div>
                 </div>
             </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Game History</h2>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">Type</th>
+                                <th scope="col" class="text-end">Score</th>
+                                <th scope="col" class="text-end">Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for result in game_results %}
+                                <tr>
+                                    <td class="text-nowrap">
+                                        <a
+                                            href="{% url 'portal:game-detail' result.game.pk %}"
+                                            class="fw-semibold"
+                                        >
+                                            {{ result.game.date_played|date:"M j, Y" }}
+                                        </a>
+                                    </td>
+
+                                    <td>
+                                        {% if result.game.human_player_mode == "single_human" %}
+                                            Solo
+                                        {% else %}
+                                            Competitive
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-end fw-semibold">
+                                        {{ result.score }}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {% if result.is_confirmed %}
+                                            <span class="badge text-bg-success">
+                                                Confirmed
+                                            </span>
+                                        {% else %}
+                                            <span class="badge text-bg-warning">
+                                                Pending
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         {% else %}
             <div class="alert alert-info">
                 No matching games were found for
                 <strong>{{ selected_player.name }}</strong>
-                using the selected game type.
+                using the selected filters.
             </div>
         {% endif %}
     {% else %}
         <div class="alert alert-secondary">
-            Select a player and game type above to view an overview.
+            Select a player, game type, and optional date range above to view an overview.
         </div>
     {% endif %}
 {% endblock %}

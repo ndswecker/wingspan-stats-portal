@@ -296,8 +296,22 @@ def game_detail(request, pk):
 def player_overview(request):
     acting_player = request.user.player
 
+    form_data = request.GET.copy() if request.GET else None
+
+    if form_data is not None:
+        action = form_data.get("action")
+
+        if action == "this_month":
+            today = timezone.localdate()
+            form_data["start_date"] = today.replace(day=1).isoformat()
+            form_data["end_date"] = today.isoformat()
+
+        elif action == "all":
+            form_data["start_date"] = ""
+            form_data["end_date"] = ""
+
     filter_form = PlayerStatisticsFilterForm(
-        request.GET or None,
+        form_data,
         acting_player=acting_player,
     )
 
@@ -317,17 +331,6 @@ def player_overview(request):
 
         selected_start_date = filter_form.cleaned_data["start_date"]
         selected_end_date = filter_form.cleaned_data["end_date"]
-
-        action = request.GET.get("action")
-
-        if action == "this_month":
-            today = timezone.localdate()
-            selected_start_date = today.replace(day=1)
-            selected_end_date = today
-
-        elif action == "all":
-            selected_start_date = None
-            selected_end_date = None
 
         game_results = select_game_results(
             player=selected_player,
