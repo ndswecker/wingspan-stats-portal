@@ -184,6 +184,19 @@ Player Score Trends | Wingspan Stats Portal
                 </div>
             </div>
 
+            <h2 class="h4 mb-1">
+                Individual Game Scores
+            </h2>
+
+            <p class="text-muted mb-3">
+                Each point represents a score from an individual game.
+            </p>
+
+            <div class="card mb-4 overflow-hidden">
+                <div class="card-body p-2 p-md-3">
+                    {{ game_scatter_chart_html|safe }}
+                </div>
+            </div>
 
             <h2 class="h4 mb-1">
                 Score Distribution

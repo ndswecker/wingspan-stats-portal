@@ -55,6 +55,8 @@ from .services.player_score_distribution_chart import (
     build_score_distribution_comparison_chart,
 )
 
+from .services.player_game_scatter_chart import build_game_scatter_chart
+
 from .services.registration import (
     create_registration,
     PlayerAlreadyClaimedError,
@@ -391,6 +393,7 @@ def player_score_trends(request):
     secondary_monthly_scores = None
     monthly_comparisons = None
     monthly_chart_html = None
+    game_scatter_chart_html = None
 
     score_distribution = None
     secondary_score_distribution = None
@@ -509,6 +512,13 @@ def player_score_trends(request):
                     score_distribution=score_distribution,
                 )
 
+            game_scatter_figure = build_game_scatter_chart(
+                primary_game_results=game_results,
+                secondary_game_results=secondary_game_results,
+                primary_player=selected_player,
+                secondary_player=selected_secondary_player,
+            )
+
             monthly_chart_html = monthly_figure.to_html(
                 full_html=False,
                 include_plotlyjs="cdn",
@@ -533,6 +543,18 @@ def player_score_trends(request):
                 },
             )
 
+            game_scatter_chart_html = game_scatter_figure.to_html(
+                full_html=False,
+                include_plotlyjs=False,
+                config={
+                    "responsive": True,
+                    "displaylogo": False,
+                    "displayModeBar": False,
+                    "scrollZoom": False,
+                    "doubleClick": False,
+                },
+            )
+
     context = {
         "filter_form": filter_form,
         "selected_player": selected_player,
@@ -544,6 +566,8 @@ def player_score_trends(request):
         "secondary_monthly_scores": secondary_monthly_scores,
         "monthly_comparisons": monthly_comparisons,
         "monthly_chart_html": monthly_chart_html,
+        
+        "game_scatter_chart_html": game_scatter_chart_html,
 
         "score_distribution": score_distribution,
         "secondary_score_distribution": secondary_score_distribution,
