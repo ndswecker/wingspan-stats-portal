@@ -517,6 +517,8 @@ def player_score_trends(request):
                 secondary_game_results=secondary_game_results,
                 primary_player=selected_player,
                 secondary_player=selected_secondary_player,
+                start_date=score_trend_date_range.start_date,
+                end_date=score_trend_date_range.end_date,
             )
 
             monthly_chart_html = monthly_figure.to_html(
@@ -566,7 +568,7 @@ def player_score_trends(request):
         "secondary_monthly_scores": secondary_monthly_scores,
         "monthly_comparisons": monthly_comparisons,
         "monthly_chart_html": monthly_chart_html,
-        
+
         "game_scatter_chart_html": game_scatter_chart_html,
 
         "score_distribution": score_distribution,

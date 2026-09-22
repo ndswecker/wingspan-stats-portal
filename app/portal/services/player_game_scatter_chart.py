@@ -1,5 +1,8 @@
 
 import plotly.graph_objects as go
+
+from datetime import date
+
 from django.db.models import QuerySet
 
 from ..models import GameResult, Player
@@ -12,12 +15,64 @@ from .chart_style import (
 )
 
 
+def _build_monthly_game_counts(
+    *,
+    game_results: list[GameResult],
+    start_date: date,
+    end_date: date,
+) -> dict[date, int]:
+    """
+    Build monthly game counts across the complete date range.
+    """
+
+    monthly_game_counts = {}
+
+    current_year = start_date.year
+    current_month = start_date.month
+
+    while (
+        current_year < end_date.year
+        or (
+            current_year == end_date.year
+            and current_month <= end_date.month
+        )
+    ):
+        month_date = date(
+            current_year,
+            current_month,
+            15,
+        )
+
+        monthly_game_counts[month_date] = 0
+
+        if current_month == 12:
+            current_year += 1
+            current_month = 1
+        else:
+            current_month += 1
+
+    for game_result in game_results:
+        game_date = game_result.game.date_played
+
+        month_date = date(
+            game_date.year,
+            game_date.month,
+            15,
+        )
+
+        monthly_game_counts[month_date] += 1
+
+    return monthly_game_counts
+
+
 def build_game_scatter_chart(
         *,
         primary_game_results: QuerySet[GameResult],
         secondary_game_results: QuerySet[GameResult] | None = None,
         primary_player: Player,
         secondary_player: Player | None = None,
+        start_date: date,
+        end_date: date,
 ) -> go.Figure:
     """
     Build an individual-game score scatter chart.
@@ -40,6 +95,21 @@ def build_game_scatter_chart(
                 "game__date_played",
                 "game_id",
             )
+        )
+
+    primary_monthly_game_counts = _build_monthly_game_counts(
+        game_results=primary_results,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    secondary_monthly_game_counts = {}
+
+    if secondary_results is not None:
+        secondary_monthly_game_counts = _build_monthly_game_counts(
+            game_results=secondary_results,
+            start_date=start_date,
+            end_date=end_date,
         )
 
     primary_dates = [
@@ -84,6 +154,31 @@ def build_game_scatter_chart(
         )
     )
 
+    figure.add_trace(
+        go.Scatter(
+            x=list(primary_monthly_game_counts.keys()),
+            y=list(primary_monthly_game_counts.values()),
+            mode="lines+markers",
+            line={
+                "color": PRIMARY_PLAYER_COLOR,
+                "shape": "spline",
+                "width": 2,
+            },
+            marker={
+                "color": PRIMARY_PLAYER_COLOR,
+                "size": 6,
+            },
+            name=f"{primary_player.name} Games Played",
+            yaxis="y2",
+            hovertemplate=(
+                f"<b>{primary_player.name}</b><br>"
+                "Month: %{x|%B %Y}<br>"
+                "Games Played: %{y}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
     if secondary_player is not None:
         figure.add_trace(
             go.Scatter(
@@ -105,6 +200,31 @@ def build_game_scatter_chart(
             )
         )
 
+        figure.add_trace(
+            go.Scatter(
+                x=list(secondary_monthly_game_counts.keys()),
+                y=list(secondary_monthly_game_counts.values()),
+                mode="lines+markers",
+                line={
+                    "color": SECONDARY_PLAYER_COLOR,
+                    "shape": "spline",
+                    "width": 2,
+                },
+                marker={
+                    "color": SECONDARY_PLAYER_COLOR,
+                    "size": 6,
+                },
+                name=f"{secondary_player.name} Games Played",
+                yaxis="y2",
+                hovertemplate=(
+                    f"<b>{secondary_player.name}</b><br>"
+                    "Month: %{x|%B %Y}<br>"
+                    "Games Played: %{y}"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
     figure.update_layout(
         xaxis={
             "title": None,
@@ -115,7 +235,14 @@ def build_game_scatter_chart(
             "title": "Score",
             "fixedrange": True,
         },
-        showlegend=secondary_player is not None,
+        yaxis2={
+            "title": "Games Played",
+            "overlaying": "y",
+            "side": "right",
+            "fixedrange": True,
+            "rangemode": "tozero",
+        },
+        showlegend=False,
     )
 
     apply_common_chart_layout(
