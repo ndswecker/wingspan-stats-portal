@@ -21,6 +21,7 @@ class NormalCurvePoint:
 @dataclass(frozen=True)
 class ScoreDistribution:
     games_played: int
+    total_score: int
 
     average_score: float
     median_score: float
@@ -77,6 +78,7 @@ def calculate_score_distribution(
         raise ValueError("No game results provided for score distribution calculation.")
     
     games_played = len(scores)
+    total_score = sum(scores)
     average_score = statistics.mean(scores)
     median_score = statistics.median(scores)
 
@@ -115,6 +117,7 @@ def calculate_score_distribution(
 
     return ScoreDistribution(
         games_played=games_played,
+        total_score=total_score,
         average_score=average_score,
         median_score=median_score,
         standard_deviation=standard_deviation,
@@ -252,6 +255,11 @@ def compare_score_distributions(
             "Games Played",
             primary_score_distribution.games_played,
             secondary_score_distribution.games_played,
+        ),
+        (
+            "Total Score",
+            primary_score_distribution.total_score,
+            secondary_score_distribution.total_score,
         ),
         (
             "Average Score",

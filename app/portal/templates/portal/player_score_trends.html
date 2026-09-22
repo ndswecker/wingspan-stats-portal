@@ -184,13 +184,15 @@ Player Score Trends | Wingspan Stats Portal
                 </div>
             </div>
 
+            <p class="text-muted small mb-4">
+                Monthly average scores show how performance changes over time.
+                Each point represents the average score for games played during
+                that month; months without recorded games are left unconnected.
+            </p>            
+
             <h2 class="h4 mb-1">
                 Individual Game Scores
             </h2>
-
-            <p class="text-muted mb-3">
-                Each point represents a score from an individual game.
-            </p>
 
             <div class="card mb-4 overflow-hidden">
                 <div class="card-body p-2 p-md-3">
@@ -198,24 +200,27 @@ Player Score Trends | Wingspan Stats Portal
                 </div>
             </div>
 
+            <p class="text-muted small mb-4">
+                Each point represents the score from an individual game.
+                The overlaid lines track games played per month, showing scoring
+                variation and playing frequency over the same period.
+            </p>
+
             <h2 class="h4 mb-1">
                 Score Distribution
             </h2>
-
-            <p class="text-muted mb-3">
-                {{ selected_player }}
-                — {{ selected_game_type_label }}
-
-                {% if is_comparison %}
-                    — compared with {{ selected_secondary_player }}
-                {% endif %}
-            </p>
 
             <div class="card mb-4 overflow-hidden">
                 <div class="card-body p-2 p-md-3">
                     {{ distribution_chart_html|safe }}
                 </div>
             </div>
+            
+            <p class="text-muted small mb-4">
+                The distribution shows how frequently scores fall within each
+                score range. The fitted normal curve provides a reference for
+                the center, spread, and shape of the observed scores.
+            </p>            
 
 
             <h2 class="h4 mb-3">
@@ -325,6 +330,15 @@ Player Score Trends | Wingspan Stats Portal
                                 </th>
                                 <td class="text-end">
                                     {{ score_distribution.games_played }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th scope="row">
+                                    Total Score
+                                </th>
+                                <td class="text-end">
+                                    {{ score_distribution.total_score }}
                                 </td>
                             </tr>
 
