@@ -163,18 +163,16 @@ overall current winner.
 
 The page prominently displays the current winner at the top.
 
-The current winner is determined solely by total game wins within the
-currently selected dataset.
+The current winner is determined by total game wins within the currently selected dataset.
 
--   If Primary Player has more game wins, Primary Player is the current
-    winner.
--   If Secondary Player has more game wins, Secondary Player is the
-    current winner.
--   If both players have the same number of game wins, the rivalry is
-    currently tied.
+- If Primary Player has more game wins, Primary Player is the current winner.
+- If Secondary Player has more game wins, Secondary Player is the current winner.
+- If both players have the same number of game wins, total score is used as the tiebreaker.
+- If Primary Player has the higher total score, Primary Player is the current winner.
+- If Secondary Player has the higher total score, Secondary Player is the current winner.
+- If both players have the same number of game wins and the same total score, the rivalry is currently tied.
 
-Score totals and night wins are not used as tiebreakers for the current
-winner.
+Night wins are not used to determine the current winner.
 
 ------------------------------------------------------------------------
 
