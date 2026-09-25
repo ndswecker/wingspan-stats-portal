@@ -794,4 +794,99 @@ def validate_game_result_structure(
 
     if len(turn_orders) != len(set(turn_orders)):
         raise ValidationError("Each provided turn order must be unique.")
-    
+
+# ---------------------------------------------------------------------------
+# Feathered Foe Forms
+# ---------------------------------------------------------------------------
+
+class FeatheredFoeForm(forms.Form):
+    primary_player = forms.ModelChoiceField(
+        queryset=Player.objects.none(),
+        empty_label="Select a Player",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        )
+    )
+
+    secondary_player = forms.ModelChoiceField(
+        queryset=Player.objects.none(),
+        empty_label="Select a Player",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
+            }
+        ),
+    )
+
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
+            }
+        ),
+    )
+
+    def __init__(
+        self,
+        *args,
+        acting_player=None,
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+
+        if acting_player is None:
+            self.fields["primary_player"].queryset = Player.objects.none()
+            self.fields["secondary_player"].queryset = Player.objects.none()
+
+            return 
+
+        allowed_players = get_allowed_result_players(
+            acting_player=acting_player,
+        )
+
+        self.fields["primary_player"].queryset = allowed_players
+        self.fields["secondary_player"].queryset = allowed_players
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        primary_player = cleaned_data.get("primary_player")
+        secondary_player = cleaned_data.get("secondary_player")
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
+
+        if (
+            primary_player is not None
+            and secondary_player is not None
+            and primary_player == secondary_player
+        ):
+            self.add_error(
+                "secondary_player",
+                "The secondary player must be different from the primary player."
+            )
+
+        if (
+            start_date is not None
+            and end_date is not None
+            and end_date < start_date
+        ):
+            self.add_error(
+                "end_date",
+                "The end date cannot be earlier than the start date."
+            )
+
+        return cleaned_data
