@@ -58,7 +58,7 @@ urlpatterns = [
     path(
         "friends/",
         views.friends,
-        name="friends"
+        name="friends",
     ),
     path(
         "friends/send/",
@@ -68,21 +68,26 @@ urlpatterns = [
     path(
         "friends/<int:friend_request_id>/accept/",
         views.accept_friend_request_view,
-        name="accept-friend-request"
+        name="accept-friend-request",
     ),
     path(
         "friends/<int:player_id>/remove/",
         views.remove_friend_view,
-        name="remove-friend"
+        name="remove-friend",
     ),
     path(
         "friends/<int:friend_request_id>/cancel/",
         views.cancel_friend_request_view,
-        name="cancel-friend-request"
+        name="cancel-friend-request",
     ),
     path(
         "friends/<int:friend_request_id>/decline/",
         views.decline_friend_request_view,
-        name="decline-friend-request"
+        name="decline-friend-request",
+    ),
+    path(
+        "feathered-foe/",
+        views.feathered_foe,
+        name="feathered-foe",
     ),
 ]

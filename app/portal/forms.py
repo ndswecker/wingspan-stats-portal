@@ -79,6 +79,7 @@ class GameResultForm(forms.Form):
             attrs={
                 "class": "form-control",
                 "min": 0,
+                "inputmode": "numeric",
             }
         ),
     )

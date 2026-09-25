@@ -1,0 +1,127 @@
+{% extends "portal/base.html" %}
+{% block title %}Feathered Foe | Wingspan Stats Portal{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <h1 class="mb-1">Feathered Foe</h1>
+  <p class="text-muted mb-0">Head-to-head results for games played exclusively between two players.</p>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="get">
+      {% if filter_form.non_field_errors %}
+        <div class="alert alert-danger">{{ filter_form.non_field_errors }}</div>
+      {% endif %}
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-6 col-lg-3">
+          <label for="{{ filter_form.primary_player.id_for_label }}" class="form-label">Primary Player</label>
+          {{ filter_form.primary_player }}
+          {% for error in filter_form.primary_player.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+          <label for="{{ filter_form.secondary_player.id_for_label }}" class="form-label">Secondary Player</label>
+          {{ filter_form.secondary_player }}
+          {% for error in filter_form.secondary_player.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-6 col-lg-2">
+          <label for="{{ filter_form.start_date.id_for_label }}" class="form-label">Start Date</label>
+          {{ filter_form.start_date }}
+          {% for error in filter_form.start_date.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-md-6 col-lg-2">
+          <label for="{{ filter_form.end_date.id_for_label }}" class="form-label">End Date</label>
+          {{ filter_form.end_date }}
+          {% for error in filter_form.end_date.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-12 col-lg-2">
+          <button type="submit" class="btn btn-primary w-100">View Rivalry</button>
+        </div>
+      </div>
+      <div class="form-text mt-3">Leave both dates blank to include all qualifying head-to-head games.</div>
+    </form>
+  </div>
+</div>
+
+{% if feathered_foe %}
+  {% if feathered_foe.nights %}
+    <div class="card mb-4">
+      <div class="card-body text-center py-4">
+        <div class="text-muted text-uppercase small fw-semibold mb-1">Current Winner</div>
+        {% if feathered_foe.current_winner %}
+          <h2 class="mb-1">{{ feathered_foe.current_winner }}</h2>
+        {% else %}
+          <h2 class="mb-1">Tied</h2>
+        {% endif %}
+        <div class="text-muted">{{ feathered_foe.primary_player }} vs. {{ feathered_foe.secondary_player }}</div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header"><strong>Rivalry Totals</strong></div>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Player</th><th class="text-end">Score Total</th><th class="text-end">Game Wins</th>
+              <th class="text-end">Game Losses</th><th class="text-end">Night Wins</th><th class="text-end">Night Losses</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for summary in feathered_foe.player_summaries %}
+              <tr>
+                <th>{{ summary.player }}</th><td class="text-end">{{ summary.score_total }}</td>
+                <td class="text-end">{{ summary.game_wins }}</td><td class="text-end">{{ summary.game_losses }}</td>
+                <td class="text-end">{{ summary.night_wins }}</td><td class="text-end">{{ summary.night_losses }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><strong>Game Ledger</strong></div>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Date / Game</th><th class="text-end">{{ feathered_foe.primary_player }}</th>
+              <th class="text-end">{{ feathered_foe.secondary_player }}</th><th>Game Win</th><th>Night Win</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for night in feathered_foe.nights %}
+              {% for game in night.games %}
+                <tr>
+                  <td class="text-nowrap">
+                    {% if forloop.first %}<strong>{{ night.date_played|date:"M j, Y" }}</strong><br>{% endif %}
+                    <a href="{% url 'portal:game-detail' pk=game.game_id %}">Game {{ game.game_id }}</a>
+                  </td>
+                  <td class="text-end">{{ game.results.0.score }}</td>
+                  <td class="text-end">{{ game.results.1.score }}</td>
+                  <td>
+                    {% if game.winner == feathered_foe.primary_player %}{{ feathered_foe.primary_player }}
+                    {% elif game.winner == feathered_foe.secondary_player %}{{ feathered_foe.secondary_player }}
+                    {% else %}Tie{% endif %}
+                  </td>
+                  <td>
+                    {% if forloop.first %}
+                      {% if night.winner == feathered_foe.primary_player %}{{ feathered_foe.primary_player }}
+                      {% elif night.winner == feathered_foe.secondary_player %}{{ feathered_foe.secondary_player }}
+                      {% else %}Tie{% endif %}
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      No qualifying head-to-head games were found for these players in the selected date range.
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

@@ -25,6 +25,7 @@ from .forms import (
     RegistrationForm,
     PlayerGameHistoryFilterForm,
     GameResultEditFormSet,
+    FeatheredFoeForm,
 )
 
 from .services.game_entry import (
@@ -83,6 +84,8 @@ from .services.friendship import (
     cancel_friend_request,
     decline_friend_request,
 )
+
+from .services.feathered_foe import build_feathered_foe
 
 from .permissions import can_manage_game
 
@@ -980,3 +983,38 @@ def decline_friend_request_view(
         )
 
     return redirect("portal:friends")
+
+@login_required
+def feathered_foe(request):
+    acting_player = request.user.player
+
+    filter_form = FeatheredFoeForm(
+        request.GET or None,
+        acting_player=acting_player,
+    )
+
+    feathered_foe_result = None
+
+    if filter_form.is_valid():
+        primary_player = filter_form.cleaned_data["primary_player"]
+        secondary_player = filter_form.cleaned_data["secondary_player"]
+        start_date = filter_form.cleaned_data["start_date"]
+        end_date = filter_form.cleaned_data["end_date"]
+
+        feathered_foe_result = build_feathered_foe(
+            primary_player=primary_player,
+            secondary_player=secondary_player,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+    context = {
+        "filter_form": filter_form,
+        "feathered_foe": feathered_foe_result,
+    }
+
+    return render(
+        request,
+        "portal/feathered_foe.html",
+        context,
+    )
