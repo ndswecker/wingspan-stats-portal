@@ -12,6 +12,14 @@ Game History | Wingspan Stats Portal
     View a player's competitive game history and optionally compare it with another player.
 </p>
 
+<div class="mb-3">
+    <a
+        href="{% url 'portal:feathered-foe' %}"
+        class="btn btn-outline-secondary btn-sm"
+    >
+        Feathered Foe
+    </a>
+</div>
 
 <div class="card mb-4">
     <div class="card-body">
@@ -86,7 +94,7 @@ Game History | Wingspan Stats Portal
 
                     {{ filter_form.end_date }}
                     <div class="form-text">
-                        Leave black to include games through today
+                        Leave blanck to include games through today
                     </div>
 
                     {% for error in filter_form.end_date.errors %}

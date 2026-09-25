@@ -2,9 +2,38 @@
 {% block title %}Feathered Foe | Wingspan Stats Portal{% endblock %}
 {% block content %}
 <div class="mb-4">
-  <h1 class="mb-1">Feathered Foe</h1>
-  <p class="text-muted mb-0">Head-to-head results for games played exclusively between two players.</p>
+    <h1 class="mb-1">Feathered Foe</h1>
+    <p class="text-muted mb-0">
+        Head-to-head results for games played exclusively between two players.
+    </p>
 </div>
+
+<div class="alert alert-light border mb-4">
+    <strong>How winners are determined</strong>
+
+    <ul class="mb-2 mt-2">
+        <li>
+            <strong>Game:</strong>
+            The player with the higher score wins the game.
+        </li>
+        <li>
+            <strong>Night:</strong>
+            The player with more game wins that night wins the night.
+            If game wins are tied, the player with the higher total score wins.
+        </li>
+        <li>
+            <strong>Overall:</strong>
+            The player with more game wins across the selected period is the current winner.
+            If game wins are tied, the player with the higher total score wins.
+        </li>
+    </ul>
+
+    <p class="small text-muted mb-0">
+        If both players remain tied after the applicable comparisons, the result is a tie.
+    </p>
+</div>
+
+<div class="card mb-4">
 
 <div class="card mb-4">
   <div class="card-body">
@@ -90,30 +119,68 @@
             </tr>
           </thead>
           <tbody>
-            {% for night in feathered_foe.nights %}
-              {% for game in night.games %}
-                <tr>
-                  <td class="text-nowrap">
-                    {% if forloop.first %}<strong>{{ night.date_played|date:"M j, Y" }}</strong><br>{% endif %}
-                    <a href="{% url 'portal:game-detail' pk=game.game_id %}">Game {{ game.game_id }}</a>
-                  </td>
-                  <td class="text-end">{{ game.results.0.score }}</td>
-                  <td class="text-end">{{ game.results.1.score }}</td>
-                  <td>
-                    {% if game.winner == feathered_foe.primary_player %}{{ feathered_foe.primary_player }}
-                    {% elif game.winner == feathered_foe.secondary_player %}{{ feathered_foe.secondary_player }}
-                    {% else %}Tie{% endif %}
-                  </td>
-                  <td>
-                    {% if forloop.first %}
-                      {% if night.winner == feathered_foe.primary_player %}{{ feathered_foe.primary_player }}
-                      {% elif night.winner == feathered_foe.secondary_player %}{{ feathered_foe.secondary_player }}
-                      {% else %}Tie{% endif %}
-                    {% endif %}
-                  </td>
-                </tr>
+              {% for night in feathered_foe.nights %}
+                  {% cycle 'table-light' '' as night_row_class silent %}
+
+                  {% for game in night.games %}
+                      <tr class="{{ night_row_class }}">
+                          <td class="text-nowrap">
+                              {% if forloop.first %}
+                                  <strong>{{ night.date_played|date:"M j, Y" }}</strong>
+                                  <br>
+                              {% endif %}
+
+                              <a 
+                                  class="ms-3"
+                                  href="{% url 'portal:game-detail' pk=game.game_id %}">
+                                  Game {{ game.game_id }}
+                              </a>
+                          </td>
+
+                          <td class="text-end">
+                              {{ game.results.0.score }}
+                          </td>
+
+                          <td class="text-end">
+                              {{ game.results.1.score }}
+                          </td>
+
+                          <td>
+                            {% if game.winner == feathered_foe.primary_player %}
+                                {{ feathered_foe.primary_player }}
+                            {% elif game.winner == feathered_foe.secondary_player %}
+                                {{ feathered_foe.secondary_player }}
+                            {% else %}
+                                Tie
+                            {% endif %}
+                          </td>
+
+                          <td
+                              {% if forloop.first %}
+                                  {% if night.winner == feathered_foe.primary_player %}
+                                      class="table-success"
+                                  {% elif night.winner == feathered_foe.secondary_player %}
+                                      class="table-danger"
+                                  {% else %}
+                                      class="table-warning"
+                                  {% endif %}
+                              {% endif %}
+                          >
+                              {% if forloop.first %}
+                                  <strong>
+                                      {% if night.winner == feathered_foe.primary_player %}
+                                          {{ feathered_foe.primary_player }}
+                                      {% elif night.winner == feathered_foe.secondary_player %}
+                                          {{ feathered_foe.secondary_player }}
+                                      {% else %}
+                                          Tie
+                                      {% endif %}
+                                  </strong>
+                              {% endif %}
+                          </td>
+                      </tr>
+                  {% endfor %}
               {% endfor %}
-            {% endfor %}
           </tbody>
         </table>
       </div>
