@@ -87,6 +87,9 @@ from .services.friendship import (
 
 from .services.feathered_foe import build_feathered_foe
 
+from .services.player_game_score_gap import select_game_score_gaps
+from .services.player_game_score_gap_chart import build_game_score_gap_chart
+
 from .permissions import can_manage_game
 
 @login_required
@@ -405,6 +408,12 @@ def player_score_trends(request):
     has_comparison_statistics = False
     distribution_chart_html = None
 
+    game_score_gaps = None
+    game_score_gap_chart = None
+    game_score_gap_chart_html = None
+    game_score_gap_figure = None
+    show_game_score_gap = False
+
     has_results = False
 
     if filter_form.is_valid():
@@ -436,6 +445,22 @@ def player_score_trends(request):
                 start_date=selected_start_date,
                 end_date=selected_end_date,
             )
+
+            if game_type == Game.HumanPlayerMode.MULTIPLE:
+                show_game_score_gap = True
+                game_score_gaps = select_game_score_gaps(
+                    primary_player=selected_player,
+                    secondary_player=selected_secondary_player,
+                    start_date=selected_start_date,
+                    end_date=selected_end_date,
+                )
+
+            if game_score_gaps:
+                game_score_gap_figure = build_game_score_gap_chart(
+                    score_gaps=game_score_gaps,
+                    primary_player=selected_player,
+                    secondary_player=selected_secondary_player,
+                )
 
         has_results = game_results.exists()
 
@@ -560,6 +585,19 @@ def player_score_trends(request):
                 },
             )
 
+            if game_score_gap_figure is not None:
+                game_score_gap_chart_html = game_score_gap_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config={
+                        "responsive": True,
+                        "displaylogo": False,
+                        "displayModeBar": False,
+                        "scrollZoom": False,
+                        "doubleClick": False,
+                    },
+                )
+
     context = {
         "filter_form": filter_form,
         "selected_player": selected_player,
@@ -580,6 +618,11 @@ def player_score_trends(request):
         "statistical_comparisons": statistical_comparisons,
         "has_comparison_statistics": has_comparison_statistics,
         "distribution_chart_html": distribution_chart_html,
+
+        "game_score_gaps": game_score_gaps,
+        "game_score_gap_chart_html": game_score_gap_chart_html,
+        "show_game_score_gap": show_game_score_gap,
+
 
         "has_results": has_results,
     }

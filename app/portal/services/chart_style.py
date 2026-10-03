@@ -21,6 +21,7 @@ import plotly.graph_objects as go
 # application's palette can be changed without modifying individual charts.
 PRIMARY_PLAYER_COLOR = "#D94F70"
 SECONDARY_PLAYER_COLOR = "#4C78C2"
+NEUTRAL_PLAYER_COLOR = "#848484"
 
 
 # ---------------------------------------------------------------------------
