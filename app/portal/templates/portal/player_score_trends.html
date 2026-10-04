@@ -259,42 +259,7 @@ Player Score Trends | Wingspan Stats Portal
             {# ----------------------------------------------------------------- #}
 
             {% if show_game_score_gap %}
-
-                <section class="mb-5">
-
-                    <h2 class="h4 mb-2">
-                        Game Score Gap
-                    </h2>
-
-                    <p class="text-muted small mb-3">
-                        Each bar represents a game played by both selected
-                        players. The bar spans their actual scores, and its
-                        color identifies the higher-scoring player.
-                    </p>
-
-
-                    {% if game_score_gap_chart_html %}
-
-                        <div class="card overflow-hidden">
-                            <div class="card-body p-2 p-md-3">
-                                {{ game_score_gap_chart_html|safe }}
-                            </div>
-                        </div>
-
-                    {% else %}
-
-                        <div
-                            class="alert alert-secondary mb-0"
-                            role="status"
-                        >
-                            No shared games found for the selected players and
-                            date range.
-                        </div>
-
-                    {% endif %}
-
-                </section>
-
+                {% include "portal/includes/player_game_score_gap.html" %}
             {% endif %}
 
 

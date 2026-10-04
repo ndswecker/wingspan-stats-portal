@@ -1,0 +1,250 @@
+<section class="mb-5">
+
+    <h2 class="h4 mb-2">
+        Game Score Gap
+    </h2>
+
+    <p class="text-muted small mb-3">
+        Each bar represents a game played by both selected players.
+        The bar spans their actual scores, and its color identifies
+        the higher-scoring player.
+    </p>
+
+
+    {% if game_score_gap_chart_html %}
+
+        <div class="card overflow-hidden mb-4">
+            <div class="card-body p-2 p-md-3">
+                {{ game_score_gap_chart_html|safe }}
+            </div>
+        </div>
+
+
+        {% if victory_margin_analysis %}
+
+            <div class="card">
+
+                <div class="card-body">
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+
+                        <div>
+                            <h3 class="h5 mb-1">
+                                Victory Margin Analysis
+                            </h3>
+
+                            <p class="text-muted small mb-0">
+                                Compares how often each player wins and how
+                                decisive those victories tend to be.
+                            </p>
+                        </div>
+
+                        <div class="text-muted small text-md-end">
+                            <div>
+                                Shared Games:
+                                <strong>
+                                    {{ victory_margin_analysis.shared_games }}
+                                </strong>
+                            </div>
+
+                            {% if victory_margin_analysis.ties %}
+                                <div>
+                                    Ties:
+                                    <strong>
+                                        {{ victory_margin_analysis.ties }}
+                                    </strong>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+
+                    <div class="table-responsive">
+
+                        <table class="table table-sm table-hover align-middle mb-0">
+
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        Statistic
+                                    </th>
+
+                                    <th
+                                        scope="col"
+                                        class="text-end"
+                                    >
+                                        {{ victory_margin_analysis.primary.player }}
+                                    </th>
+
+                                    <th
+                                        scope="col"
+                                        class="text-end"
+                                    >
+                                        {{ victory_margin_analysis.secondary.player }}
+                                    </th>
+                                </tr>
+                            </thead>
+
+
+                            <tbody>
+
+                                <tr>
+                                    <th scope="row">
+                                        Wins
+                                    </th>
+
+                                    <td class="text-end">
+                                        {{ victory_margin_analysis.primary.wins }}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ victory_margin_analysis.secondary.wins }}
+                                    </td>
+                                </tr>
+
+
+                                <tr>
+                                    <th scope="row">
+                                        Losses
+                                    </th>
+
+                                    <td class="text-end">
+                                        {{ victory_margin_analysis.primary.losses }}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ victory_margin_analysis.secondary.losses }}
+                                    </td>
+                                </tr>
+
+
+                                <tr>
+                                    <th scope="row">
+                                        Win Rate
+                                    </th>
+
+                                    <td class="text-end">
+                                        {{ victory_margin_analysis.primary.win_rate_percent|floatformat:1 }}%
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ victory_margin_analysis.secondary.win_rate_percent|floatformat:1 }}%
+                                    </td>
+                                </tr>
+
+
+                                <tr>
+                                    <th scope="row">
+                                        Total Victory Margin
+                                    </th>
+
+                                    <td class="text-end">
+                                        {{ victory_margin_analysis.primary.total_victory_margin }}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ victory_margin_analysis.secondary.total_victory_margin }}
+                                    </td>
+                                </tr>
+
+
+                                <tr>
+                                    <th scope="row">
+                                        Average Victory Margin
+                                    </th>
+
+                                    <td class="text-end">
+                                        {% if victory_margin_analysis.primary.average_victory_margin is not None %}
+                                            {{ victory_margin_analysis.primary.average_victory_margin|floatformat:1 }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {% if victory_margin_analysis.secondary.average_victory_margin is not None %}
+                                            {{ victory_margin_analysis.secondary.average_victory_margin|floatformat:1 }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+
+                                <tr>
+                                    <th scope="row">
+                                        Median Victory Margin
+                                    </th>
+
+                                    <td class="text-end">
+                                        {% if victory_margin_analysis.primary.median_victory_margin is not None %}
+                                            {{ victory_margin_analysis.primary.median_victory_margin|floatformat:1 }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {% if victory_margin_analysis.secondary.median_victory_margin is not None %}
+                                            {{ victory_margin_analysis.secondary.median_victory_margin|floatformat:1 }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+
+                    <p class="text-muted small mt-3 mb-0">
+                        Win rate is based on all shared games, including ties.
+                        Victory margin statistics include only games won by
+                        the corresponding player.
+                    </p>
+
+                    {% if victory_margin_analysis.insight %}
+
+                        <hr class="my-3">
+
+                        <div>
+                            <p class="mb-2">
+                                <strong>
+                                    {{ victory_margin_analysis.insight.summary }}
+                                </strong>
+                            </p>
+
+                            <p class="text-muted small mb-1">
+                                {{ victory_margin_analysis.insight.frequency_insight }}
+                            </p>
+
+                            <p class="text-muted small mb-0">
+                                {{ victory_margin_analysis.insight.margin_insight }}
+                            </p>
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+    {% else %}
+
+        <div
+            class="alert alert-secondary mb-0"
+            role="status"
+        >
+            No shared games found for the selected players and date range.
+        </div>
+
+    {% endif %}
+
+</section>

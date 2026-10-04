@@ -90,6 +90,11 @@ from .services.feathered_foe import build_feathered_foe
 from .services.player_game_score_gap import select_game_score_gaps
 from .services.player_game_score_gap_chart import build_game_score_gap_chart
 
+from .services.player_game_score_gap import (
+    calculate_victory_margin_analysis,
+    select_game_score_gaps,
+)
+
 from .permissions import can_manage_game
 
 @login_required
@@ -414,6 +419,8 @@ def player_score_trends(request):
     game_score_gap_figure = None
     show_game_score_gap = False
 
+    victory_margin_analysis = None
+
     has_results = False
 
     if filter_form.is_valid():
@@ -448,6 +455,7 @@ def player_score_trends(request):
 
             if game_type == Game.HumanPlayerMode.MULTIPLE:
                 show_game_score_gap = True
+                
                 game_score_gaps = select_game_score_gaps(
                     primary_player=selected_player,
                     secondary_player=selected_secondary_player,
@@ -455,12 +463,18 @@ def player_score_trends(request):
                     end_date=selected_end_date,
                 )
 
-            if game_score_gaps:
-                game_score_gap_figure = build_game_score_gap_chart(
-                    score_gaps=game_score_gaps,
-                    primary_player=selected_player,
-                    secondary_player=selected_secondary_player,
-                )
+                if game_score_gaps:
+                    game_score_gap_figure = build_game_score_gap_chart(
+                        score_gaps=game_score_gaps,
+                        primary_player=selected_player,
+                        secondary_player=selected_secondary_player,
+                    )
+
+                    victory_margin_analysis = calculate_victory_margin_analysis(
+                        primary_player=selected_player,
+                        secondary_player=selected_secondary_player,
+                        score_gaps=game_score_gaps,
+                    )
 
         has_results = game_results.exists()
 
@@ -634,7 +648,7 @@ def player_score_trends(request):
         "game_score_gaps": game_score_gaps,
         "game_score_gap_chart_html": game_score_gap_chart_html,
         "show_game_score_gap": show_game_score_gap,
-
+        "victory_margin_analysis": victory_margin_analysis,
 
         "has_results": has_results,
     }
