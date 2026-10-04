@@ -368,6 +368,7 @@ def player_overview(request):
         context,
     )
 
+@login_required
 def player_score_trends(request):
     acting_player = request.user.player
 
@@ -455,7 +456,7 @@ def player_score_trends(request):
 
             if game_type == Game.HumanPlayerMode.MULTIPLE:
                 show_game_score_gap = True
-                
+
                 game_score_gaps = select_game_score_gaps(
                     primary_player=selected_player,
                     secondary_player=selected_secondary_player,
@@ -610,18 +611,6 @@ def player_score_trends(request):
                         "scrollZoom": False,
                         "doubleClick": False,
                     },
-                post_script="""
-                    document
-                        .getElementById('{plot_id}')
-                        .on('plotly_click', function(eventData) {
-                            const point = eventData.points[0];
-                            const gameUrl = point.customdata[6];
-
-                            if (gameUrl) {
-                                window.location.href = gameUrl;
-                            }
-                        });
-                    """,
                 )
 
     context = {

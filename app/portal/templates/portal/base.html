@@ -64,16 +64,14 @@
                                 Add Game
                             </a>
                         </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a
-                            class="nav-link"
-                            href="{% url 'portal:player-score-trends' %}">
-                            Trends
-                        </a>
-                    </li>
-
-                    {% if user.is_authenticated %}
+                        
+                        <li class="nav-item">
+                            <a
+                                class="nav-link"
+                                href="{% url 'portal:player-score-trends' %}">
+                                Trends
+                            </a>
+                        </li>
 
                         <li class="nav-item">
                             <a 

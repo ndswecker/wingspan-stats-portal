@@ -2,8 +2,6 @@ import math
 
 import plotly.graph_objects as go
 
-from django.urls import reverse
-
 from ..models import Player
 from .chart_style import (
     BAR_CORNER_RADIUS,
@@ -33,12 +31,15 @@ def build_game_score_gap_chart(
             "At least one shared game is required to build the score-gap chart."
         )
 
-    game_labels = [
-        f"{score_gap.game_id} "
-        f"{score_gap.date_played.month}/{score_gap.date_played.day}/"
-        f"{score_gap.date_played.strftime('%y')}"
+    game_keys = [
+        str(score_gap.game_id)
         for score_gap in score_gaps
     ]
+
+    month_tick_values, month_tick_labels = _build_month_ticks(
+        game_keys=game_keys,
+        score_gaps=score_gaps,
+    )
 
     bar_colors = []
     winner_labels = []
@@ -70,10 +71,6 @@ def build_game_score_gap_chart(
                 score_gap.secondary_score,
                 score_gap.score_gap,
                 winner_label,
-                reverse(
-                    "portal:game-detail",
-                    kwargs={"pk": score_gap.game_id},
-                ),
             ]
         )
 
@@ -104,9 +101,52 @@ def build_game_score_gap_chart(
 
     figure = go.Figure()
 
+    # Legend-only traces explain the winner colors used by the score-gap bars.
     figure.add_trace(
         go.Bar(
-            x=game_labels,
+            x=[None],
+            y=[None],
+            marker={
+                "color": PRIMARY_PLAYER_COLOR,
+            },
+            name=f"{primary_player.name} wins",
+            hoverinfo="skip",
+            showlegend=True,
+        )
+    )
+
+    figure.add_trace(
+        go.Bar(
+            x=[None],
+            y=[None],
+            marker={
+                "color": SECONDARY_PLAYER_COLOR,
+            },
+            name=f"{secondary_player.name} wins",
+            hoverinfo="skip",
+            showlegend=True,
+        )
+    )
+
+    figure.add_trace(
+        go.Scatter(
+            x=[None],
+            y=[None],
+            mode="markers",
+            marker={
+                "color": NEUTRAL_PLAYER_COLOR,
+                "size": 10,
+                "symbol": "square",
+            },
+            name="Tie",
+            hoverinfo="skip",
+            showlegend=True,
+        )
+    )
+
+    figure.add_trace(
+        go.Bar(
+            x=game_keys,
             y=score_gap_values,
             base=low_scores,
             marker={
@@ -134,13 +174,13 @@ def build_game_score_gap_chart(
     tie_scores = []
     tie_hover_data = []
 
-    for game_label, score_gap, hover_row in zip(
-        game_labels,
+    for game_key, score_gap, hover_row in zip(
+        game_keys,
         score_gaps,
         hover_data,
     ):
         if score_gap.score_gap == 0:
-            tie_labels.append(game_label)
+            tie_labels.append(game_key)
             tie_scores.append(score_gap.low_score)
             tie_hover_data.append(hover_row)
 
@@ -186,8 +226,10 @@ def build_game_score_gap_chart(
             "title": None,
             "type": "category",
             "categoryorder": "array",
-            "categoryarray": game_labels,
-            "tickangle": 45,
+            "categoryarray": game_keys,
+            "tickvals": month_tick_values,
+            "ticktext": month_tick_labels,
+            "tickangle": 0,
             "fixedrange": True,
         },
         yaxis={
@@ -207,3 +249,39 @@ def build_game_score_gap_chart(
     )
 
     return figure
+
+def _build_month_ticks(
+    *,
+    game_keys: list[str],
+    score_gaps: list[GameScoreGap],
+) -> tuple[list[str], list[str]]:
+    """
+    Build x-axis tick positions and month labels.
+
+    Each month is labeled at the first game played during that month.
+    """
+    tick_values = []
+    tick_labels = []
+
+    previous_month = None
+
+    for game_key, score_gap in zip(
+        game_keys,
+        score_gaps,
+    ):
+        month_key = (
+            score_gap.date_played.year,
+            score_gap.date_played.month,
+        )
+
+        if month_key == previous_month:
+            continue
+
+        tick_values.append(game_key)
+        tick_labels.append(
+            score_gap.date_played.strftime("%b ’%y")
+        )
+
+        previous_month = month_key
+
+    return tick_values, tick_labels
