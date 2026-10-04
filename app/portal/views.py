@@ -596,6 +596,18 @@ def player_score_trends(request):
                         "scrollZoom": False,
                         "doubleClick": False,
                     },
+                post_script="""
+                    document
+                        .getElementById('{plot_id}')
+                        .on('plotly_click', function(eventData) {
+                            const point = eventData.points[0];
+                            const gameUrl = point.customdata[6];
+
+                            if (gameUrl) {
+                                window.location.href = gameUrl;
+                            }
+                        });
+                    """,
                 )
 
     context = {

@@ -2,6 +2,8 @@ import math
 
 import plotly.graph_objects as go
 
+from django.urls import reverse
+
 from ..models import Player
 from .chart_style import (
     BAR_CORNER_RADIUS,
@@ -68,6 +70,10 @@ def build_game_score_gap_chart(
                 score_gap.secondary_score,
                 score_gap.score_gap,
                 winner_label,
+                reverse(
+                    "portal:game-detail",
+                    kwargs={"pk": score_gap.game_id},
+                ),
             ]
         )
 
@@ -193,6 +199,7 @@ def build_game_score_gap_chart(
             "fixedrange": True,
         },
         bargap=0.25,
+        hovermode="closest",
     )
 
     apply_common_chart_layout(
