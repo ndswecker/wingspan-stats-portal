@@ -21,4 +21,5 @@ Thumbs.db
 app/staticfiles/
 
 # Database backups
-backups/
+backups/*
+!backups/.gitkeep
