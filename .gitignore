@@ -19,3 +19,6 @@ Thumbs.db
 
 # Django collected static files
 app/staticfiles/
+
+# Database backups
+backups/
