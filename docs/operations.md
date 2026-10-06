@@ -1,10 +1,10 @@
 # Wingspan Portal Operations Guide
 
-Routine procedures for operating the production Wingspan Stats Portal.
+Routine procedures for operating the Wingspan Stats Portal.
 
 ## Production Environment
 
-Production runs on an Ubuntu server using:
+Production runs on Ubuntu with:
 
 - Django / Gunicorn
 - PostgreSQL
@@ -12,26 +12,20 @@ Production runs on an Ubuntu server using:
 - Certbot
 - Docker Compose
 
-The application uses layered Compose configuration:
+Production uses:
 
 ```text
 docker-compose.yml
 docker-compose.prod.yml
 ```
 
-Production project directory:
+Project directory:
 
 ```text
 ~/projects/wingspan-stats-portal
 ```
 
-Production site:
-
-```text
-https://wingspanscores.com
-```
-
-## Standard Deployment
+## Standard Production Deployment
 
 Application changes should be merged into `main` and pushed before deployment.
 
@@ -45,10 +39,7 @@ git pull
 Rebuild and recreate Django and Nginx:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  up -d --build --force-recreate django nginx
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   up -d --build --force-recreate django nginx
 ```
 
 The Django entrypoint automatically runs:
@@ -58,166 +49,212 @@ python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 ```
 
-Pending migrations are therefore applied automatically whenever the Django container starts.
-
-Verify the deployment:
+Verify:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  ps
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   ps
 ```
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  logs --tail=100 django nginx
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   logs --tail=100 django nginx
 ```
 
-Then verify the public site and expected application changes in a browser.
+Then verify the public site in a browser.
+
+## Development Environment
+
+Start development:
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   up --build
+```
+
+Check status:
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   ps
+```
 
 ## Environment Configuration
 
-The production `.env` is stored in the project root and is not committed to Git.
-
-To copy the local `.env` to production, run from the local project directory:
-
-```bash
-scp .env \
-  <user>@<server>:~/projects/wingspan-stats-portal/.env
-```
-
-Recreate affected containers after changing `.env` so the new environment is loaded.
+The real `.env` is not committed to Git.
 
 Use `.env.example` as the reference for required variables.
 
-Never commit the real `.env`.
+To copy the local `.env` to production:
+
+```bash
+scp .env   <user>@<server>:~/projects/wingspan-stats-portal/.env
+```
+
+Recreate affected containers after changing `.env`.
 
 ## Database Migrations
 
-Migration files are created during development, not production.
-
-After changing Django models:
-
-Run the Django service in detached mode
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.dev.yml \
-  up -d
-```
-
-Then make the migration. This writes the instructions. Django examines the models, detects changes, 
-and creates a migration python fie describing how the database schema should change. 
-It does not actually change the database.
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.dev.yml \
-  exec django \
-  python manage.py makemigrations
-```
-
-Commit the generated migration files to Git.
-
-Pending migrations are applied automatically in production by the Django entrypoint.
-
-To inspect migration state manually:
+Create migration files during development only.
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec django \
-  python manage.py showmigrations
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   exec django   python manage.py makemigrations
 ```
 
-To manually run migrations when troubleshooting:
+Commit generated migration files to Git.
+
+Production applies pending migrations automatically when Django starts.
+
+Inspect production migration state:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec django \
-  python manage.py migrate
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec django   python manage.py showmigrations
 ```
 
-## Container Status
+## Production Database Backup
+
+Backups are created manually.
+
+Backup files are stored under:
+
+```text
+backups/
+```
+
+This directory is ignored by Git except for its placeholder file.
+
+Create a PostgreSQL custom-format backup from the production project root:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  ps
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec -T postgres   pg_dump   -U wingspan_user   -d wingspan   -Fc   > backups/wingspan-prod-YYYY-MM-DD.dump
 ```
 
-## Logs
-
-All services:
+Verify the file exists:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  logs
+ls -lh backups/
 ```
 
-Django:
+Validate the archive:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  logs django
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec -T postgres   pg_restore --list   < backups/wingspan-prod-YYYY-MM-DD.dump
 ```
 
-Nginx:
+Important backups should also be stored outside the production server.
+
+## Refresh Development from Production
+
+This process completely replaces the local `wingspan` database with a production snapshot.
+
+### 1. Transfer the Backup
+
+From the local project root:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  logs nginx
+scp <user>@<server>:~/projects/wingspan-stats-portal/backups/wingspan-prod-YYYY-MM-DD.dump   backups/wingspan-prod-YYYY-MM-DD.dump
 ```
+
+Verify:
+
+```bash
+ls -lh backups/
+```
+
+### 2. Start Local PostgreSQL
+
+If the development stack is not running:
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   up -d
+```
+
+### 3. Stop Django and Nginx
+
+Leave PostgreSQL running:
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   stop django nginx
+```
+
+Verify that only PostgreSQL remains running:
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   ps
+```
+
+### 4. Drop the Local Database
+
+This destroys the current local `wingspan` database.
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   exec postgres   psql   -U wingspan_user   -d postgres   -c "DROP DATABASE wingspan WITH (FORCE);"
+```
+
+### 5. Recreate an Empty Database
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   exec postgres   psql   -U wingspan_user   -d postgres   -c "CREATE DATABASE wingspan OWNER wingspan_user;"
+```
+
+### 6. Restore the Production Backup
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   exec -T postgres   pg_restore   -U wingspan_user   -d wingspan   --exit-on-error   --verbose   < backups/wingspan-prod-YYYY-MM-DD.dump
+```
+
+### 7. Verify the Restore
+
+List tables:
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   exec postgres   psql   -U wingspan_user   -d wingspan   -c '\dt'
+```
+
+Check representative row counts:
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   exec postgres   psql   -U wingspan_user   -d wingspan   -c "SELECT COUNT(*) FROM portal_game;"
+```
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   exec postgres   psql   -U wingspan_user   -d wingspan   -c "SELECT COUNT(*) FROM portal_player;"
+```
+
+### 8. Start Development Normally
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   up --build
+```
+
+Then verify the local site and confirm that expected production data is present.
 
 ## Service Management
 
-Restart the stack:
+Production status:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  restart
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   ps
 ```
 
-Restart one service:
+Restart production:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  restart nginx
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   restart
 ```
 
-Recreate Django and Nginx:
+Production logs:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  up -d --force-recreate django nginx
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   logs
 ```
 
-Stop production:
+Django logs:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  down
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   logs django
+```
+
+Nginx logs:
+
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   logs nginx
 ```
 
 ## Django Administration
@@ -231,157 +268,54 @@ https://wingspanscores.com/admin/
 Create a superuser:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec django \
-  python manage.py createsuperuser
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec django   python manage.py createsuperuser
 ```
 
 Open a Django shell:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec django \
-  python manage.py shell
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec django   python manage.py shell
 ```
-
-## Database Backup
-
-Create a SQL backup:
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec -T postgres \
-  pg_dump -U <database-user> <database-name> \
-  > wingspan-backup.sql
-```
-
-Store important backups outside the production server.
-
-## PostgreSQL Password Rotation
-
-Changing `POSTGRES_PASSWORD` in `.env` does not change the password in an existing database.
-
-Connect to PostgreSQL:
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec postgres \
-  psql -U wingspan_user -d wingspan
-```
-
-At the PostgreSQL prompt:
-
-```sql
-\password wingspan_user
-```
-
-Then update both values in `.env`:
-
-```dotenv
-DATABASE_PASSWORD=<new-password>
-POSTGRES_PASSWORD=<new-password>
-```
-
-Recreate Django so it receives the updated credentials.
-
-## Game Data Import
-
-Import game data:
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec django \
-  python manage.py import_games /workspace/data/wingspan_games.csv
-```
-
-Rebuild game history from the CSV:
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec django \
-  python manage.py import_games \
-  --clear \
-  /workspace/data/wingspan_games.csv
-```
-
-Use `--clear` only when intentionally replacing existing imported game history.
 
 ## HTTPS Certificate Renewal
-
-Let's Encrypt certificates expire every 90 days.
 
 Renew:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  run --rm certbot renew
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   run --rm certbot renew
 ```
 
-Reload Nginx after successful renewal:
+Reload Nginx:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec nginx nginx -s reload
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec nginx nginx -s reload
 ```
 
-Verify the certificate from the public site.
-
-## Nginx
+## Nginx Validation
 
 Validate configuration:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec nginx nginx -t
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec nginx nginx -t
 ```
 
 Reload:
 
 ```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  exec nginx nginx -s reload
-```
-
-If necessary, recreate Nginx:
-
-```bash
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  up -d --force-recreate nginx
+docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec nginx nginx -s reload
 ```
 
 ## Troubleshooting
 
 If production is unavailable:
 
-1. Run `docker compose ... ps`.
+1. Check container status with `docker compose ... ps`.
 2. Review Django and Nginx logs.
 3. Confirm PostgreSQL is running.
 4. Check migration state with `showmigrations`.
 5. Validate Nginx with `nginx -t`.
 6. Recreate affected containers if necessary.
-7. Restore a database backup only if database recovery is required.
+7. Restore a database backup only when database recovery is required.
 
 ## Deployment Checklist
 
