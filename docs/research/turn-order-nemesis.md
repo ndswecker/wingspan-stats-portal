@@ -1,23 +1,23 @@
 # Wingspan Turn Order Research Methodology
 
-**Version:** 0.3
+**Version:** 0.4  
 **Status:** Draft
 
 ## 1. Purpose
 
 This study investigates whether turn order is associated with player performance in competitive Wingspan games.
 
-The analysis focuses on two selected human players:
+Each analysis is performed from the perspective of two selected human players:
 
-* **Primary player:** the player from whose perspective the analysis is performed.
-* **Secondary player:** the human opponent used for comparison.
+* **Principal player:** the player whose performance is being analyzed.
+* **Opponent:** the other human player whose score and turn-order relationship are used for comparison.
 
-Performance is evaluated both as the primary player's individual scoring performance and as their performance relative to the secondary player.
+All performance measures and derived turn-order relationships are expressed from the perspective of the principal player.
 
 The study evaluates three turn-order hypotheses:
 
 1. Starting Position
-2. Direct Following
+2. Direct Preceding
 3. Player Spacing
 
 ## 2. Scope and Assumptions
@@ -26,13 +26,13 @@ Only competitive games containing results for both selected players are eligible
 
 For purposes of this study, each competitive game is assumed to contain exactly five players:
 
-* the primary human player;
-* the secondary human player; and
+* the principal human player;
+* the opponent; and
 * three computer players.
 
 This configuration is an analytical assumption where it cannot be verified from the recorded data. Games that did not actually use this configuration may produce incorrectly classified turn-order relationships.
 
-Each qualifying game is treated as one observation from the primary player's perspective.
+Each qualifying game is treated as one observation from the principal player's perspective.
 
 A date range may be used to restrict the study population.
 
@@ -40,7 +40,9 @@ A date range may be used to restrict the study population.
 
 Wingspan turn order changes between rounds. A player's starting position therefore does not represent their ordinal position throughout the entire game.
 
-This study intentionally does not model individual turns or round-by-round changes. Instead, it uses starting turn order and the circular relationship between the two human players as simplified representations of turn order.
+This study intentionally does not model individual turns or round-by-round changes. Instead, it uses starting turn order and the circular relationship between the principal player and opponent as simplified representations of turn order.
+
+The circular relationship between players is retained as the starting player rotates between rounds. Turn-order relationships therefore recognize wraparound between starting positions 5 and 1.
 
 The analysis does not attempt to model computer-player decisions, resource availability, individual bird selections, or other within-game interactions.
 
@@ -52,19 +54,21 @@ The following raw values are required for each qualifying game:
 
 * Game identifier
 * Game date
-* Primary player
-* Secondary player
-* Primary starting position
-* Secondary starting position
-* Primary final score
-* Secondary final score
+* Principal player
+* Opponent
+* Principal starting position
+* Opponent starting position
+* Principal final score
+* Opponent final score
 
 Derived variables may include:
 
-* Primary score differential
-* Primary head-to-head outcome
-* Direct-following status
-* Number of computer players between the secondary and primary player in the direction of play
+* Principal score differential
+* Principal head-to-head outcome
+* Winning player
+* Direct-preceding status
+* Number of computer players after the principal player and before the opponent
+* Number of computer players after the opponent and before the principal player
 
 Raw starting positions must be retained so derived turn-order variables can be independently reproduced.
 
@@ -74,21 +78,21 @@ Each hypothesis may be evaluated using three measures of performance.
 
 ### 5.1 Final Score
 
-The primary player's final score measures individual scoring performance.
+The principal player's final score measures individual scoring performance.
 
-This allows the primary player's results under different turn-order conditions to be compared with their general scoring results within the selected dataset.
+This allows the principal player's results under different turn-order conditions to be compared with their general scoring results within the selected dataset.
 
 ### 5.2 Score Differential
 
-Score differential measures performance relative to the secondary player:
+Score differential measures performance relative to the opponent:
 
-**Primary Score − Secondary Score**
+**Principal Score − Opponent Score**
 
-Positive values indicate that the primary player outscored the secondary player. Negative values indicate the opposite.
+Positive values indicate that the principal player outscored the opponent. Negative values indicate the opposite.
 
 ### 5.3 Head-to-Head Outcome
 
-A win occurs when the primary player's final score is greater than the secondary player's final score.
+A win occurs when the principal player's final score is greater than the opponent's final score.
 
 A loss occurs when it is lower.
 
@@ -98,11 +102,13 @@ Tied scores will be reported separately and excluded from binary win/loss analys
 
 Each hypothesis will be evaluated against final score, score differential, and head-to-head outcome where statistically appropriate.
 
+All hypotheses are evaluated from the perspective of the principal player.
+
 ### 6.1 Starting Position
 
-**Question:** Is the primary player's starting position associated with performance?
+**Question:** Is the principal player's starting position associated with performance?
 
-The primary player's starting position is classified from 1 through 5.
+The principal player's starting position is classified from 1 through 5.
 
 **Null hypothesis:** Performance does not differ according to starting position.
 
@@ -110,31 +116,39 @@ The primary player's starting position is classified from 1 through 5.
 
 Starting position will initially be treated as categorical. No assumption is made that its effect is linear from positions 1 through 5.
 
-### 6.2 Direct Following
+### 6.2 Direct Preceding
 
-**Question:** Does the primary player perform differently when directly following the secondary player in the circular turn order?
+**Question:** Does the principal player perform differently when directly preceding the opponent in the circular turn order?
 
 Games are classified as either:
 
-* directly following the secondary player; or
-* not directly following the secondary player.
+* directly preceding the opponent; or
+* not directly preceding the opponent.
 
-Circular wraparound is recognized. Starting position 1 therefore directly follows starting position 5.
+The principal player directly precedes the opponent when no computer player occurs between them in the direction of play from the principal player to the opponent.
+
+Circular wraparound is recognized. Starting position 5 therefore directly precedes starting position 1.
+
+This condition is independent of the principal player's absolute starting position. A principal player may directly precede the opponent from any starting position where the circular relationship satisfies this condition.
 
 **Null hypothesis:** Performance does not differ between the two conditions.
 
-**Alternative hypothesis:** Performance differs when the primary player directly follows the secondary player.
+**Alternative hypothesis:** Performance differs when the principal player directly precedes the opponent.
 
 ### 6.3 Player Spacing
 
-**Question:** Is primary-player performance associated with the number of computer players between the secondary and primary player in the direction of play?
+**Question:** Is principal-player performance associated with the number of computer players occurring after the principal player and before the opponent in the circular turn order?
 
-Spacing is classified as:
+Spacing is measured in the direction of play from the principal player to the opponent and is classified as:
 
 * 0 computer players
 * 1 computer player
 * 2 computer players
 * 3 computer players
+
+For example, a spacing value of 0 means that the principal player directly precedes the opponent. A spacing value of 3 means that all three computer players occur after the principal player and before the opponent.
+
+The complementary number of computer players occurring after the opponent and before the principal player may also be retained in the research dataset to fully represent the circular relationship.
 
 **Null hypothesis:** Performance does not differ according to player spacing.
 
@@ -160,15 +174,17 @@ Inferential tests will then be selected based on the hypothesis, outcome type, s
 
 The statistical test used, its assumptions, significance threshold, effect size where appropriate, and confidence interval should be reported with the result.
 
+The analysis should retain sufficient intermediate information to allow the statistical results to be independently inspected and reproduced. Statistical outputs should be presented as evidence rather than converted into automated conclusions about whether a hypothesis is supported.
+
 ## 8. Interpretation
 
 The three performance measures answer related but distinct questions.
 
-**Final score** evaluates the primary player's performance against their own general scoring results.
+**Final score** evaluates the principal player's performance against their own general scoring results.
 
-**Score differential** evaluates the magnitude of the primary player's performance relative to the secondary player.
+**Score differential** evaluates the magnitude of the principal player's performance relative to the opponent.
 
-**Head-to-head outcome** evaluates whether the primary player defeated the secondary player.
+**Head-to-head outcome** evaluates whether the principal player defeated the opponent.
 
 Evidence found for one outcome should not automatically be treated as evidence for the others.
 
@@ -177,6 +193,8 @@ Statistical significance indicates evidence against the specified null hypothesi
 A non-significant result does not establish that no effect exists. It indicates that the available data did not provide sufficient evidence to reject the null hypothesis.
 
 Observed effect size, sample size, uncertainty, and descriptive statistics should be considered alongside statistical significance.
+
+Interpretation of the statistical evidence remains the responsibility of the researcher.
 
 ## 9. Limitations
 
@@ -195,15 +213,19 @@ Important limitations include:
 
 The study can identify statistical relationships in the recorded games but cannot independently establish the mechanisms responsible for those relationships.
 
+For example, an association between direct preceding or player spacing and performance would not independently demonstrate that changes to the bird tray, resource availability, computer-player actions, or any other particular game mechanism caused the observed relationship.
+
 ## 10. Reproducibility
 
 The methodology is independent of the software used to perform the analysis.
 
-Given the same source game records, primary and secondary player selection, date range, inclusion criteria, and methodology, another implementation should produce the same research dataset and statistical results.
+Given the same source game records, principal player and opponent selection, date range, inclusion criteria, and methodology, another implementation should produce the same research dataset and statistical results.
+
+Derived turn-order variables must be reproducible from the recorded starting positions and the five-player circular turn-order model.
 
 ## 11. Exploratory Scope and Future Generalization
 
-This research is an exploratory observational study of a specific sample of competitive games between two human players. Its purpose is to identify and quantify potential relationships between turn order and player performance within this sample.
+This research is an exploratory observational study of a specific sample of competitive games between two human players. Its purpose is to identify and quantify potential relationships between turn order and principal-player performance within this sample.
 
 Results from this study should not be assumed to represent Wingspan players generally. Any relationships identified apply directly only to the games and players included in the study.
 
