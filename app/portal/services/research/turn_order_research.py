@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from django.db.models import Q, Count, Prefetch
 
-from ..models import Player, Game, GameResult
+from ...models import Player, Game, GameResult
 
 
 class GamePrincipalOutcome(StrEnum):
@@ -244,3 +244,51 @@ def build_turn_order_game_record(
     )
 
     return record
+
+
+def build_turn_order_dataset(
+    *,
+    principal_player: Player,
+    opponent_player: Player,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> TurnOrderDataset:
+    """
+    Build the complete turn-order research dataset for two players.
+
+    Selects qualifying games and transforms each game into
+    a TurnOrderGameRecord.
+
+    Performs no statistical analysis.
+    """
+
+    # 1. Select all qualifying games.
+    games = select_turn_order_games(
+        principal_player=principal_player,
+        opponent_player=opponent_player,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    # 2. Prepare one research record for each game.
+    game_records = []
+
+    for game in games:
+        game_record = build_turn_order_game_record(
+            game=game,
+            principal_player=principal_player,
+            opponent_player=opponent_player,
+        )
+
+        game_records.append(game_record)
+
+    # 3. Assemble the complete research dataset.
+    dataset = TurnOrderDataset(
+        principal_player=principal_player,
+        opponent_player=opponent_player,
+        start_date=start_date,
+        end_date=end_date,
+        games=game_records,
+    )
+
+    return dataset
