@@ -7,6 +7,7 @@ These tests use Django's isolated test database, not the development database.
 """
 
 from datetime import date
+from django.test import SimpleTestCase
 
 from django.db import connection
 from django.test import TestCase
@@ -15,9 +16,14 @@ from django.test.utils import CaptureQueriesContext
 from portal.models import Game, GameResult, Player
 from portal.services.research.turn_order_research import (
     GamePrincipalOutcome,
+    TurnOrderDataset,
+    TurnOrderGameRecord,
     build_turn_order_dataset,
     build_turn_order_game_record,
     select_turn_order_games,
+)
+from portal.services.research.turn_order_statistics import (
+    analyze_turn_order_comparison,
 )
 
 
@@ -338,3 +344,157 @@ class BuildTurnOrderDatasetTests(TurnOrderResearchTestBase):
         self.assertFalse(reverse.principal_directly_precedes_opponent)
         self.assertEqual(forward.npcs_after_principal, reverse.npcs_before_principal)
         self.assertEqual(forward.npcs_before_principal, reverse.npcs_after_principal)
+
+class TurnOrderComparisonStatisticsTests(SimpleTestCase):
+    """
+    Test descriptive starting-position statistics.
+
+    Uses in-memory research records without database queries.
+    """
+
+    def setUp(self):
+        # Create unsaved players for the research dataset.
+        self.principal = Player(pk=1, name="Nate")
+        self.opponent = Player(pk=2, name="Nick")
+
+    def build_dataset(self, starting_positions):
+        """
+        Build a dataset from pairs of starting positions.
+
+        Each pair contains:
+        (principal_turn_order, opponent_turn_order)
+        """
+        records = []
+
+        for game_id, positions in enumerate(starting_positions, start=1):
+            principal_position, opponent_position = positions
+
+            npcs_after_principal = (
+                opponent_position - principal_position - 1
+            ) % 5
+
+            npcs_before_principal = (
+                principal_position - opponent_position - 1
+            ) % 5
+
+            record = TurnOrderGameRecord(
+                game_id=game_id,
+                date_played=date(2026, 1, 1),
+                principal_player=self.principal,
+                opponent_player=self.opponent,
+                principal_score=100,
+                opponent_score=90,
+                principal_turn_order=principal_position,
+                opponent_turn_order=opponent_position,
+                winner=self.principal,
+                outcome=GamePrincipalOutcome.WIN,
+                score_differential=10,
+                npcs_after_principal=npcs_after_principal,
+                npcs_before_principal=npcs_before_principal,
+                principal_directly_precedes_opponent=(
+                    npcs_after_principal == 0
+                ),
+            )
+
+            records.append(record)
+
+        dataset = TurnOrderDataset(
+            principal_player=self.principal,
+            opponent_player=self.opponent,
+            start_date=None,
+            end_date=None,
+            games=records,
+        )
+
+        return dataset
+
+    def test_average_turn_orders(self):
+        dataset = self.build_dataset([
+            (1, 5),
+            (2, 4),
+            (3, 1),
+            (4, 2),
+        ])
+
+        statistics = analyze_turn_order_comparison(dataset=dataset)
+
+        self.assertEqual(statistics.total_games, 4)
+        self.assertEqual(statistics.principal.average_turn_order, 2.5)
+        self.assertEqual(statistics.opponent.average_turn_order, 3.0)
+
+    def test_position_counts(self):
+        dataset = self.build_dataset([
+            (1, 3),
+            (1, 4),
+            (2, 5),
+            (3, 1),
+        ])
+
+        statistics = analyze_turn_order_comparison(dataset=dataset)
+
+        self.assertEqual(
+            statistics.principal.position_counts,
+            {1: 2, 2: 1, 3: 1, 4: 0, 5: 0},
+        )
+
+        self.assertEqual(
+            statistics.opponent.position_counts,
+            {1: 1, 2: 0, 3: 1, 4: 1, 5: 1},
+        )
+
+    def test_head_to_head_starting_order(self):
+        dataset = self.build_dataset([
+            (1, 5),
+            (2, 4),
+            (4, 1),
+            (5, 2),
+            (3, 4),
+        ])
+
+        statistics = analyze_turn_order_comparison(dataset=dataset)
+
+        self.assertEqual(statistics.principal_starts_earlier, 3)
+        self.assertEqual(statistics.opponent_starts_earlier, 2)
+
+        self.assertEqual(
+            statistics.principal_starts_earlier
+            + statistics.opponent_starts_earlier,
+            statistics.total_games,
+        )
+
+    def test_empty_dataset(self):
+        dataset = self.build_dataset([])
+
+        statistics = analyze_turn_order_comparison(dataset=dataset)
+
+        self.assertEqual(statistics.total_games, 0)
+
+        self.assertIsNone(statistics.principal.average_turn_order)
+        self.assertIsNone(statistics.opponent.average_turn_order)
+
+        self.assertEqual(
+            statistics.principal.position_counts,
+            {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+        )
+
+        self.assertEqual(
+            statistics.opponent.position_counts,
+            {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+        )
+
+        self.assertEqual(statistics.principal_starts_earlier, 0)
+        self.assertEqual(statistics.opponent_starts_earlier, 0)
+
+    def test_single_game(self):
+        dataset = self.build_dataset([
+            (5, 1),
+        ])
+
+        statistics = analyze_turn_order_comparison(dataset=dataset)
+
+        self.assertEqual(statistics.total_games, 1)
+        self.assertEqual(statistics.principal.average_turn_order, 5.0)
+        self.assertEqual(statistics.opponent.average_turn_order, 1.0)
+
+        self.assertEqual(statistics.principal_starts_earlier, 0)
+        self.assertEqual(statistics.opponent_starts_earlier, 1)
