@@ -4,6 +4,8 @@ from scipy.stats import binomtest
 
 from .turn_order_research import TurnOrderDataset
 
+from .statistical_methods import StatisticalTest
+
 
 @dataclass(frozen=True)
 class PlayerTurnOrderStatistics:
@@ -43,18 +45,20 @@ class TurnOrderSignificanceResult:
     """
     Statistical significance of the head-to-head
     starting-order imbalance.
-
-    Uses a two-sided exact binomial test against
-    an expected probability of 0.5.
     """
 
-    # P-value from the exact binomial test.
+    # Statistical test used, including its name and methodology.
+    test: StatisticalTest
+
+    # Inputs used in the statistical test.
+    sample_size: int
+    principal_starts_earlier: int
+    opponent_starts_earlier: int
+    expected_probability: float
+
+    # Statistical results.
     p_value: float | None
-
-    # Threshold used to determine statistical significance.
     significance_level: float
-
-    # Whether the observed imbalance is statistically significant.
     is_significant: bool
 
 
@@ -166,31 +170,41 @@ def analyze_turn_order_significance(
     Performs no database queries.
     """
 
-    # 1. Initialize the statistical result.
-    p_value = None
-    is_significant = False
+    # 1. Identify the statistical test and its parameters.
+    test = StatisticalTest.EXACT_BINOMIAL_TWO_SIDED
+    expected_probability = 0.5
 
     # 2. Retrieve the observed starting-order counts.
     total_games = statistics.total_games
     principal_starts_earlier = statistics.principal_starts_earlier
+    opponent_starts_earlier = statistics.opponent_starts_earlier
 
-    # 3. Perform the statistical test when games are available.
+    # 3. Initialize the statistical result.
+    p_value = None
+    is_significant = False
+
+    # 4. Perform the statistical test when games are available.
     if total_games > 0:
 
         test_result = binomtest(
             k=principal_starts_earlier,
             n=total_games,
-            p=0.5,
+            p=expected_probability,
             alternative="two-sided",
         )
 
         p_value = float(test_result.pvalue)
 
-        # 4. Compare the p-value against our significance threshold.
+        # Determine statistical significance.
         is_significant = p_value < significance_level
 
     # 5. Assemble the significance result.
     result = TurnOrderSignificanceResult(
+        test=test,
+        sample_size=total_games,
+        principal_starts_earlier=principal_starts_earlier,
+        opponent_starts_earlier=opponent_starts_earlier,
+        expected_probability=expected_probability,
         p_value=p_value,
         significance_level=significance_level,
         is_significant=is_significant,
