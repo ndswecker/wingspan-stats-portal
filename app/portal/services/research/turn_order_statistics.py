@@ -6,6 +6,11 @@ from .turn_order_research import TurnOrderDataset
 
 from .statistical_methods import StatisticalTest
 
+from .turn_order_research import (
+    TurnOrderDataset,
+    GamePrincipalOutcome,
+)
+
 
 @dataclass(frozen=True)
 class PlayerTurnOrderStatistics:
@@ -60,6 +65,43 @@ class TurnOrderSignificanceResult:
     p_value: float | None
     significance_level: float
     is_significant: bool
+
+@dataclass(frozen=True)
+class StartingPositionPerformanceStatistics:
+    """
+    Descriptive performance statistics for the principal
+    player at one starting position.
+    """
+
+    # Starting position being analyzed (1 through 5).
+    position: int
+
+    # Number of games played from this position.
+    total_games: int
+
+    # Game outcomes.
+    wins: int
+    losses: int
+    ties: int
+    win_rate: float | None
+
+    # Scoring performance.
+    average_score: float | None
+    average_score_differential: float | None
+
+@dataclass(frozen=True)
+class StartingPositionAnalysisStatistics:
+    """
+    Descriptive performance statistics for the principal
+    player across all five starting positions.
+    """
+
+    # Total number of qualifying games.
+    total_games: int
+
+    # Performance statistics indexed by starting position (1 through 5).
+    positions: dict[int, StartingPositionPerformanceStatistics]
+
 
 
 def analyze_turn_order_comparison(
@@ -211,3 +253,98 @@ def analyze_turn_order_significance(
     )
 
     return result
+
+def analyze_starting_position_performance(
+    *,
+    dataset: TurnOrderDataset,
+) -> StartingPositionAnalysisStatistics:
+    """
+    Calculate descriptive performance statistics for the
+    principal player at each starting position (1 through 5).
+
+    Calculates game outcomes, win rates, average scores,
+    and average score differentials.
+
+    Performs no database queries or hypothesis testing.
+    """
+
+    # 1. Determine the number of qualifying games.
+    total_games = len(dataset.games)
+
+    # 2. Initialize counters and running totals for each position.
+    position_data = {}
+
+    for position in range(1, 6):
+        position_data[position] = {
+            "total_games": 0,
+            "wins": 0,
+            "losses": 0,
+            "ties": 0,
+            "score_total": 0,
+            "score_differential_total": 0,
+        }
+
+    # 3. Process each qualifying game.
+    for game in dataset.games:
+
+        # Identify the principal player's starting position.
+        position = game.principal_turn_order
+        data = position_data[position]
+
+        # Count the game.
+        data["total_games"] += 1
+
+        # Count the game outcome.
+        if game.outcome == GamePrincipalOutcome.WIN:
+            data["wins"] += 1
+
+        elif game.outcome == GamePrincipalOutcome.LOSS:
+            data["losses"] += 1
+
+        elif game.outcome == GamePrincipalOutcome.TIE:
+            data["ties"] += 1
+
+        # Accumulate scoring performance.
+        data["score_total"] += game.principal_score
+        data["score_differential_total"] += game.score_differential
+
+    # 4. Calculate performance statistics for each position.
+    positions = {}
+
+    for position in range(1, 6):
+        data = position_data[position]
+        games_played = data["total_games"]
+
+        # Initialize averages for positions with no games.
+        win_rate = None
+        average_score = None
+        average_score_differential = None
+
+        if games_played > 0:
+            win_rate = data["wins"] / games_played
+            average_score = data["score_total"] / games_played
+            average_score_differential = (
+                data["score_differential_total"] / games_played
+            )
+
+        # Assemble the statistics for this position.
+        position_statistics = StartingPositionPerformanceStatistics(
+            position=position,
+            total_games=games_played,
+            wins=data["wins"],
+            losses=data["losses"],
+            ties=data["ties"],
+            win_rate=win_rate,
+            average_score=average_score,
+            average_score_differential=average_score_differential,
+        )
+
+        positions[position] = position_statistics
+
+    # 5. Assemble the complete starting-position analysis.
+    statistics = StartingPositionAnalysisStatistics(
+        total_games=total_games,
+        positions=positions,
+    )
+
+    return statistics

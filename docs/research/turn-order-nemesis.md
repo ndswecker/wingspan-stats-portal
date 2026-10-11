@@ -106,15 +106,60 @@ All hypotheses are evaluated from the perspective of the principal player.
 
 ### 6.1 Starting Position
 
-**Question:** Is the principal player's starting position associated with performance?
+**Research question:** Is the principal player's starting position associated with performance?
 
 The principal player's starting position is classified from 1 through 5.
 
-**Null hypothesis:** Performance does not differ according to starting position.
+Starting position is treated as a categorical variable. No assumption is made that its effect is linear or progressively increases or decreases from positions 1 through 5.
 
-**Alternative hypothesis:** Performance differs according to starting position.
+Performance is evaluated through three distinct sub-hypotheses.
 
-Starting position will initially be treated as categorical. No assumption is made that its effect is linear from positions 1 through 5.
+#### 6.1.1 Probability of Winning (Primary)
+
+**Question:** Does the principal player's probability of winning differ according to starting position?
+
+**Null hypothesis (H₀):** The probability of winning is equal across all five starting positions.
+
+**Alternative hypothesis (H₁):** The probability of winning differs for at least one starting position.
+
+**Outcome variable:** Outright victory (win versus non-win).
+
+Losses and ties are classified as non-wins.
+
+This is the primary measure of competitive advantage.
+
+#### 6.1.2 Final Score (Secondary)
+
+**Question:** Does the principal player's final score differ according to starting position?
+
+**Null hypothesis (H₀):** The distribution of final scores is the same across all five starting positions.
+
+**Alternative hypothesis (H₁):** The distribution of final scores differs for at least one starting position.
+
+**Outcome variable:** Principal player's final score.
+
+This analysis evaluates whether starting position is associated with scoring performance, independently of whether the player wins.
+
+#### 6.1.3 Score Differential (Secondary)
+
+**Question:** Does the principal player's score differential differ according to starting position?
+
+**Null hypothesis (H₀):** The distribution of score differentials is the same across all five starting positions.
+
+**Alternative hypothesis (H₁):** The distribution of score differentials differs for at least one starting position.
+
+**Outcome variable:** Principal player's final score minus the opponent's final score.
+
+This analysis evaluates whether starting position is associated with relative scoring performance.
+
+#### 6.1.4 Statistical Considerations
+
+- Each sub-hypothesis will be evaluated across all five starting positions.
+- Statistical methods will be selected according to the outcome variable, sample size, and applicable assumptions.
+- Win probability is the primary outcome. Final score and score differential are secondary outcomes.
+- Multiple-testing considerations will be documented when interpreting results across the three sub-hypotheses.
+- Statistical associations will not be interpreted as evidence of causation without additional justification.
+- The designation of the primary outcome was refined after examining preliminary descriptive results; subsequent inference will therefore be treated as exploratory.
 
 ### 6.2 Direct Preceding
 
