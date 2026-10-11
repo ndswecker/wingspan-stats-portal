@@ -1,8 +1,263 @@
-<div class="card">
-    <div class="card-body">
-        <p class="text-muted mb-0">
-            Starting-position analysis results
-            will appear here.
-        </p>
+
+{% if starting_position_analysis %}
+
+    {% with stats=starting_position_analysis.statistics %}
+
+    <!-- Analysis Summary -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Starting Position Analysis</h5>
+
+            <p class="text-muted mb-2">
+                Competitive performance grouped by the principal
+                player's starting position.
+            </p>
+
+            <p class="mb-0">
+                <strong>Qualifying Games:</strong>
+                {{ stats.total_games }}
+            </p>
+        </div>
     </div>
-</div>
+
+    <!-- Descriptive Statistics -->
+    <div class="card mb-3">
+        <div class="card-header">
+            Starting Position Performance
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Position</th>
+                            <th>Games</th>
+                            <th>Wins</th>
+                            <th>Losses</th>
+                            <th>Ties</th>
+                            <th>Win Rate</th>
+                            <th>Avg. Score</th>
+                            <th>Avg. Differential</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for position, result in stats.positions.items %}
+                            <tr>
+                                <td>{{ position }}</td>
+                                <td>{{ result.total_games }}</td>
+                                <td>{{ result.wins }}</td>
+                                <td>{{ result.losses }}</td>
+                                <td>{{ result.ties }}</td>
+
+                                <td>
+                                    {% if result.win_rate is not None %}
+                                        {{ result.win_rate|floatformat:2 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if result.average_score is not None %}
+                                        {{ result.average_score|floatformat:2 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if result.average_score_differential is not None %}
+                                        {{ result.average_score_differential|floatformat:2 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-muted small mb-0">
+                Win rate is the proportion of games won from each
+                starting position. Ties count as non-wins.
+                Average differential is the principal player's
+                score minus the opponent's score.
+            </p>
+        </div>
+    </div>
+
+    
+    <!-- Starting Position Charts -->
+    {% include "portal/research/partials/turn_order/_starting_position_charts.html" %}
+
+
+    <!-- Statistical Significance -->
+    <div class="card mb-3">
+        <div class="card-header">
+            Hypothesis Testing
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Hypothesis</th>
+                            <th>Statistical Test</th>
+                            <th>Test Statistic</th>
+                            <th>P-value</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        <!-- H1a: Win Probability -->
+                        {% with result=starting_position_analysis.win_significance %}
+                        <tr>
+                            <td>H1a — Win Probability</td>
+                            <td>{{ result.test.display_name }}</td>
+
+                            <td>
+                                {% if result.observed_statistic is not None %}
+                                    {{ result.observed_statistic|floatformat:4 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if result.p_value is not None %}
+                                    {{ result.p_value|floatformat:4 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if result.is_significant is None %}
+                                    <span class="badge bg-secondary">
+                                        Insufficient Data
+                                    </span>
+                                {% elif result.is_significant %}
+                                    <span class="badge bg-success">
+                                        Significant
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Not Significant
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+
+                        <!-- H1b: Average Final Score -->
+                        {% with result=starting_position_analysis.score_significance %}
+                        <tr>
+                            <td>H1b — Average Final Score</td>
+                            <td>{{ result.test.display_name }}</td>
+
+                            <td>
+                                {% if result.observed_statistic is not None %}
+                                    {{ result.observed_statistic|floatformat:4 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if result.p_value is not None %}
+                                    {{ result.p_value|floatformat:4 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if result.is_significant is None %}
+                                    <span class="badge bg-secondary">
+                                        Insufficient Data
+                                    </span>
+                                {% elif result.is_significant %}
+                                    <span class="badge bg-success">
+                                        Significant
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Not Significant
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+
+                        <!-- H1c: Average Score Differential -->
+                        {% with result=starting_position_analysis.score_differential_significance %}
+                        <tr>
+                            <td>H1c — Average Score Differential</td>
+                            <td>{{ result.test.display_name }}</td>
+
+                            <td>
+                                {% if result.observed_statistic is not None %}
+                                    {{ result.observed_statistic|floatformat:4 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if result.p_value is not None %}
+                                    {{ result.p_value|floatformat:4 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if result.is_significant is None %}
+                                    <span class="badge bg-secondary">
+                                        Insufficient Data
+                                    </span>
+                                {% elif result.is_significant %}
+                                    <span class="badge bg-success">
+                                        Significant
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Not Significant
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-muted small mb-0">
+                Statistical significance is evaluated at
+                α = 0.05. A non-significant result does not
+                establish that starting position has no effect.
+            </p>
+
+        </div>
+    </div>
+
+    {% endwith %}
+
+{% else %}
+
+    <!-- No Analysis Executed -->
+    <div class="alert alert-secondary">
+        Select two players and click
+        <strong>Run Analysis</strong>
+        to view starting-position research results.
+    </div>
+
+{% endif %}

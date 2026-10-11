@@ -891,3 +891,90 @@ class FeatheredFoeForm(forms.Form):
             )
 
         return cleaned_data
+
+class TurnOrderResearchFilterForm(forms.Form):
+    """
+    Select two players and an optional date range
+    for turn-order research.
+    """
+
+    principal_player = forms.ModelChoiceField(
+        queryset=Player.objects.all(),
+        empty_label="Select Principal Player",
+        label="Principal Player",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    opponent_player = forms.ModelChoiceField(
+        queryset=Player.objects.all(),
+        empty_label="Select Opponent",
+        label="Opponent Player",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    start_date = forms.DateField(
+        required=False,
+        label="Start Date",
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control",
+            }
+        ),
+    )
+
+    end_date = forms.DateField(
+        required=False,
+        label="End Date",
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control",
+            }
+        ),
+    )
+
+    def clean(self):
+        """
+        Validate player selections and date boundaries.
+        """
+
+        cleaned_data = super().clean()
+
+        # 1. Retrieve the validated form values.
+        principal_player = cleaned_data.get("principal_player")
+        opponent_player = cleaned_data.get("opponent_player")
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
+
+        # 2. Ensure the players are different.
+        if (
+            principal_player is not None
+            and opponent_player is not None
+            and principal_player == opponent_player
+        ):
+            self.add_error(
+                "opponent_player",
+                "The opponent must be different from the principal player.",
+            )
+
+        # 3. Ensure the date range is valid.
+        if (
+            start_date is not None
+            and end_date is not None
+            and start_date > end_date
+        ):
+            self.add_error(
+                "end_date",
+                "End date cannot be earlier than start date.",
+            )
+
+        return cleaned_data

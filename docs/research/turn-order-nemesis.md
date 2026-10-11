@@ -94,9 +94,26 @@ Positive values indicate that the principal player outscored the opponent. Negat
 
 A win occurs when the principal player's final score is greater than the opponent's final score.
 
-A loss occurs when it is lower.
+A loss occurs when the principal player's final score is lower than the opponent's final score.
 
-Tied scores will be reported separately and excluded from binary win/loss analysis.
+A tie occurs when both players have the same final score.
+
+Wins, losses, and ties are recorded separately for descriptive statistics.
+
+For statistical analyses evaluating the probability of winning, outcomes are classified into two categories:
+
+- **Win:** The principal player scores strictly higher than the opponent.
+- **Non-win:** The principal player loses or ties with the opponent.
+
+Tied games are therefore included in the analysis and classified as non-wins rather than excluded.
+
+Win rate is calculated as:
+
+**Win Rate = Wins / Total Games**
+
+Total games includes wins, losses, and ties.
+
+This approach measures the probability of an outright victory rather than the probability of avoiding defeat.
 
 ## 6. Research Hypotheses
 

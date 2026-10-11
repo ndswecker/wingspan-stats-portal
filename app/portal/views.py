@@ -28,6 +28,7 @@ from .forms import (
     PlayerGameHistoryFilterForm,
     GameResultEditFormSet,
     FeatheredFoeForm,
+    TurnOrderResearchFilterForm,
 )
 
 from .services.game_entry import (
@@ -95,6 +96,16 @@ from .services.player_game_score_gap_chart import build_game_score_gap_chart
 from .services.player_game_score_gap import (
     calculate_victory_margin_analysis,
     select_game_score_gaps,
+)
+
+from .services.research.turn_order_analysis import (
+    get_starting_position_analysis,
+)
+
+from .services.research.turn_order_charts import (
+    build_starting_position_win_rate_chart,
+    build_starting_position_score_chart,
+    build_starting_position_score_differential_chart,
 )
 
 from .permissions import can_manage_game
@@ -1102,17 +1113,98 @@ def research_home(request):
 def turn_order_research(request):
     """
     Staff-only page for turn-order research.
-
-    Will support player selection, date filtering,
-    and statistical hypothesis analysis.
     """
 
     # 1. Require staff privileges.
     if not request.user.is_staff:
         raise PermissionDenied
 
-    # 2. Render the turn-order research page.
+    # 2. Bind the form only when an analysis is requested.
+    run_analysis = request.GET.get("action") == "run"
+
+    filter_form = TurnOrderResearchFilterForm(
+        request.GET if run_analysis else None,
+    )
+
+    # 3. Initialize research results and charts.
+    starting_position_analysis = None
+    starting_position_charts = None
+
+    # 4. Validate parameters and execute research.
+    if run_analysis and filter_form.is_valid():
+
+        principal_player = filter_form.cleaned_data["principal_player"]
+        opponent_player = filter_form.cleaned_data["opponent_player"]
+        start_date = filter_form.cleaned_data["start_date"]
+        end_date = filter_form.cleaned_data["end_date"]
+
+        # Hypothesis 6.1: Starting Position.
+        starting_position_analysis = get_starting_position_analysis(
+            principal_player=principal_player,
+            opponent_player=opponent_player,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        # 5. Generate charts from the descriptive statistics.
+        statistics = starting_position_analysis.statistics
+
+        if statistics.total_games > 0:
+
+            win_rate_figure = build_starting_position_win_rate_chart(
+                statistics=statistics,
+            )
+
+            score_figure = build_starting_position_score_chart(
+                statistics=statistics,
+            )
+
+            differential_figure = (
+                build_starting_position_score_differential_chart(
+                    statistics=statistics,
+                )
+            )
+
+            chart_config = {
+                "displayModeBar": False,
+                "scrollZoom": False,
+                "doubleClick": False,
+                "displaylogo": False,
+            }
+
+            # 6. Convert figures into HTML fragments.
+            starting_position_charts = {
+                "win_rate": win_rate_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs="cdn",
+                    config=chart_config,
+                ),
+                "score": score_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config=chart_config,
+                ),
+                "score_differential": differential_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config=chart_config,
+                ),
+            }
+
+        # Future analyses:
+        # Hypothesis 6.2: Direct Preceding.
+        # Hypothesis 6.3: Player Spacing.
+
+    # 6. Assemble template context.
+    context = {
+        "filter_form": filter_form,
+        "starting_position_analysis": starting_position_analysis,
+        "starting_position_charts": starting_position_charts,
+    }
+
+    # 7. Render the research page.
     return render(
         request,
         "portal/research/turn_order_research.html",
+        context,
     )

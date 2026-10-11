@@ -1,9 +1,11 @@
 
 {% extends "portal/base.html" %}
 
+
 {% block title %}Turn Order Research | Wingspan Stats Portal{% endblock %}
 
 {% block content %}
+
 
 <!-- Page Header -->
 <div class="mb-4">
@@ -24,18 +26,103 @@
 </div>
 
 <!-- Research Filters -->
+
+<!-- Research Filters -->
 <div class="card mb-4">
     <div class="card-header">
         Research Parameters
     </div>
 
     <div class="card-body">
-        <p class="text-muted mb-0">
-            Player selection and date-range filters
-            will appear here.
-        </p>
+        <form method="get">
+
+            <!-- Player Selection -->
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6">
+                    <label
+                        for="{{ filter_form.principal_player.id_for_label }}"
+                        class="form-label"
+                    >
+                        Principal Player
+                    </label>
+
+                    {{ filter_form.principal_player }}
+
+                    {% for error in filter_form.principal_player.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label
+                        for="{{ filter_form.opponent_player.id_for_label }}"
+                        class="form-label"
+                    >
+                        Opponent Player
+                    </label>
+
+                    {{ filter_form.opponent_player }}
+
+                    {% for error in filter_form.opponent_player.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Date Range -->
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6">
+                    <label
+                        for="{{ filter_form.start_date.id_for_label }}"
+                        class="form-label"
+                    >
+                        Start Date
+                    </label>
+
+                    {{ filter_form.start_date }}
+
+                    {% for error in filter_form.start_date.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label
+                        for="{{ filter_form.end_date.id_for_label }}"
+                        class="form-label"
+                    >
+                        End Date
+                    </label>
+
+                    {{ filter_form.end_date }}
+
+                    {% for error in filter_form.end_date.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- General Form Errors -->
+            {% for error in filter_form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ error }}
+                </div>
+            {% endfor %}
+
+            <!-- Submit -->
+            <button
+                type="submit"
+                name="action"
+                value="run"
+                class="btn btn-primary"
+            >
+                Run Analysis
+            </button>
+
+        </form>
     </div>
 </div>
+
 
 <!-- Starting Position -->
 <section class="mb-4">
@@ -46,7 +133,13 @@
         influence their competitive performance?
     </p>
 
+
+    <!-- Starting Position Research Guide -->
+    {% include "portal/research/partials/turn_order/_starting_position_methodology.html" %}
+
+    <!-- Starting Position Results -->
     {% include "portal/research/partials/turn_order/_starting_position.html" %}
+
 </section>
 
 <!-- Direct Preceding -->

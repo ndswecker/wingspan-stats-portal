@@ -1,0 +1,34 @@
+
+{% if starting_position_charts %}
+
+    <!-- H1a: Win Rate -->
+    <div class="card mb-3">
+        <div class="card-header">
+            H1a — Win Probability
+        </div>
+        <div class="card-body">
+            {{ starting_position_charts.win_rate|safe }}
+        </div>
+    </div>
+
+    <!-- H1b: Average Final Score -->
+    <div class="card mb-3">
+        <div class="card-header">
+            H1b — Average Final Score
+        </div>
+        <div class="card-body">
+            {{ starting_position_charts.score|safe }}
+        </div>
+    </div>
+
+    <!-- H1c: Average Score Differential -->
+    <div class="card mb-3">
+        <div class="card-header">
+            H1c — Average Score Differential
+        </div>
+        <div class="card-body">
+            {{ starting_position_charts.score_differential|safe }}
+        </div>
+    </div>
+
+{% endif %}

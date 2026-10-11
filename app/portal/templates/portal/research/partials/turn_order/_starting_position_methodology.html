@@ -1,0 +1,416 @@
+
+<!-- Starting Position Research Methodology -->
+<div class="accordion mb-3" id="startingPositionMethodology">
+
+    <!-- 1. Dataset and Variables -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingDataset">
+            <button class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseDataset"
+                    aria-expanded="false"
+                    aria-controls="collapseDataset">
+                Understanding the Dataset and Variables
+            </button>
+        </h3>
+
+        <div id="collapseDataset"
+             class="accordion-collapse collapse"
+             aria-labelledby="headingDataset"
+             data-bs-parent="#startingPositionMethodology">
+            <div class="accordion-body">
+
+                <p>
+                    This study examines whether a player's starting
+                    position is associated with their performance
+                    against a selected opponent.
+                </p>
+
+                <h6>Qualifying Games</h6>
+                <p>
+                    Only competitive games containing both selected
+                    human players are included. The study assumes
+                    five participants: two humans and three computer
+                    players. Each qualifying game contributes one
+                    observation.
+                </p>
+
+                <h6>Variables</h6>
+                <dl class="row">
+                    <dt class="col-sm-4">Principal Player</dt>
+                    <dd class="col-sm-8">
+                        The player whose performance is being studied.
+                    </dd>
+
+                    <dt class="col-sm-4">Opponent</dt>
+                    <dd class="col-sm-8">
+                        The human player against whom performance
+                        is compared.
+                    </dd>
+
+                    <dt class="col-sm-4">Starting Position</dt>
+                    <dd class="col-sm-8">
+                        The principal player's initial turn-order
+                        position, numbered 1 through 5.
+                    </dd>
+
+                    <dt class="col-sm-4">Games</dt>
+                    <dd class="col-sm-8">
+                        Number of qualifying games in a position.
+                    </dd>
+
+                    <dt class="col-sm-4">Wins / Losses / Ties</dt>
+                    <dd class="col-sm-8">
+                        Outcomes determined by comparing the two
+                        human players' final scores.
+                    </dd>
+
+                    <dt class="col-sm-4">Win Rate</dt>
+                    <dd class="col-sm-8">
+                        Wins divided by total games in that position.
+                        Ties count as non-wins.
+                    </dd>
+
+                    <dt class="col-sm-4">Average Score</dt>
+                    <dd class="col-sm-8">
+                        Mean final score of the principal player
+                        for games in that position.
+                    </dd>
+
+                    <dt class="col-sm-4">Average Differential</dt>
+                    <dd class="col-sm-8">
+                        Mean of principal score minus opponent score.
+                        Positive values favor the principal player;
+                        negative values favor the opponent.
+                    </dd>
+                </dl>
+
+                <p class="text-muted small mb-0">
+                    Starting position is categorical. The study
+                    does not assume that its effect increases or
+                    decreases progressively from position 1 to 5.
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. H1a -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingH1a">
+            <button class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseH1a"
+                    aria-expanded="false"
+                    aria-controls="collapseH1a">
+                H1a — Probability of Winning (Primary)
+            </button>
+        </h3>
+
+        <div id="collapseH1a"
+             class="accordion-collapse collapse"
+             aria-labelledby="headingH1a"
+             data-bs-parent="#startingPositionMethodology">
+            <div class="accordion-body">
+
+                <h6>Research Question</h6>
+                <p>
+                    Does the principal player's probability of
+                    winning differ across starting positions?
+                </p>
+
+                <p>
+                    <strong>Null Hypothesis (H0):</strong>
+                    Win probability is equal across all five positions.
+                </p>
+                <p>
+                    <strong>Alternative Hypothesis (H1):</strong>
+                    At least one position has a different win probability.
+                </p>
+
+                <h6>Method</h6>
+                <p>
+                    Games are classified as wins or non-wins.
+                    Both losses and ties are non-wins.
+                </p>
+                <p>
+                    A Pearson chi-square statistic measures how
+                    much the observed win and non-win counts differ
+                    from the counts expected if win probability
+                    were independent of starting position.
+                </p>
+                <p>
+                    Permutation testing evaluates how unusual that
+                    statistic is under the null hypothesis.
+                </p>
+
+                <h6>Interpretation</h6>
+                <p>
+                    A larger chi-square statistic indicates greater
+                    disagreement between observed and expected
+                    outcomes. The p-value determines whether this
+                    disagreement is unusual under the permutation
+                    null model.
+                </p>
+                <p class="mb-0">
+                    This test evaluates whether win probability
+                    differs somewhere among the positions. It does
+                    not identify which position is responsible
+                    or establish that starting position causes
+                    a competitive advantage.
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. H1b -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingH1b">
+            <button class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseH1b"
+                    aria-expanded="false"
+                    aria-controls="collapseH1b">
+                H1b — Average Final Score (Secondary)
+            </button>
+        </h3>
+
+        <div id="collapseH1b"
+             class="accordion-collapse collapse"
+             aria-labelledby="headingH1b"
+             data-bs-parent="#startingPositionMethodology">
+            <div class="accordion-body">
+
+                <h6>Research Question</h6>
+                <p>
+                    Does the principal player's mean final score
+                    differ across starting positions?
+                </p>
+
+                <p>
+                    <strong>Null Hypothesis (H0):</strong>
+                    Mean final scores are equal across all five positions.
+                </p>
+                <p>
+                    <strong>Alternative Hypothesis (H1):</strong>
+                    At least one position has a different mean score.
+                </p>
+
+                <h6>Method</h6>
+                <p>
+                    A one-way ANOVA F-statistic compares variation
+                    between the position means against variation
+                    within the positions.
+                </p>
+                <p>
+                    A permutation test evaluates the observed
+                    F-statistic against statistics obtained by
+                    randomly reassigning observed scores among
+                    the starting-position groups.
+                </p>
+
+                <h6>Interpretation</h6>
+                <p>
+                    A larger F-statistic indicates that differences
+                    between group means are large relative to
+                    variation within groups.
+                </p>
+                <p class="mb-0">
+                    This test concerns scoring performance, not
+                    winning. A player may score more points from
+                    a position without necessarily winning more
+                    often from that position.
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. H1c -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingH1c">
+            <button class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseH1c"
+                    aria-expanded="false"
+                    aria-controls="collapseH1c">
+                H1c — Average Score Differential (Secondary)
+            </button>
+        </h3>
+
+        <div id="collapseH1c"
+             class="accordion-collapse collapse"
+             aria-labelledby="headingH1c"
+             data-bs-parent="#startingPositionMethodology">
+            <div class="accordion-body">
+
+                <h6>Research Question</h6>
+                <p>
+                    Does the principal player's mean score
+                    differential differ across starting positions?
+                </p>
+
+                <p>
+                    <strong>Null Hypothesis (H0):</strong>
+                    Mean score differentials are equal across positions.
+                </p>
+                <p>
+                    <strong>Alternative Hypothesis (H1):</strong>
+                    At least one position has a different mean
+                    score differential.
+                </p>
+
+                <h6>Method</h6>
+                <p>
+                    For each game, score differential is calculated:
+                </p>
+
+                <p class="text-center fw-semibold">
+                    Principal Score − Opponent Score
+                </p>
+
+                <p>
+                    A one-way ANOVA F-statistic compares mean
+                    differentials across positions. Permutation
+                    testing evaluates the observed statistic
+                    against randomly reassigned differentials.
+                </p>
+
+                <h6>Interpretation</h6>
+                <p>
+                    A positive mean differential indicates that
+                    the principal player outscored the opponent
+                    on average. A negative value indicates the
+                    opposite.
+                </p>
+                <p class="mb-0">
+                    Unlike H1a, this analysis considers the
+                    magnitude of scoring differences, not simply
+                    whether the principal player won.
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Statistical Interpretation -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingInterpretation">
+            <button class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseInterpretation"
+                    aria-expanded="false"
+                    aria-controls="collapseInterpretation">
+                Interpreting Statistical Evidence and Limitations
+            </button>
+        </h3>
+
+        <div id="collapseInterpretation"
+             class="accordion-collapse collapse"
+             aria-labelledby="headingInterpretation"
+             data-bs-parent="#startingPositionMethodology">
+            <div class="accordion-body">
+
+                <h6>Permutation Testing</h6>
+                <p>
+                    Under the null hypothesis, performance outcomes
+                    are assumed exchangeable across starting-position
+                    groups. The analysis repeatedly shuffles
+                    outcomes while retaining group sizes.
+                </p>
+                <p>
+                    The observed test statistic is compared with
+                    the statistics produced by these shuffled
+                    datasets. The proportion of permutations
+                    producing equally or more extreme statistics
+                    provides an estimated p-value.
+                </p>
+
+                <h6>Statistical Variables</h6>
+                <dl class="row">
+                    <dt class="col-sm-4">Test Statistic</dt>
+                    <dd class="col-sm-8">
+                        A numerical summary of the observed
+                        differences between groups. H1a uses
+                        chi-square; H1b and H1c use F-statistics.
+                    </dd>
+
+                    <dt class="col-sm-4">P-value</dt>
+                    <dd class="col-sm-8">
+                        The estimated probability, under the null
+                        hypothesis and permutation procedure, of
+                        obtaining a test statistic at least as
+                        extreme as the observed statistic.
+                    </dd>
+
+                    <dt class="col-sm-4">Significance Level</dt>
+                    <dd class="col-sm-8">
+                        The threshold used for evaluating evidence.
+                        This study uses 0.05 (5%).
+                    </dd>
+
+                    <dt class="col-sm-4">Significant</dt>
+                    <dd class="col-sm-8">
+                        The p-value is below 0.05, providing
+                        evidence against the specified null
+                        hypothesis under the test assumptions.
+                    </dd>
+
+                    <dt class="col-sm-4">Not Significant</dt>
+                    <dd class="col-sm-8">
+                        The p-value is not below 0.05.
+                        This does not establish that no
+                        association exists.
+                    </dd>
+                </dl>
+
+                <h6>Important Limitations</h6>
+                <ul>
+                    <li>
+                        Starting positions may have different
+                        numbers of qualifying games.
+                    </li>
+                    <li>
+                        Small samples can produce unstable averages
+                        and limit the ability to detect differences.
+                    </li>
+                    <li>
+                        The three hypotheses represent multiple
+                        exploratory tests. Their individual p-values
+                        are not adjusted for multiple comparisons.
+                    </li>
+                    <li>
+                        The analysis assumes a five-player game
+                        with two humans and three computer players.
+                    </li>
+                    <li>
+                        Starting position is a simplified measure;
+                        Wingspan's starting player changes
+                        between rounds.
+                    </li>
+                    <li>
+                        The analysis does not establish causation
+                        or control for every possible influence
+                        on player performance.
+                    </li>
+                </ul>
+
+                <p class="mb-0">
+                    Statistical results should be interpreted
+                    alongside the observed differences, sample
+                    sizes, study assumptions, and limitations.
+                    The researcher is responsible for evaluating
+                    the evidence.
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+</div>
