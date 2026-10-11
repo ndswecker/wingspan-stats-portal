@@ -1,3 +1,5 @@
+import numpy as np
+
 from dataclasses import dataclass
 
 from scipy.stats import binomtest
@@ -102,6 +104,34 @@ class StartingPositionAnalysisStatistics:
     # Performance statistics indexed by starting position (1 through 5).
     positions: dict[int, StartingPositionPerformanceStatistics]
 
+@dataclass(frozen=True)
+class StartingPositionWinSignificanceResult:
+    """Statistical significance of the association between starting position and winning."""
+
+    test: StatisticalTest
+    sample_size: int
+    observed_statistic: float | None
+    p_value: float | None
+    significance_level: float
+    is_significant: bool | None
+    number_of_permutations: int
+    random_seed: int
+
+@dataclass(frozen=True)
+class AnovaPermutationSignificanceResult:
+    """
+    Statistical significance of differences in group means
+    using a one-way ANOVA permutation test.
+    """
+
+    test: StatisticalTest
+    sample_size: int
+    observed_statistic: float | None
+    p_value: float | None
+    significance_level: float
+    is_significant: bool | None
+    number_of_permutations: int
+    random_seed: int
 
 
 def analyze_turn_order_comparison(
@@ -348,3 +378,364 @@ def analyze_starting_position_performance(
     )
 
     return statistics
+
+
+def analyze_starting_position_win_significance(
+    *,
+    statistics: StartingPositionAnalysisStatistics,
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> StartingPositionWinSignificanceResult:
+    """
+    Test whether the probability of winning differs across
+    the principal player's five starting positions.
+
+    Uses a Pearson chi-square statistic with a Monte Carlo
+    permutation test.
+
+    Null hypothesis:
+        Win probability is equal across all five positions.
+
+    Alternative hypothesis:
+        Win probability differs for at least one position.
+
+    Performs no database queries.
+    """
+
+    # 1. Identify the statistical test and sample size.
+    test = StatisticalTest.PEARSON_CHI_SQUARE_PERMUTATION
+    sample_size = statistics.total_games
+
+    if number_of_permutations < 1:
+        raise ValueError("number_of_permutations must be positive.")
+
+    # 2. Collect observed wins and non-wins by position.
+    position_counts = np.array(
+        [statistics.positions[position].total_games for position in range(1, 6)],
+        dtype=int,
+    )
+
+    observed_wins = np.array(
+        [statistics.positions[position].wins for position in range(1, 6)],
+        dtype=int,
+    )
+
+    total_wins = int(observed_wins.sum())
+    total_non_wins = sample_size - total_wins
+
+    # 3. Initialize results for cases where testing is not possible.
+    observed_statistic = None
+    p_value = None
+    is_significant = None
+
+    # 4. Test only when both outcomes occur and at least
+    #    two starting positions have observations.
+    if (
+        total_wins > 0
+        and total_non_wins > 0
+        and np.count_nonzero(position_counts) >= 2
+    ):
+
+        # Exclude positions with no observed games.
+        active_counts = position_counts[position_counts > 0]
+        active_wins = observed_wins[position_counts > 0]
+
+        # 5. Calculate expected wins and non-wins under H0.
+        expected_wins = active_counts * total_wins / sample_size
+        expected_non_wins = active_counts * total_non_wins / sample_size
+
+        # 6. Calculate the observed Pearson chi-square statistic.
+        observed_non_wins = active_counts - active_wins
+
+        observed_statistic = float(
+            np.sum((active_wins - expected_wins) ** 2 / expected_wins)
+            + np.sum(
+                (observed_non_wins - expected_non_wins) ** 2
+                / expected_non_wins
+            )
+        )
+
+        # 7. Construct the outcomes and position assignments.
+        outcomes = np.array(
+            [1] * total_wins + [0] * total_non_wins,
+            dtype=int,
+        )
+
+        position_indices = np.repeat(
+            np.arange(len(active_counts)),
+            active_counts,
+        )
+
+        # 8. Generate reproducible random permutations.
+        rng = np.random.default_rng(random_seed)
+        extreme_count = 0
+
+        for _ in range(number_of_permutations):
+            shuffled_outcomes = rng.permutation(outcomes)
+
+            permuted_wins = np.bincount(
+                position_indices,
+                weights=shuffled_outcomes,
+                minlength=len(active_counts),
+            )
+
+            permuted_non_wins = active_counts - permuted_wins
+
+            permuted_statistic = (
+                np.sum(
+                    (permuted_wins - expected_wins) ** 2
+                    / expected_wins
+                )
+                + np.sum(
+                    (permuted_non_wins - expected_non_wins) ** 2
+                    / expected_non_wins
+                )
+            )
+
+            # Count permutations at least as extreme as observed.
+            if permuted_statistic >= observed_statistic - 1e-12:
+                extreme_count += 1
+
+        # 9. Estimate the permutation p-value.
+        #    The +1 correction avoids reporting a zero p-value.
+        p_value = (extreme_count + 1) / (number_of_permutations + 1)
+        is_significant = p_value < significance_level
+
+    # 10. Assemble the statistical result.
+    return StartingPositionWinSignificanceResult(
+        test=test,
+        sample_size=sample_size,
+        observed_statistic=observed_statistic,
+        p_value=p_value,
+        significance_level=significance_level,
+        is_significant=is_significant,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+
+def _calculate_anova_f_statistic(
+    *,
+    values: np.ndarray,
+    group_indices: np.ndarray,
+    group_sizes: np.ndarray,
+) -> float:
+    """
+    Calculate the one-way ANOVA F-statistic for numerical
+    observations assigned to categorical groups.
+
+    Performs no database queries or permutation testing.
+    """
+
+    # 1. Calculate sample size and degrees of freedom.
+    sample_size = len(values)
+    number_of_groups = len(group_sizes)
+
+    between_df = number_of_groups - 1
+    within_df = sample_size - number_of_groups
+
+    # 2. Calculate the overall mean.
+    grand_mean = np.mean(values)
+
+    # 3. Calculate the mean for each group.
+    group_sums = np.bincount(
+        group_indices,
+        weights=values,
+        minlength=number_of_groups,
+    )
+
+    group_means = group_sums / group_sizes
+
+    # 4. Calculate variation between group means.
+    between_ss = np.sum(
+        group_sizes * (group_means - grand_mean) ** 2
+    )
+
+    # 5. Calculate variation within groups.
+    within_ss = np.sum(
+        (values - group_means[group_indices]) ** 2
+    )
+
+    # 6. Handle cases with no within-group variation.
+    if within_ss == 0:
+        return float("inf") if between_ss > 0 else 0.0
+
+    # 7. Calculate the ANOVA F-statistic.
+    f_statistic = (
+        (between_ss / between_df)
+        / (within_ss / within_df)
+    )
+
+    return float(f_statistic)
+
+
+def analyze_anova_permutation_significance(
+    *,
+    groups: dict[int, list[int]],
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> AnovaPermutationSignificanceResult:
+    """
+    Test whether mean numerical outcomes differ across
+    starting positions using a one-way ANOVA F-statistic
+    and Monte Carlo permutation testing.
+
+    The groups dictionary maps starting positions 1 through 5
+    to individual game observations.
+
+    Performs no database queries.
+    """
+
+    # 1. Validate statistical test parameters.
+    if not 0 < significance_level < 1:
+        raise ValueError("significance_level must be between 0 and 1.")
+
+    if number_of_permutations < 1:
+        raise ValueError("number_of_permutations must be positive.")
+
+    # 2. Collect observations for the five starting positions.
+    group_arrays = [
+        np.asarray(groups[position], dtype=float)
+        for position in range(1, 6)
+    ]
+
+    active_groups = [
+        group for group in group_arrays
+        if len(group) > 0
+    ]
+
+    sample_size = sum(len(group) for group in active_groups)
+
+    # 3. Initialize results for cases where testing is not possible.
+    observed_statistic = None
+    p_value = None
+    is_significant = None
+
+    # 4. Require at least two represented positions and
+    #    sufficient observations for residual degrees of freedom.
+    if len(active_groups) >= 2 and sample_size > len(active_groups):
+
+        group_sizes = np.array(
+            [len(group) for group in active_groups],
+            dtype=int,
+        )
+
+        observations = np.concatenate(active_groups)
+
+        group_indices = np.repeat(
+            np.arange(len(active_groups)),
+            group_sizes,
+        )
+
+        # 5. Calculate the observed ANOVA F-statistic.
+        observed_statistic = _calculate_anova_f_statistic(
+            values=observations,
+            group_indices=group_indices,
+            group_sizes=group_sizes,
+        )
+
+        # 6. Generate the permutation null distribution.
+        rng = np.random.default_rng(random_seed)
+        extreme_count = 0
+
+        for _ in range(number_of_permutations):
+            permuted_values = rng.permutation(observations)
+
+            permuted_statistic = _calculate_anova_f_statistic(
+                values=permuted_values,
+                group_indices=group_indices,
+                group_sizes=group_sizes,
+            )
+
+            # Count permutations at least as extreme as observed.
+            if permuted_statistic >= observed_statistic - 1e-12:
+                extreme_count += 1
+
+        # 7. Calculate the Monte Carlo p-value.
+        p_value = (extreme_count + 1) / (number_of_permutations + 1)
+        is_significant = p_value < significance_level
+
+    # 8. Assemble the statistical result.
+    return AnovaPermutationSignificanceResult(
+        test=StatisticalTest.ONE_WAY_ANOVA_PERMUTATION,
+        sample_size=sample_size,
+        observed_statistic=observed_statistic,
+        p_value=p_value,
+        significance_level=significance_level,
+        is_significant=is_significant,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+
+def analyze_starting_position_score_significance(
+    *,
+    dataset: TurnOrderDataset,
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> AnovaPermutationSignificanceResult:
+    """
+    H1b: Test whether the principal player's mean final score
+    differs across starting positions.
+
+    Uses individual game scores, not group averages.
+    """
+
+    # 1. Initialize observations for all five starting positions.
+    groups = {
+        position: []
+        for position in range(1, 6)
+    }
+
+    # 2. Group individual final scores by starting position.
+    for game in dataset.games:
+        groups[game.principal_turn_order].append(
+            game.principal_score
+        )
+
+    # 3. Perform the one-way ANOVA permutation test.
+    return analyze_anova_permutation_significance(
+        groups=groups,
+        significance_level=significance_level,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+
+def analyze_starting_position_score_differential_significance(
+    *,
+    dataset: TurnOrderDataset,
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> AnovaPermutationSignificanceResult:
+    """
+    H1c: Test whether the principal player's mean score
+    differential differs across starting positions.
+
+    Uses individual game score differentials.
+    """
+
+    # 1. Initialize observations for all five starting positions.
+    groups = {
+        position: []
+        for position in range(1, 6)
+    }
+
+    # 2. Group individual score differentials by starting position.
+    for game in dataset.games:
+        groups[game.principal_turn_order].append(
+            game.score_differential
+        )
+
+    # 3. Perform the one-way ANOVA permutation test.
+    return analyze_anova_permutation_significance(
+        groups=groups,
+        significance_level=significance_level,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+

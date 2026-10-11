@@ -4,10 +4,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 from django.views import View
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 
 from .models import (
     Game, 
@@ -1075,4 +1077,42 @@ def feathered_foe(request):
         request,
         "portal/feathered_foe.html",
         context,
+    )
+
+@login_required
+def research_home(request):
+    """
+    Staff-only landing page for Wingspan research.
+
+    Provides navigation to available research studies.
+    """
+
+    # 1. Require staff privileges.
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    # 2. Render the research landing page.
+    return render(
+        request,
+        "portal/research/research.html",
+    )
+
+
+@login_required
+def turn_order_research(request):
+    """
+    Staff-only page for turn-order research.
+
+    Will support player selection, date filtering,
+    and statistical hypothesis analysis.
+    """
+
+    # 1. Require staff privileges.
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    # 2. Render the turn-order research page.
+    return render(
+        request,
+        "portal/research/turn_order_research.html",
     )

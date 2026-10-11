@@ -9,9 +9,14 @@ from .turn_order_statistics import (
     TurnOrderComparisonStatistics,
     TurnOrderSignificanceResult,
     StartingPositionAnalysisStatistics,
+    StartingPositionWinSignificanceResult,
     analyze_turn_order_comparison,
     analyze_turn_order_significance,
     analyze_starting_position_performance,
+    analyze_starting_position_win_significance,
+    analyze_starting_position_score_significance,
+    analyze_starting_position_score_differential_significance,
+    AnovaPermutationSignificanceResult,
 )
 
 @dataclass(frozen=True)
@@ -25,6 +30,20 @@ class TurnOrderComparisonResult:
 
     statistics: TurnOrderComparisonStatistics
     significance: TurnOrderSignificanceResult
+
+@dataclass(frozen=True)
+class StartingPositionAnalysisResult:
+    """
+    Combined descriptive and inferential results for the
+    principal player's starting position.
+
+    Covers Hypothesis 6.1 of the turn-order research methodology.
+    """
+
+    statistics: StartingPositionAnalysisStatistics
+    win_significance: StartingPositionWinSignificanceResult
+    score_significance: AnovaPermutationSignificanceResult
+    score_differential_significance: AnovaPermutationSignificanceResult
 
 
 def get_turn_order_comparison(
@@ -74,18 +93,15 @@ def get_starting_position_analysis(
     opponent_player: Player,
     start_date: date | None = None,
     end_date: date | None = None,
-) -> StartingPositionAnalysisStatistics:
+) -> StartingPositionAnalysisResult:
     """
-    Analyze the principal player's performance across
-    starting positions 1 through 5.
+    Run the starting-position research analysis.
 
-    Retrieves qualifying games and calculates descriptive
-    performance statistics for each starting position.
-
-    Statistical significance testing will be added separately.
+    Includes descriptive statistics and significance tests
+    for H1a, H1b, and H1c.
     """
 
-    # 1. Build the qualifying game dataset.
+    # 1. Build the research dataset.
     dataset = build_turn_order_dataset(
         principal_player=principal_player,
         opponent_player=opponent_player,
@@ -93,10 +109,32 @@ def get_starting_position_analysis(
         end_date=end_date,
     )
 
-    # 2. Calculate descriptive performance statistics.
+    # 2. Calculate descriptive starting-position statistics.
     statistics = analyze_starting_position_performance(
         dataset=dataset,
     )
 
-    # 3. Return the starting-position analysis.
-    return statistics
+    # 3. Test H1a: Probability of winning.
+    win_significance = analyze_starting_position_win_significance(
+        statistics=statistics,
+    )
+
+    # 4. Test H1b: Average final score.
+    score_significance = analyze_starting_position_score_significance(
+        dataset=dataset,
+    )
+
+    # 5. Test H1c: Average score differential.
+    score_differential_significance = (
+        analyze_starting_position_score_differential_significance(
+            dataset=dataset,
+        )
+    )
+
+    # 6. Assemble the complete starting-position analysis.
+    return StartingPositionAnalysisResult(
+        statistics=statistics,
+        win_significance=win_significance,
+        score_significance=score_significance,
+        score_differential_significance=score_differential_significance,
+    )

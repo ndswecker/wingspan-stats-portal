@@ -64,7 +64,7 @@
                                 Add Game
                             </a>
                         </li>
-                        
+
                         <li class="nav-item">
                             <a
                                 class="nav-link"
@@ -99,6 +99,15 @@
                         </li>
 
                         {% if user.is_staff %}
+                            <li class="nav-item">
+                                <a
+                                    class="nav-link"
+                                    href="{% url 'portal:research-home' %}"
+                                >
+                                    Research
+                                </a>
+                            </li>
+
                             <li class="nav-item">
                                 <a class="nav-link" href="/admin/">
                                     Admin

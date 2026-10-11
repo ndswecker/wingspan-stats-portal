@@ -1,0 +1,52 @@
+
+{% extends "portal/base.html" %}
+
+{% block title %}Research | Wingspan Stats Portal{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <h1>Research</h1>
+    <p class="text-muted">
+        Explore statistical research and analysis of Wingspan
+        game data.
+    </p>
+</div>
+
+<div class="row g-4">
+
+    <!-- Turn Order Research -->
+    <div class="col-12 col-md-6">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+
+                <h5 class="card-title">
+                    Turn Order Research
+                </h5>
+
+                <p class="card-text">
+                    Investigate whether starting position,
+                    player order, and player spacing are
+                    associated with competitive performance.
+                </p>
+
+                <p class="text-muted small">
+                    Three research hypotheses
+                </p>
+
+                <div class="mt-auto">
+                    <a
+                        href="{% url 'portal:research-turn-order' %}"
+                        class="btn btn-primary"
+                    >
+                        View Research
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

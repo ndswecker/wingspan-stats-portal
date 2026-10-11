@@ -90,4 +90,14 @@ urlpatterns = [
         views.feathered_foe,
         name="feathered-foe",
     ),
+    path(
+        "research/",
+        views.research_home,
+        name="research-home",
+    ),
+    path(
+        "research/turn-order/",
+        views.turn_order_research,
+        name="research-turn-order",
+    ),
 ]

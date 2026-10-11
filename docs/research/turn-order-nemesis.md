@@ -140,17 +140,17 @@ This is the primary measure of competitive advantage.
 
 This analysis evaluates whether starting position is associated with scoring performance, independently of whether the player wins.
 
-#### 6.1.3 Score Differential (Secondary)
+#### 6.1.3 Average Score Differential (Secondary)
 
-**Question:** Does the principal player's score differential differ according to starting position?
+**Question:** Is the principal player's starting position associated with their average score differential against the opponent?
 
-**Null hypothesis (H₀):** The distribution of score differentials is the same across all five starting positions.
+**Null hypothesis (H₀):** The mean score differential is equal across all five starting positions.
 
-**Alternative hypothesis (H₁):** The distribution of score differentials differs for at least one starting position.
+**Alternative hypothesis (H₁):** The mean score differential differs for at least one starting position.
 
 **Outcome variable:** Principal player's final score minus the opponent's final score.
 
-This analysis evaluates whether starting position is associated with relative scoring performance.
+This analysis evaluates whether starting position is associated with a higher or lower average scoring margin relative to the opponent, independently of whether the principal player wins.
 
 #### 6.1.4 Statistical Considerations
 
