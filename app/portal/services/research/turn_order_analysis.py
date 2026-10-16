@@ -3,7 +3,11 @@ from datetime import date
 
 from ...models import Player
 
-from .turn_order_research import build_turn_order_dataset
+from .turn_order_research import (
+    build_turn_order_dataset,
+    TurnOrderDataset,
+    partition_direct_preceding_games,
+)
 
 from .turn_order_statistics import (
     TurnOrderComparisonStatistics,
@@ -17,6 +21,13 @@ from .turn_order_statistics import (
     analyze_starting_position_score_significance,
     analyze_starting_position_score_differential_significance,
     AnovaPermutationSignificanceResult,
+    DirectPrecedingAnalysisStatistics,
+    DirectPrecedingWinSignificanceResult,
+    TwoSampleMeanPermutationSignificanceResult,
+    analyze_direct_preceding_performance,
+    analyze_direct_preceding_win_significance,
+    analyze_direct_preceding_score_significance,
+    analyze_direct_preceding_score_differential_significance,
 )
 
 @dataclass(frozen=True)
@@ -44,6 +55,20 @@ class StartingPositionAnalysisResult:
     win_significance: StartingPositionWinSignificanceResult
     score_significance: AnovaPermutationSignificanceResult
     score_differential_significance: AnovaPermutationSignificanceResult
+
+@dataclass(frozen=True)
+class DirectPrecedingAnalysisResult:
+    """
+    Combined descriptive and inferential results for
+    the principal player directly preceding the opponent.
+
+    Covers H2a, H2b, and H2c.
+    """
+
+    statistics: DirectPrecedingAnalysisStatistics
+    win_significance: DirectPrecedingWinSignificanceResult
+    score_significance: TwoSampleMeanPermutationSignificanceResult
+    score_differential_significance: TwoSampleMeanPermutationSignificanceResult
 
 
 def get_turn_order_comparison(
@@ -89,52 +114,95 @@ def get_turn_order_comparison(
 
 def get_starting_position_analysis(
     *,
-    principal_player: Player,
-    opponent_player: Player,
-    start_date: date | None = None,
-    end_date: date | None = None,
+    dataset: TurnOrderDataset,
 ) -> StartingPositionAnalysisResult:
     """
     Run the starting-position research analysis.
 
     Includes descriptive statistics and significance tests
     for H1a, H1b, and H1c.
+
+    Operates entirely on an existing in-memory dataset.
     """
 
-    # 1. Build the research dataset.
-    dataset = build_turn_order_dataset(
-        principal_player=principal_player,
-        opponent_player=opponent_player,
-        start_date=start_date,
-        end_date=end_date,
-    )
-
-    # 2. Calculate descriptive starting-position statistics.
+    # 1. Calculate descriptive starting-position statistics.
     statistics = analyze_starting_position_performance(
         dataset=dataset,
     )
 
-    # 3. Test H1a: Probability of winning.
+    # 2. Test H1a: Probability of winning.
     win_significance = analyze_starting_position_win_significance(
         statistics=statistics,
     )
 
-    # 4. Test H1b: Average final score.
+    # 3. Test H1b: Average final score.
     score_significance = analyze_starting_position_score_significance(
         dataset=dataset,
     )
 
-    # 5. Test H1c: Average score differential.
+    # 4. Test H1c: Average score differential.
     score_differential_significance = (
         analyze_starting_position_score_differential_significance(
             dataset=dataset,
         )
     )
 
-    # 6. Assemble the complete starting-position analysis.
-    return StartingPositionAnalysisResult(
+    # 5. Assemble the complete starting-position analysis.
+    result = StartingPositionAnalysisResult(
         statistics=statistics,
         win_significance=win_significance,
         score_significance=score_significance,
         score_differential_significance=score_differential_significance,
     )
+
+    return result
+
+def get_direct_preceding_analysis(
+    *,
+    dataset: TurnOrderDataset,
+) -> DirectPrecedingAnalysisResult:
+    """
+    Run the direct-preceding research analysis.
+
+    Includes descriptive statistics and significance tests
+    for H2a, H2b, and H2c.
+
+    Operates entirely on an existing in-memory dataset.
+    """
+
+    # 1. Partition games by direct-preceding status.
+    partition = partition_direct_preceding_games(
+        dataset=dataset,
+    )
+
+    # 2. Calculate descriptive statistics.
+    statistics = analyze_direct_preceding_performance(
+        dataset=partition,
+    )
+
+    # 3. Test H2a: Probability of winning.
+    win_significance = analyze_direct_preceding_win_significance(
+        statistics=statistics,
+    )
+
+    # 4. Test H2b: Average final score.
+    score_significance = analyze_direct_preceding_score_significance(
+        dataset=partition,
+    )
+
+    # 5. Test H2c: Average score differential.
+    score_differential_significance = (
+        analyze_direct_preceding_score_differential_significance(
+            dataset=partition,
+        )
+    )
+
+    # 6. Assemble the complete H2 analysis.
+    result = DirectPrecedingAnalysisResult(
+        statistics=statistics,
+        win_significance=win_significance,
+        score_significance=score_significance,
+        score_differential_significance=score_differential_significance,
+    )
+
+    return result

@@ -1,0 +1,35 @@
+{% if direct_preceding_charts %}
+
+    <!-- H2a: Win Rate -->
+    <div class="card mb-3">
+        <div class="card-header">H2a — Win Probability</div>
+        <div class="card-body">
+            {{ direct_preceding_charts.win_rate|safe }}
+        </div>
+    </div>
+
+    <!-- H2b: Average Final Score -->
+    <div class="card mb-3">
+        <div class="card-header">H2b — Average Final Score</div>
+        <div class="card-body">
+            {{ direct_preceding_charts.score|safe }}
+            <p class="text-muted small mb-0">
+                The score axis is focused on the observed means to make
+                small differences visible; it does not begin at zero.
+            </p>
+        </div>
+    </div>
+
+    <!-- H2c: Average Score Differential -->
+    <div class="card mb-3">
+        <div class="card-header">H2c — Average Score Differential</div>
+        <div class="card-body">
+            {{ direct_preceding_charts.score_differential|safe }}
+            <p class="text-muted small mb-0">
+                Positive values favor the principal player; negative
+                values favor the opponent.
+            </p>
+        </div>
+    </div>
+
+{% endif %}

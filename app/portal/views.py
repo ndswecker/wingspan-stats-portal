@@ -100,12 +100,20 @@ from .services.player_game_score_gap import (
 
 from .services.research.turn_order_analysis import (
     get_starting_position_analysis,
+    get_direct_preceding_analysis,
 )
 
 from .services.research.turn_order_charts import (
     build_starting_position_win_rate_chart,
     build_starting_position_score_chart,
     build_starting_position_score_differential_chart,
+    build_direct_preceding_score_chart,
+    build_direct_preceding_score_differential_chart,
+    build_direct_preceding_win_rate_chart,
+)
+
+from .services.research.turn_order_research import (
+    build_turn_order_dataset,
 )
 
 from .permissions import can_manage_game
@@ -1129,6 +1137,8 @@ def turn_order_research(request):
     # 3. Initialize research results and charts.
     starting_position_analysis = None
     starting_position_charts = None
+    direct_preceding_analysis = None
+    direct_preceding_charts = None
 
     # 4. Validate parameters and execute research.
     if run_analysis and filter_form.is_valid():
@@ -1138,15 +1148,25 @@ def turn_order_research(request):
         start_date = filter_form.cleaned_data["start_date"]
         end_date = filter_form.cleaned_data["end_date"]
 
-        # Hypothesis 6.1: Starting Position.
-        starting_position_analysis = get_starting_position_analysis(
+        # 5. Build the shared research dataset.
+        dataset = build_turn_order_dataset(
             principal_player=principal_player,
             opponent_player=opponent_player,
             start_date=start_date,
             end_date=end_date,
         )
 
-        # 5. Generate charts from the descriptive statistics.
+        # 6. Hypothesis 6.1: Starting Position.
+        starting_position_analysis = get_starting_position_analysis(
+            dataset=dataset,
+        )
+
+        # 7. Hypothesis 6.2: Direct Preceding.
+        direct_preceding_analysis = get_direct_preceding_analysis(
+            dataset=dataset,
+        )
+
+        # 8. Generate H1 charts from descriptive statistics.
         statistics = starting_position_analysis.statistics
 
         if statistics.total_games > 0:
@@ -1172,7 +1192,7 @@ def turn_order_research(request):
                 "displaylogo": False,
             }
 
-            # 6. Convert figures into HTML fragments.
+            # 9. Convert H1 figures into HTML fragments.
             starting_position_charts = {
                 "win_rate": win_rate_figure.to_html(
                     full_html=False,
@@ -1191,18 +1211,55 @@ def turn_order_research(request):
                 ),
             }
 
-        # Future analyses:
-        # Hypothesis 6.2: Direct Preceding.
-        # Hypothesis 6.3: Player Spacing.
+        # Future analysis:
+        # 10. Generate H2 charts from descriptive statistics.
+        h2_statistics = direct_preceding_analysis.statistics
 
-    # 6. Assemble template context.
+        if h2_statistics.total_games > 0:
+
+            h2_win_rate_figure = build_direct_preceding_win_rate_chart(
+                statistics=h2_statistics,
+            )
+
+            h2_score_figure = build_direct_preceding_score_chart(
+                statistics=h2_statistics,
+            )
+
+            h2_differential_figure = (
+                build_direct_preceding_score_differential_chart(
+                    statistics=h2_statistics,
+                )
+            )
+
+            # 11. Convert H2 figures into HTML fragments.
+            direct_preceding_charts = {
+                "win_rate": h2_win_rate_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config=chart_config,
+                ),
+                "score": h2_score_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config=chart_config,
+                ),
+                "score_differential": h2_differential_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config=chart_config,
+                ),
+            }
+
+    # 11. Assemble template context.
     context = {
         "filter_form": filter_form,
         "starting_position_analysis": starting_position_analysis,
         "starting_position_charts": starting_position_charts,
+        "direct_preceding_analysis": direct_preceding_analysis,
+        "direct_preceding_charts": direct_preceding_charts,
     }
 
-    # 7. Render the research page.
+    # 12. Render the research page.
     return render(
         request,
         "portal/research/turn_order_research.html",

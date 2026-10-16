@@ -184,6 +184,31 @@ class DirectPrecedingWinSignificanceResult:
     significance_level: float
     is_significant: bool
 
+@dataclass(frozen=True)
+class TwoSampleMeanPermutationSignificanceResult:
+    """
+    Statistical significance of the difference in means
+    between two independent samples using a two-sided
+    Monte Carlo permutation test.
+    """
+
+    test: StatisticalTest
+    sample_size: int
+    first_sample_size: int
+    second_sample_size: int
+
+    # Signed difference: first sample mean minus second sample mean.
+    observed_statistic: float | None
+
+    # Statistical significance.
+    p_value: float | None
+    significance_level: float
+    is_significant: bool | None
+
+    # Permutation configuration.
+    number_of_permutations: int
+    random_seed: int
+
 
 def analyze_turn_order_comparison(
     *,
@@ -924,3 +949,183 @@ def analyze_direct_preceding_win_significance(
         significance_level=significance_level,
         is_significant=is_significant,
     )
+
+def analyze_two_sample_mean_permutation(
+    *,
+    first_sample: list[int],
+    second_sample: list[int],
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> TwoSampleMeanPermutationSignificanceResult:
+    """
+    Test whether two independent samples differ in mean
+    numerical outcomes using a two-sided Monte Carlo
+    permutation test.
+
+    Preserves the original sample sizes during permutation.
+    Performs no database queries.
+    """
+
+    # 1. Validate statistical test parameters.
+    if not 0 < significance_level < 1:
+        raise ValueError("significance_level must be between 0 and 1.")
+
+    if number_of_permutations < 1:
+        raise ValueError("number_of_permutations must be positive.")
+
+    # 2. Convert observations into numerical arrays.
+    first_values = np.asarray(first_sample, dtype=float)
+    second_values = np.asarray(second_sample, dtype=float)
+
+    first_sample_size = len(first_values)
+    second_sample_size = len(second_values)
+    sample_size = first_sample_size + second_sample_size
+
+    if not (
+        np.all(np.isfinite(first_values))
+        and np.all(np.isfinite(second_values))
+    ):
+        raise ValueError("Sample observations must be finite numbers.")
+
+    # 3. Initialize results for cases where testing is not possible.
+    observed_statistic = None
+    p_value = None
+    is_significant = None
+
+    # 4. Require at least one observation in each group.
+    if first_sample_size > 0 and second_sample_size > 0:
+
+        # 5. Calculate the observed signed difference in means.
+        observed_statistic = float(
+            np.mean(first_values) - np.mean(second_values)
+        )
+
+        # 6. Pool all observations for permutation testing.
+        observations = np.concatenate(
+            [first_values, second_values]
+        )
+
+        rng = np.random.default_rng(random_seed)
+        extreme_count = 0
+
+        # 7. Generate the permutation null distribution.
+        for _ in range(number_of_permutations):
+            permuted_values = rng.permutation(observations)
+
+            permuted_first = permuted_values[:first_sample_size]
+            permuted_second = permuted_values[first_sample_size:]
+
+            permuted_statistic = float(
+                np.mean(permuted_first)
+                - np.mean(permuted_second)
+            )
+
+            # Count absolute differences at least as extreme
+            # as the observed difference.
+            if (
+                abs(permuted_statistic)
+                >= abs(observed_statistic) - 1e-12
+            ):
+                extreme_count += 1
+
+        # 8. Calculate the Monte Carlo p-value.
+        p_value = (
+            (extreme_count + 1)
+            / (number_of_permutations + 1)
+        )
+
+        is_significant = p_value < significance_level
+
+    # 9. Assemble the statistical result.
+    two_sample_mean_permutation = TwoSampleMeanPermutationSignificanceResult(
+        test=StatisticalTest.TWO_SAMPLE_MEAN_PERMUTATION,
+        sample_size=sample_size,
+        first_sample_size=first_sample_size,
+        second_sample_size=second_sample_size,
+        observed_statistic=observed_statistic,
+        p_value=p_value,
+        significance_level=significance_level,
+        is_significant=is_significant,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+    return two_sample_mean_permutation
+
+def analyze_direct_preceding_score_significance(
+    *,
+    dataset: DirectPrecedingDataset,
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> TwoSampleMeanPermutationSignificanceResult:
+    """
+    H2b: Test whether the principal player's mean final
+    score differs between games where they directly precede
+    the opponent and games where they do not.
+
+    Uses individual game scores from the in-memory dataset.
+    """
+
+    # 1. Collect final scores from directly preceding games.
+    first_sample = [
+        game_record.principal_score
+        for game_record in dataset.directly_precedes
+    ]
+
+    # 2. Collect final scores from all other qualifying games.
+    second_sample = [
+        game_record.principal_score
+        for game_record in dataset.does_not_precede
+    ]
+
+    # 3. Perform the two-sided permutation test.
+    analysis = analyze_two_sample_mean_permutation(
+        first_sample=first_sample,
+        second_sample=second_sample,
+        significance_level=significance_level,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+    return analysis
+
+def analyze_direct_preceding_score_differential_significance(
+    *,
+    dataset: DirectPrecedingDataset,
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> TwoSampleMeanPermutationSignificanceResult:
+    """
+    H2c: Test whether the principal player's mean score
+    differential differs between games where they directly
+    precede the opponent and games where they do not.
+
+    Uses individual game score differentials from the
+    existing in-memory dataset.
+    """
+
+    # 1. Collect score differentials from directly preceding games.
+    first_sample = [
+        game_record.score_differential
+        for game_record in dataset.directly_precedes
+    ]
+
+    # 2. Collect score differentials from all other qualifying games.
+    second_sample = [
+        game_record.score_differential
+        for game_record in dataset.does_not_precede
+    ]
+
+    # 3. Perform the two-sided permutation test.
+    analysis = analyze_two_sample_mean_permutation(
+        first_sample=first_sample,
+        second_sample=second_sample,
+        significance_level=significance_level,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+    return analysis

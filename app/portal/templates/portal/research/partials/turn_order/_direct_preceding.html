@@ -1,0 +1,180 @@
+{% if direct_preceding_analysis %}
+
+    {% with stats=direct_preceding_analysis.statistics %}
+
+    <!-- Analysis Summary -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Direct Preceding Analysis</h5>
+            <p class="text-muted mb-2">
+                Competitive performance grouped by whether the principal
+                player directly precedes the opponent in the circular
+                five-player turn order.
+            </p>
+            <p class="mb-0">
+                <strong>Qualifying Games:</strong> {{ stats.total_games }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Descriptive Statistics -->
+    <div class="card mb-3">
+        <div class="card-header">Direct Preceding Performance</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Turn Order Relationship</th>
+                            <th scope="col">Games</th>
+                            <th scope="col">Wins</th>
+                            <th scope="col">Losses</th>
+                            <th scope="col">Ties</th>
+                            <th scope="col">Win Rate (%)</th>
+                            <th scope="col">Avg. Score</th>
+                            <th scope="col">Avg. Differential</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% with result=stats.directly_precedes %}
+                        <tr>
+                            <th scope="row">Directly Precedes</th>
+                            <td>{{ result.total_games }}</td>
+                            <td>{{ result.wins }}</td>
+                            <td>{{ result.losses }}</td>
+                            <td>{{ result.ties }}</td>
+                            <td>{% if result.win_rate is not None %}{{ result.win_rate|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if result.average_score is not None %}{{ result.average_score|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if result.average_score_differential is not None %}{{ result.average_score_differential|floatformat:2 }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% endwith %}
+                        {% with result=stats.does_not_precede %}
+                        <tr>
+                            <th scope="row">Does Not Precede</th>
+                            <td>{{ result.total_games }}</td>
+                            <td>{{ result.wins }}</td>
+                            <td>{{ result.losses }}</td>
+                            <td>{{ result.ties }}</td>
+                            <td>{% if result.win_rate is not None %}{{ result.win_rate|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if result.average_score is not None %}{{ result.average_score|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>{% if result.average_score_differential is not None %}{{ result.average_score_differential|floatformat:2 }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% endwith %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-muted small mb-0">
+                Win rate is shown as a percentage; ties count as non-wins.
+                Average differential is principal score minus opponent score.
+                Turn order wraps from position 5 to position 1.
+            </p>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    {% include "portal/research/partials/turn_order/_direct_preceding_charts.html" %}
+
+    <!-- Statistical Significance -->
+    <div class="card mb-3">
+        <div class="card-header">Hypothesis Testing</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Hypothesis</th>
+                            <th scope="col">Statistical Test</th>
+                            <th scope="col">Observed Statistic</th>
+                            <th scope="col">P-value</th>
+                            <th scope="col">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- H2a: Win Probability -->
+                        {% with result=direct_preceding_analysis.win_significance %}
+                        <tr>
+                            <td>H2a — Win Probability</td>
+                            <td>{{ result.test.display_name }}</td>
+                            <td>
+                                {% if result.odds_ratio is not None %}
+                                    {{ result.odds_ratio|floatformat:4 }} (odds ratio)
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>{% if result.p_value is not None %}{{ result.p_value|floatformat:4 }}{% else %}—{% endif %}</td>
+                            <td>
+                                {% if result.p_value is None %}
+                                    <span class="badge bg-secondary">Insufficient Data</span>
+                                {% elif result.is_significant %}
+                                    <span class="badge bg-success">Significant</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Not Significant</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+
+                        <!-- H2b: Average Final Score -->
+                        {% with result=direct_preceding_analysis.score_significance %}
+                        <tr>
+                            <td>H2b — Average Final Score</td>
+                            <td>{{ result.test.display_name }}</td>
+                            <td>
+                                {% if result.observed_statistic is not None %}
+                                    {{ result.observed_statistic|floatformat:4 }} (mean difference)
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>{% if result.p_value is not None %}{{ result.p_value|floatformat:4 }}{% else %}—{% endif %}</td>
+                            <td>
+                                {% if result.is_significant is None %}
+                                    <span class="badge bg-secondary">Insufficient Data</span>
+                                {% elif result.is_significant %}
+                                    <span class="badge bg-success">Significant</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Not Significant</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+
+                        <!-- H2c: Average Score Differential -->
+                        {% with result=direct_preceding_analysis.score_differential_significance %}
+                        <tr>
+                            <td>H2c — Average Score Differential</td>
+                            <td>{{ result.test.display_name }}</td>
+                            <td>
+                                {% if result.observed_statistic is not None %}
+                                    {{ result.observed_statistic|floatformat:4 }} (mean difference)
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>{% if result.p_value is not None %}{{ result.p_value|floatformat:4 }}{% else %}—{% endif %}</td>
+                            <td>
+                                {% if result.is_significant is None %}
+                                    <span class="badge bg-secondary">Insufficient Data</span>
+                                {% elif result.is_significant %}
+                                    <span class="badge bg-success">Significant</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Not Significant</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-muted small mb-0">
+                Significance threshold: α = 0.05. H2a reports an odds ratio;
+                H2b and H2c report the directly-precedes group mean minus
+                the does-not-precede group mean. A non-significant result
+                does not demonstrate that the groups are equivalent.
+            </p>
+        </div>
+    </div>
+
+    {% endwith %}
+
+{% else %}
+    <div class="alert alert-secondary">
+        Select two players and click <strong>Run Analysis</strong>
+        to view direct-preceding research results.
+    </div>
+{% endif %}

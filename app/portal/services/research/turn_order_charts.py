@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 
 from .turn_order_statistics import (
     StartingPositionAnalysisStatistics,
+    DirectPrecedingAnalysisStatistics,
 )
 
 
@@ -278,4 +279,160 @@ def build_starting_position_score_differential_chart(
         zerolinecolor="#555555",
     )
 
+    return figure
+
+# Add DirectPrecedingAnalysisStatistics to the existing imports from
+# .turn_order_statistics in turn_order_charts.py.
+
+
+def _apply_direct_preceding_layout(
+    *,
+    figure: go.Figure,
+    title: str,
+    y_axis_title: str,
+) -> None:
+    """Apply consistent formatting to the two-group H2 charts."""
+
+    # 1. Configure the chart appearance.
+    figure.update_layout(
+        title={"text": title, "x": 0.5, "xanchor": "center"},
+        template="plotly_white",
+        height=400,
+        margin={"l": 60, "r": 30, "t": 85, "b": 80},
+        showlegend=False,
+        hovermode="closest",
+        dragmode=False,
+    )
+
+    # 2. Configure the two comparison groups.
+    figure.update_xaxes(
+        title_text="Turn Order Relationship",
+        type="category",
+        categoryorder="array",
+        categoryarray=["Directly Precedes", "Does Not Precede"],
+    )
+
+    # 3. Configure the measurement axis.
+    figure.update_yaxes(
+        title_text=y_axis_title,
+        zeroline=True,
+        zerolinecolor="#555555",
+    )
+
+
+def build_direct_preceding_win_rate_chart(
+    *,
+    statistics: DirectPrecedingAnalysisStatistics,
+) -> go.Figure:
+    """H2a: Compare observed win rates (ties are non-wins)."""
+
+    # 1. Prepare the two groups.
+    groups = [statistics.directly_precedes, statistics.does_not_precede]
+    labels = ["Directly Precedes", "Does Not Precede"]
+    rates = [
+        group.win_rate * 100 if group.win_rate is not None else None
+        for group in groups
+    ]
+    hover_data = [
+        [group.total_games, group.wins, group.losses, group.ties]
+        for group in groups
+    ]
+
+    # 2. Build the comparison chart.
+    figure = go.Figure()
+    figure.add_trace(go.Bar(
+        x=labels,
+        y=rates,
+        customdata=hover_data,
+        marker_color=["#4472C4", "#8FAADC"],
+        hovertemplate=(
+            "%{x}<br>Win Rate: %{y:.2f}%<br>"
+            "Games: %{customdata[0]}<br>Wins: %{customdata[1]}<br>"
+            "Losses: %{customdata[2]}<br>Ties: %{customdata[3]}"
+            "<extra></extra>"
+        ),
+    ))
+
+    # 3. Apply consistent styling and the percentage scale.
+    _apply_direct_preceding_layout(
+        figure=figure,
+        title="H2a — Win Rate by Direct-Preceding Status",
+        y_axis_title="Win Rate (%)",
+    )
+    figure.update_yaxes(range=[0, 100], ticksuffix="%")
+    return figure
+
+
+def build_direct_preceding_score_chart(
+    *,
+    statistics: DirectPrecedingAnalysisStatistics,
+) -> go.Figure:
+    """H2b: Compare mean final scores between the two groups."""
+
+    # 1. Prepare scores and sample sizes.
+    groups = [statistics.directly_precedes, statistics.does_not_precede]
+    labels = ["Directly Precedes", "Does Not Precede"]
+    scores = [group.average_score for group in groups]
+    counts = [group.total_games for group in groups]
+
+    # 2. Build the comparison chart.
+    figure = go.Figure()
+    figure.add_trace(go.Bar(
+        x=labels,
+        y=scores,
+        customdata=counts,
+        marker_color=["#4472C4", "#8FAADC"],
+        hovertemplate=(
+            "%{x}<br>Average Final Score: %{y:.2f}<br>"
+            "Games: %{customdata}<extra></extra>"
+        ),
+    ))
+
+    # 3. Apply styling and focus the scale on the observed means.
+    _apply_direct_preceding_layout(
+        figure=figure,
+        title="H2b — Average Final Score by Direct-Preceding Status",
+        y_axis_title="Average Final Score",
+    )
+    valid_scores = [score for score in scores if score is not None]
+    if valid_scores:
+        padding = max((max(valid_scores) - min(valid_scores)) * 0.15, 2)
+        figure.update_yaxes(
+            range=[min(valid_scores) - padding, max(valid_scores) + padding]
+        )
+    return figure
+
+
+def build_direct_preceding_score_differential_chart(
+    *,
+    statistics: DirectPrecedingAnalysisStatistics,
+) -> go.Figure:
+    """H2c: Compare mean score differentials (principal minus opponent)."""
+
+    # 1. Prepare differentials and sample sizes.
+    groups = [statistics.directly_precedes, statistics.does_not_precede]
+    labels = ["Directly Precedes", "Does Not Precede"]
+    differentials = [group.average_score_differential for group in groups]
+    counts = [group.total_games for group in groups]
+
+    # 2. Build the comparison chart.
+    figure = go.Figure()
+    figure.add_trace(go.Bar(
+        x=labels,
+        y=differentials,
+        customdata=counts,
+        marker_color=["#4472C4", "#8FAADC"],
+        hovertemplate=(
+            "%{x}<br>Average Score Differential: %{y:+.2f}<br>"
+            "Games: %{customdata}<extra></extra>"
+        ),
+    ))
+
+    # 3. Apply styling with a visible zero reference.
+    _apply_direct_preceding_layout(
+        figure=figure,
+        title="H2c — Average Score Differential by Direct-Preceding Status",
+        y_axis_title="Average Score Differential",
+    )
+    figure.update_yaxes(zeroline=True, zerolinewidth=2, zerolinecolor="#555555")
     return figure

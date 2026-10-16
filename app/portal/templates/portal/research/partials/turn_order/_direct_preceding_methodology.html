@@ -1,0 +1,198 @@
+<!-- Direct Preceding Research Methodology -->
+<div class="accordion mb-3" id="directPrecedingMethodology">
+
+    <!-- 1. Dataset and Variables -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingDirectPrecedingDataset">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseDirectPrecedingDataset"
+                    aria-expanded="false"
+                    aria-controls="collapseDirectPrecedingDataset">
+                Understanding the Dataset and Variables
+            </button>
+        </h3>
+        <div id="collapseDirectPrecedingDataset" class="accordion-collapse collapse"
+             aria-labelledby="headingDirectPrecedingDataset"
+             data-bs-parent="#directPrecedingMethodology">
+            <div class="accordion-body">
+                <p>
+                    This study examines whether the principal player's performance
+                    against the selected opponent differs according to whether
+                    the principal player directly precedes that opponent in
+                    the game's initial turn order.
+                </p>
+                <h6>Qualifying Games</h6>
+                <p>
+                    The analysis uses the same qualifying five-participant games
+                    as the starting-position study: two selected human players
+                    and three computer players, with valid turn-order positions.
+                    Each game contributes one observation.
+                </p>
+                <h6>Circular Turn Order</h6>
+                <p>
+                    The positions form a circle: 1 → 2 → 3 → 4 → 5 → 1.
+                    The principal player directly precedes the opponent when
+                    the opponent occupies the next position in this sequence.
+                    For example, principal position 5 and opponent position 1
+                    count as directly preceding.
+                </p>
+                <dl class="row">
+                    <dt class="col-sm-4">Directly Precedes</dt>
+                    <dd class="col-sm-8">The opponent is immediately next in the circular order.</dd>
+                    <dt class="col-sm-4">Does Not Precede</dt>
+                    <dd class="col-sm-8">The opponent is not immediately next in the circular order.</dd>
+                    <dt class="col-sm-4">Win Rate</dt>
+                    <dd class="col-sm-8">Wins divided by games; ties count as non-wins.</dd>
+                    <dt class="col-sm-4">Average Score</dt>
+                    <dd class="col-sm-8">Mean final score of the principal player.</dd>
+                    <dt class="col-sm-4">Score Differential</dt>
+                    <dd class="col-sm-8">Principal score minus opponent score for each game.</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. H2a -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingH2a">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapseH2a"
+                    aria-expanded="false" aria-controls="collapseH2a">
+                H2a — Probability of Winning (Primary)
+            </button>
+        </h3>
+        <div id="collapseH2a" class="accordion-collapse collapse"
+             aria-labelledby="headingH2a" data-bs-parent="#directPrecedingMethodology">
+            <div class="accordion-body">
+                <h6>Research Question</h6>
+                <p>Does win probability differ when the principal player directly precedes the opponent?</p>
+                <p><strong>Null Hypothesis (H0):</strong> Win probability is the same in both groups.</p>
+                <p><strong>Alternative Hypothesis (H1):</strong> Win probability differs between groups.</p>
+                <h6>Method</h6>
+                <p>
+                    A two-sided Fisher's exact test compares wins and non-wins
+                    (losses plus ties) between the two groups. The reported
+                    odds ratio is the odds of winning in directly-preceding games
+                    divided by the odds in other games.
+                </p>
+                <h6>Interpretation</h6>
+                <p class="mb-0">
+                    An odds ratio above 1 favors the directly-preceding group;
+                    below 1 favors the other group. The p-value evaluates
+                    evidence against equal win probabilities under the test model.
+                    An odds ratio is not a difference in win percentages.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. H2b -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingH2b">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapseH2b"
+                    aria-expanded="false" aria-controls="collapseH2b">
+                H2b — Average Final Score (Secondary)
+            </button>
+        </h3>
+        <div id="collapseH2b" class="accordion-collapse collapse"
+             aria-labelledby="headingH2b" data-bs-parent="#directPrecedingMethodology">
+            <div class="accordion-body">
+                <h6>Research Question</h6>
+                <p>Does the principal player's average final score differ between the two groups?</p>
+                <p><strong>Null Hypothesis (H0):</strong> Mean final scores are equal.</p>
+                <p><strong>Alternative Hypothesis (H1):</strong> Mean final scores differ.</p>
+                <h6>Method</h6>
+                <p>
+                    A two-sided Monte Carlo permutation test compares the
+                    observed difference in group means with differences obtained
+                    by randomly reallocating the recorded scores between groups,
+                    preserving their original sample sizes.
+                </p>
+                <h6>Interpretation</h6>
+                <p class="mb-0">
+                    The reported statistic is the directly-precedes mean minus
+                    the does-not-precede mean, in points. A positive value
+                    indicates higher average scoring in the directly-preceding group.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. H2c -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingH2c">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapseH2c"
+                    aria-expanded="false" aria-controls="collapseH2c">
+                H2c — Average Score Differential (Secondary)
+            </button>
+        </h3>
+        <div id="collapseH2c" class="accordion-collapse collapse"
+             aria-labelledby="headingH2c" data-bs-parent="#directPrecedingMethodology">
+            <div class="accordion-body">
+                <h6>Research Question</h6>
+                <p>Does the principal player's average score differential against the opponent differ between groups?</p>
+                <p><strong>Null Hypothesis (H0):</strong> Mean score differentials are equal.</p>
+                <p><strong>Alternative Hypothesis (H1):</strong> Mean score differentials differ.</p>
+                <h6>Method</h6>
+                <p>
+                    For each game, calculate principal score minus opponent score.
+                    Apply the same two-sided two-sample mean permutation test
+                    to these game-level differentials.
+                </p>
+                <h6>Interpretation</h6>
+                <p class="mb-0">
+                    The reported statistic is the difference between the groups'
+                    average score differentials. Positive values indicate a
+                    relatively better scoring margin when directly preceding.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Statistical Interpretation -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingDirectPrecedingInterpretation">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseDirectPrecedingInterpretation"
+                    aria-expanded="false"
+                    aria-controls="collapseDirectPrecedingInterpretation">
+                Interpreting Statistical Evidence and Limitations
+            </button>
+        </h3>
+        <div id="collapseDirectPrecedingInterpretation" class="accordion-collapse collapse"
+             aria-labelledby="headingDirectPrecedingInterpretation"
+             data-bs-parent="#directPrecedingMethodology">
+            <div class="accordion-body">
+                <h6>Statistical Evidence</h6>
+                <p>
+                    The significance level is 0.05. A p-value below 0.05
+                    is treated as statistically significant. A nonsignificant
+                    result does not prove the groups are equivalent.
+                </p>
+                <p>
+                    H2b and H2c use 100,000 Monte Carlo permutations and
+                    random seed 42 by default. They compare absolute differences
+                    in means for a two-sided test, assuming outcomes are
+                    exchangeable between the groups under the null model.
+                </p>
+                <h6>Important Limitations</h6>
+                <ul>
+                    <li>Unequal or small group sizes can limit statistical power.</li>
+                    <li>Permutation inference depends on exchangeability; unequal score variances can complicate interpretation as a test of equal means alone.</li>
+                    <li>These three exploratory p-values are not adjusted for multiple comparisons.</li>
+                    <li>Observed associations do not establish causation or control for all game conditions.</li>
+                    <li>The grouping uses the initial turn order; the starting player changes between rounds in Wingspan.</li>
+                </ul>
+                <p class="mb-0">
+                    Interpret p-values together with sample sizes, observed
+                    differences, and the study assumptions.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
