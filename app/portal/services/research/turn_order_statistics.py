@@ -4,8 +4,6 @@ from dataclasses import dataclass
 
 from scipy.stats import binomtest, fisher_exact
 
-from .turn_order_research import TurnOrderDataset
-
 from .statistical_methods import StatisticalTest
 
 from .turn_order_research import (
@@ -13,6 +11,7 @@ from .turn_order_research import (
     GamePrincipalOutcome,
     TurnOrderGameRecord,
     DirectPrecedingDataset,
+    PlayerSpacingDataset,
 )
 
 
@@ -49,6 +48,7 @@ class TurnOrderComparisonStatistics:
     # Number of games where opponent had a lower turn-order number.
     opponent_starts_earlier: int
 
+
 @dataclass(frozen=True)
 class TurnOrderSignificanceResult:
     """
@@ -69,6 +69,7 @@ class TurnOrderSignificanceResult:
     p_value: float | None
     significance_level: float
     is_significant: bool
+
 
 @dataclass(frozen=True)
 class StartingPositionPerformanceStatistics:
@@ -93,6 +94,7 @@ class StartingPositionPerformanceStatistics:
     average_score: float | None
     average_score_differential: float | None
 
+
 @dataclass(frozen=True)
 class StartingPositionAnalysisStatistics:
     """
@@ -106,6 +108,7 @@ class StartingPositionAnalysisStatistics:
     # Performance statistics indexed by starting position (1 through 5).
     positions: dict[int, StartingPositionPerformanceStatistics]
 
+
 @dataclass(frozen=True)
 class StartingPositionWinSignificanceResult:
     """Statistical significance of the association between starting position and winning."""
@@ -118,6 +121,7 @@ class StartingPositionWinSignificanceResult:
     is_significant: bool | None
     number_of_permutations: int
     random_seed: int
+
 
 @dataclass(frozen=True)
 class AnovaPermutationSignificanceResult:
@@ -135,6 +139,7 @@ class AnovaPermutationSignificanceResult:
     number_of_permutations: int
     random_seed: int
 
+
 @dataclass(frozen=True)
 class DirectPrecedingPerformanceStatistics:
     """
@@ -151,6 +156,44 @@ class DirectPrecedingPerformanceStatistics:
 
     average_score: float | None
     average_score_differential: float | None
+
+
+@dataclass(frozen=True)
+class PlayerSpacingPerformanceStatistics:
+    """
+    Descriptive performance statistics for the principal
+    player within one NPC spacing category.
+    """
+
+    # Number of NPCs between principal and opponent.
+    spacing: int
+
+    # Number of qualifying games.
+    total_games: int
+
+    # Game outcomes.
+    wins: int
+    losses: int
+    ties: int
+    win_rate: float | None
+
+    # Scoring performance.
+    average_score: float | None
+    average_score_differential: float | None
+
+
+@dataclass(frozen=True)
+class PlayerSpacingAnalysisStatistics:
+    """
+    Descriptive performance statistics for the principal
+    player across all four NPC spacing categories.
+    """
+
+    # Total number of qualifying games.
+    total_games: int
+
+    # Performance statistics indexed by NPC spacing (0 through 3).
+    spacing_groups: dict[int, PlayerSpacingPerformanceStatistics]
 
 @dataclass(frozen=True)
 class DirectPrecedingAnalysisStatistics:
@@ -456,94 +499,100 @@ def analyze_starting_position_performance(
     return statistics
 
 
-def analyze_starting_position_win_significance(
+def _analyze_win_rate_chi_square_permutation(
     *,
-    statistics: StartingPositionAnalysisStatistics,
+    group_counts: dict[int, int],
+    group_wins: dict[int, int],
     significance_level: float = 0.05,
     number_of_permutations: int = 100_000,
     random_seed: int = 42,
 ) -> StartingPositionWinSignificanceResult:
     """
-    Test whether the probability of winning differs across
-    the principal player's five starting positions.
+    Test whether win probability differs across categorical groups
+    using a Pearson chi-square permutation test.
 
-    Uses a Pearson chi-square statistic with a Monte Carlo
-    permutation test.
-
-    Null hypothesis:
-        Win probability is equal across all five positions.
-
-    Alternative hypothesis:
-        Win probability differs for at least one position.
+    Ties are treated as non-wins.
+    Empty groups are excluded from the statistical test.
 
     Performs no database queries.
     """
 
-    # 1. Identify the statistical test and sample size.
+    # 1. Identify the test and validate inputs.
     test = StatisticalTest.PEARSON_CHI_SQUARE_PERMUTATION
-    sample_size = statistics.total_games
 
     if number_of_permutations < 1:
         raise ValueError("number_of_permutations must be positive.")
 
-    # 2. Collect observed wins and non-wins by position.
-    position_counts = np.array(
-        [statistics.positions[position].total_games for position in range(1, 6)],
+    if not 0 < significance_level < 1:
+        raise ValueError("significance_level must be between 0 and 1.")
+
+    if group_counts.keys() != group_wins.keys():
+        raise ValueError("Group counts and wins must have matching keys.")
+
+    groups = sorted(group_counts)
+
+    counts = np.array(
+        [group_counts[group] for group in groups],
         dtype=int,
     )
 
-    observed_wins = np.array(
-        [statistics.positions[position].wins for position in range(1, 6)],
+    wins = np.array(
+        [group_wins[group] for group in groups],
         dtype=int,
     )
 
-    total_wins = int(observed_wins.sum())
+    if np.any(counts < 0) or np.any(wins < 0) or np.any(wins > counts):
+        raise ValueError("Invalid group counts or win totals.")
+
+    sample_size = int(counts.sum())
+    total_wins = int(wins.sum())
     total_non_wins = sample_size - total_wins
 
-    # 3. Initialize results for cases where testing is not possible.
+    # 2. Initialize unavailable statistical results.
     observed_statistic = None
     p_value = None
     is_significant = None
 
-    # 4. Test only when both outcomes occur and at least
-    #    two starting positions have observations.
+    # 3. Check whether the test can be performed.
     if (
         total_wins > 0
         and total_non_wins > 0
-        and np.count_nonzero(position_counts) >= 2
+        and np.count_nonzero(counts) >= 2
     ):
 
-        # Exclude positions with no observed games.
-        active_counts = position_counts[position_counts > 0]
-        active_wins = observed_wins[position_counts > 0]
+        # 4. Exclude groups without observations.
+        active_counts = counts[counts > 0]
+        active_wins = wins[counts > 0]
 
-        # 5. Calculate expected wins and non-wins under H0.
+        # 5. Calculate expected outcomes under the null hypothesis.
         expected_wins = active_counts * total_wins / sample_size
         expected_non_wins = active_counts * total_non_wins / sample_size
 
-        # 6. Calculate the observed Pearson chi-square statistic.
         observed_non_wins = active_counts - active_wins
 
+        # 6. Calculate the observed Pearson chi-square statistic.
         observed_statistic = float(
-            np.sum((active_wins - expected_wins) ** 2 / expected_wins)
+            np.sum(
+                (active_wins - expected_wins) ** 2 / expected_wins
+            )
             + np.sum(
                 (observed_non_wins - expected_non_wins) ** 2
                 / expected_non_wins
             )
         )
 
-        # 7. Construct the outcomes and position assignments.
+        # 7. Construct the outcome and group assignments.
         outcomes = np.array(
             [1] * total_wins + [0] * total_non_wins,
             dtype=int,
         )
 
-        position_indices = np.repeat(
+        group_indices = np.repeat(
             np.arange(len(active_counts)),
             active_counts,
         )
 
-        # 8. Generate reproducible random permutations.
+        # 8. Generate reproducible permutations.
         rng = np.random.default_rng(random_seed)
         extreme_count = 0
 
@@ -551,7 +600,7 @@ def analyze_starting_position_win_significance(
             shuffled_outcomes = rng.permutation(outcomes)
 
             permuted_wins = np.bincount(
-                position_indices,
+                group_indices,
                 weights=shuffled_outcomes,
                 minlength=len(active_counts),
             )
@@ -569,16 +618,14 @@ def analyze_starting_position_win_significance(
                 )
             )
 
-            # Count permutations at least as extreme as observed.
             if permuted_statistic >= observed_statistic - 1e-12:
                 extreme_count += 1
 
-        # 9. Estimate the permutation p-value.
-        #    The +1 correction avoids reporting a zero p-value.
+        # 9. Calculate the permutation p-value.
         p_value = (extreme_count + 1) / (number_of_permutations + 1)
         is_significant = p_value < significance_level
 
-    # 10. Assemble the statistical result.
+    # 10. Assemble the significance result.
     return StartingPositionWinSignificanceResult(
         test=test,
         sample_size=sample_size,
@@ -586,6 +633,76 @@ def analyze_starting_position_win_significance(
         p_value=p_value,
         significance_level=significance_level,
         is_significant=is_significant,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+def analyze_starting_position_win_significance(
+    *,
+    statistics: StartingPositionAnalysisStatistics,
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> StartingPositionWinSignificanceResult:
+    """
+    Test whether win probability differs across the
+    principal player's five starting positions.
+    """
+
+    # 1. Collect group counts and wins.
+    group_counts = {
+        position: group.total_games
+        for position, group in statistics.positions.items()
+    }
+
+    group_wins = {
+        position: group.wins
+        for position, group in statistics.positions.items()
+    }
+
+    # 2. Execute the shared permutation test.
+    return _analyze_win_rate_chi_square_permutation(
+        group_counts=group_counts,
+        group_wins=group_wins,
+        significance_level=significance_level,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+def analyze_player_spacing_win_significance(
+    *,
+    statistics: PlayerSpacingAnalysisStatistics,
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> StartingPositionWinSignificanceResult:
+    """
+    Test whether win probability differs across the four
+    NPC spacing categories (0, 1, 2, and 3).
+
+    Null hypothesis:
+        Win probability is equal across all spacing categories.
+
+    Alternative hypothesis:
+        Win probability differs for at least one category.
+    """
+
+    # 1. Collect group counts and wins.
+    group_counts = {
+        spacing: group.total_games
+        for spacing, group in statistics.spacing_groups.items()
+    }
+
+    group_wins = {
+        spacing: group.wins
+        for spacing, group in statistics.spacing_groups.items()
+    }
+
+    # 2. Execute the shared permutation test.
+    return _analyze_win_rate_chi_square_permutation(
+        group_counts=group_counts,
+        group_wins=group_wins,
+        significance_level=significance_level,
         number_of_permutations=number_of_permutations,
         random_seed=random_seed,
     )
@@ -655,11 +772,15 @@ def analyze_anova_permutation_significance(
 ) -> AnovaPermutationSignificanceResult:
     """
     Test whether mean numerical outcomes differ across
-    starting positions using a one-way ANOVA F-statistic
+    categorical groups using a one-way ANOVA F-statistic
     and Monte Carlo permutation testing.
 
-    The groups dictionary maps starting positions 1 through 5
-    to individual game observations.
+    The groups dictionary maps integer category identifiers
+    to individual numerical observations.
+
+    Empty groups are excluded from hypothesis testing.
+    At least two nonempty groups and positive residual degrees
+    of freedom are required.
 
     Performs no database queries.
     """
@@ -671,16 +792,19 @@ def analyze_anova_permutation_significance(
     if number_of_permutations < 1:
         raise ValueError("number_of_permutations must be positive.")
 
-    # 2. Collect observations for the five starting positions.
+    # 2. Collect observations for all supplied categories.
     group_arrays = [
-        np.asarray(groups[position], dtype=float)
-        for position in range(1, 6)
+        np.asarray(groups[group], dtype=float)
+        for group in sorted(groups)
     ]
 
     active_groups = [
         group for group in group_arrays
         if len(group) > 0
     ]
+
+    if not all(np.all(np.isfinite(group)) for group in group_arrays):
+        raise ValueError("Group observations must be finite numbers.")
 
     sample_size = sum(len(group) for group in active_groups)
 
@@ -891,6 +1015,59 @@ def analyze_direct_preceding_performance(
         directly_precedes=directly_precedes,
         does_not_precede=does_not_precede,
     )
+
+
+def analyze_player_spacing_performance(
+    *,
+    dataset: PlayerSpacingDataset,
+) -> PlayerSpacingAnalysisStatistics:
+    """
+    Calculate descriptive performance statistics for the
+    principal player across all four NPC spacing categories.
+
+    Reuses the existing group-level descriptive calculations.
+
+    Performs no database queries or hypothesis testing.
+    """
+
+    # 1. Initialize the statistics dictionary.
+    spacing_statistics = {}
+
+    # 2. Calculate descriptive statistics for each spacing group.
+    for spacing in range(4):
+        game_records = dataset.spacing_groups[spacing]
+
+        group_statistics = _calculate_direct_preceding_group_statistics(
+            game_records
+        )
+
+        # Assemble the statistics for this spacing category.
+        spacing_statistics[spacing] = PlayerSpacingPerformanceStatistics(
+            spacing=spacing,
+            total_games=group_statistics.total_games,
+            wins=group_statistics.wins,
+            losses=group_statistics.losses,
+            ties=group_statistics.ties,
+            win_rate=group_statistics.win_rate,
+            average_score=group_statistics.average_score,
+            average_score_differential=(
+                group_statistics.average_score_differential
+            ),
+        )
+
+    # 3. Calculate the total number of qualifying games.
+    total_games = sum(
+        group.total_games
+        for group in spacing_statistics.values()
+    )
+
+    # 4. Assemble the complete player-spacing analysis.
+    statistics = PlayerSpacingAnalysisStatistics(
+        total_games=total_games,
+        spacing_groups=spacing_statistics,
+    )
+
+    return statistics
 
 def analyze_direct_preceding_win_significance(
     *,

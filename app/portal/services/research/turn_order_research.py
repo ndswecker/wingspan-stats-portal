@@ -69,6 +69,19 @@ class DirectPrecedingDataset:
     directly_precedes: list[TurnOrderGameRecord]
     does_not_precede: list[TurnOrderGameRecord]
 
+@dataclass(frozen=True)
+class PlayerSpacingDataset:
+    """
+    Partition qualifying turn-order games by the number of NPCs
+    occurring after the principal player and before the opponent
+    in circular turn order.
+
+    Spacing groups are indexed by NPC count (0 through 3).
+    Each group retains the original TurnOrderGameRecord objects.
+    """
+
+    spacing_groups: dict[int, list[TurnOrderGameRecord]]
+
 
 def select_turn_order_games(
     *,
@@ -331,3 +344,40 @@ def partition_direct_preceding_games(
     )
 
     return directly_preceding_dataset
+
+
+def partition_player_spacing_games(
+    *,
+    dataset: TurnOrderDataset,
+) -> PlayerSpacingDataset:
+    """
+    Partition qualifying games into four NPC spacing groups
+    (0, 1, 2, and 3).
+
+    Uses the existing in-memory dataset.
+    Performs no database queries.
+    """
+
+    # 1. Initialize all four spacing groups.
+    spacing_groups = {
+        spacing: []
+        for spacing in range(4)
+    }
+
+    # 2. Assign each game to its corresponding spacing group.
+    for game_record in dataset.games:
+        spacing = game_record.npcs_after_principal
+
+        if spacing not in spacing_groups:
+            raise ValueError(
+                f"Unexpected NPC spacing value: {spacing}"
+            )
+
+        spacing_groups[spacing].append(game_record)
+
+    # 3. Assemble the partitioned dataset.
+    player_spacing_dataset = PlayerSpacingDataset(
+        spacing_groups=spacing_groups,
+    )
+
+    return player_spacing_dataset
