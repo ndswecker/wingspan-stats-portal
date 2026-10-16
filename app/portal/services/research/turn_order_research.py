@@ -57,6 +57,18 @@ class TurnOrderDataset:
 
     games: list[TurnOrderGameRecord]
 
+@dataclass(frozen=True)
+class DirectPrecedingDataset:
+    """
+    Partition qualifying turn-order games into two groups.
+
+    Each group retains the original TurnOrderGameRecord objects
+    for descriptive statistics, hypothesis testing, and inspection.
+    """
+
+    directly_precedes: list[TurnOrderGameRecord]
+    does_not_precede: list[TurnOrderGameRecord]
+
 
 def select_turn_order_games(
     *,
@@ -292,3 +304,30 @@ def build_turn_order_dataset(
     )
 
     return dataset
+
+def partition_direct_preceding_games(
+    *,
+    dataset: TurnOrderDataset,
+) -> DirectPrecedingDataset:
+    """
+    Partition qualifying games according to whether the principal
+    player directly precedes the opponent in circular turn order.
+    
+    Uses the existing in-memory dataset.
+    Performs no database queries.
+    """
+    directly_precedes = []
+    does_not_precede = []
+
+    for game_record in dataset.games:
+        if game_record.principal_directly_precedes_opponent:
+            directly_precedes.append(game_record)
+        else:
+            does_not_precede.append(game_record)
+
+    directly_preceding_dataset = DirectPrecedingDataset(
+        directly_precedes=directly_precedes,
+        does_not_precede=does_not_precede
+    )
+
+    return directly_preceding_dataset

@@ -2,7 +2,7 @@ import numpy as np
 
 from dataclasses import dataclass
 
-from scipy.stats import binomtest
+from scipy.stats import binomtest, fisher_exact
 
 from .turn_order_research import TurnOrderDataset
 
@@ -11,6 +11,8 @@ from .statistical_methods import StatisticalTest
 from .turn_order_research import (
     TurnOrderDataset,
     GamePrincipalOutcome,
+    TurnOrderGameRecord,
+    DirectPrecedingDataset,
 )
 
 
@@ -132,6 +134,55 @@ class AnovaPermutationSignificanceResult:
     is_significant: bool | None
     number_of_permutations: int
     random_seed: int
+
+@dataclass(frozen=True)
+class DirectPrecedingPerformanceStatistics:
+    """
+    Descriptive performance statistics for the principal
+    player within one direct-preceding group.
+    """
+
+    total_games: int
+
+    wins: int
+    losses: int
+    ties: int
+    win_rate: float | None
+
+    average_score: float | None
+    average_score_differential: float | None
+
+@dataclass(frozen=True)
+class DirectPrecedingAnalysisStatistics:
+    """
+    Descriptive performance statistics comparing two groups:
+    games where the principal player directly precedes the oppenent,
+    and games where the principal player does not directly precede 
+    the opponent in circular turn order.
+    """
+
+    total_games: int
+
+    directly_precedes: DirectPrecedingPerformanceStatistics
+    does_not_precede: DirectPrecedingPerformanceStatistics
+
+@dataclass(frozen=True)
+class DirectPrecedingWinSignificanceResult:
+    """
+    Statistical significance of the association between
+    directly preceding the opponent and winning.
+    """
+
+    test: StatisticalTest
+    sample_size: int
+
+    # Odds ratio comparing the two groups.
+    odds_ratio: float | None
+
+    # Statistical significance.
+    p_value: float | None
+    significance_level: float
+    is_significant: bool
 
 
 def analyze_turn_order_comparison(
@@ -739,3 +790,137 @@ def analyze_starting_position_score_differential_significance(
         random_seed=random_seed,
     )
 
+def _calculate_direct_preceding_group_statistics(
+    game_records: list[TurnOrderGameRecord],
+) -> DirectPrecedingPerformanceStatistics:
+    """
+    Calculate descriptive performance statistics for one
+    group of qualifying games.
+    """
+
+    # 1. Count games and outcomes.
+    total_games = len(game_records)
+    wins = sum(
+        game.outcome == GamePrincipalOutcome.WIN
+        for game in game_records
+    )
+    losses = sum(
+        game.outcome == GamePrincipalOutcome.LOSS
+        for game in game_records
+    )
+    ties = sum(
+        game.outcome == GamePrincipalOutcome.TIE
+        for game in game_records
+    )
+
+    # 2. Calculate performance averages.
+    win_rate = wins / total_games if total_games else None
+
+    average_score = (
+        sum(game.principal_score for game in game_records) / total_games
+        if total_games else None
+    )
+
+    average_score_differential = (
+        sum(game.score_differential for game in game_records) / total_games
+        if total_games else None
+    )
+
+    direct_preceding_statistics = DirectPrecedingPerformanceStatistics(
+        total_games=total_games,
+        wins=wins,
+        losses=losses,
+        ties=ties,
+        win_rate=win_rate,
+        average_score=average_score,
+        average_score_differential=average_score_differential,
+    )
+
+    # 3. Return the group's descriptive statistics.
+    return direct_preceding_statistics
+
+def analyze_direct_preceding_performance(
+    *,
+    dataset: DirectPrecedingDataset,
+) -> DirectPrecedingAnalysisStatistics:
+    """
+    Calculate descriptive performance statistics for both
+    direct-preceding groups using existing in-memory records.
+    """
+
+    # 1. Calculate statistics for each group.
+    directly_precedes = _calculate_direct_preceding_group_statistics(
+        dataset.directly_precedes
+    )
+
+    does_not_precede = _calculate_direct_preceding_group_statistics(
+        dataset.does_not_precede
+    )
+
+    # 2. Return the combined analysis statistics.
+    return DirectPrecedingAnalysisStatistics(
+        total_games=(
+            directly_precedes.total_games
+            + does_not_precede.total_games
+        ),
+        directly_precedes=directly_precedes,
+        does_not_precede=does_not_precede,
+    )
+
+def analyze_direct_preceding_win_significance(
+    *,
+    statistics: DirectPrecedingAnalysisStatistics,
+    significance_level: float = 0.05,
+) -> DirectPrecedingWinSignificanceResult:
+    """
+    Test whether winning is associated with directly preceding
+    the opponent using a two-sided Fisher's exact test.
+
+    Losses and ties are both classified as non-wins.
+    """
+
+    # 1. Identify the two groups.
+    direct = statistics.directly_precedes
+    other = statistics.does_not_precede
+
+    sample_size = statistics.total_games
+
+    # 2. Identify the statistical method.
+    test = StatisticalTest.FISHER_EXACT_TWO_SIDED
+
+    # 3. Handle insufficient data.
+    if direct.total_games == 0 or other.total_games == 0:
+        return DirectPrecedingWinSignificanceResult(
+            test=test,
+            sample_size=sample_size,
+            odds_ratio=None,
+            p_value=None,
+            significance_level=significance_level,
+            is_significant=False,
+        )
+
+    # 4. Construct the win/non-win contingency table.
+    contingency_table = [
+        [direct.wins, direct.losses + direct.ties],
+        [other.wins, other.losses + other.ties],
+    ]
+
+    # 5. Perform the two-sided Fisher's exact test.
+    result = fisher_exact(
+        contingency_table,
+        alternative="two-sided",
+    )
+
+    # 6. Evaluate statistical significance.
+    p_value = float(result.pvalue)
+    is_significant = p_value < significance_level
+
+    # 7. Return the statistical results.
+    return DirectPrecedingWinSignificanceResult(
+        test=test,
+        sample_size=sample_size,
+        odds_ratio=float(result.statistic),
+        p_value=p_value,
+        significance_level=significance_level,
+        is_significant=is_significant,
+    )

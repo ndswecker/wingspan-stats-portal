@@ -29,6 +29,21 @@ class StatisticalTest(StrEnum):
         "permutation-based null distribution.",
     )
 
+    FISHER_EXACT_TWO_SIDED = (
+        "fisher_exact_two_sided",
+        "Two-sided Fisher's exact test",
+        "Tests whether win probability differs between two groups "
+        "using an exact test of association in a 2x2 contingency table.",
+    )
+
+    TWO_SAMPLE_MEAN_PERMUTATION = (
+        "two_sample_mean_permutation",
+        "Two-sided two-sample mean permutation test",
+        "Tests whether numerical outcomes differ between two groups "
+        "using the absolute difference in sample means and a "
+        "permutation-based null distribution.",
+    )
+
     def __new__(cls, value, display_name, description):
         obj = str.__new__(cls, value)
         obj._value_ = value
