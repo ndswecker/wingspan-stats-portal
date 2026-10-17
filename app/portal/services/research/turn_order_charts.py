@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from .turn_order_statistics import (
     StartingPositionAnalysisStatistics,
     DirectPrecedingAnalysisStatistics,
+    PlayerSpacingAnalysisStatistics,
 )
 
 
@@ -435,4 +436,272 @@ def build_direct_preceding_score_differential_chart(
         y_axis_title="Average Score Differential",
     )
     figure.update_yaxes(zeroline=True, zerolinewidth=2, zerolinecolor="#555555")
+    return figure
+
+
+
+def _apply_player_spacing_layout(
+    *,
+    figure: go.Figure,
+    title: str,
+    y_axis_title: str,
+) -> None:
+    """
+    Apply consistent formatting to the four-category H3 charts.
+    """
+
+    # 1. Configure the chart appearance.
+    figure.update_layout(
+        title={
+            "text": title,
+            "x": 0.5,
+            "xanchor": "center",
+        },
+        template="plotly_white",
+        height=400,
+        margin={
+            "l": 60,
+            "r": 30,
+            "t": 85,
+            "b": 65,
+        },
+        showlegend=False,
+        hovermode="closest",
+        dragmode=False,
+    )
+
+    # 2. Configure the categorical NPC spacing axis.
+    figure.update_xaxes(
+        title_text="Intervening NPCs",
+        type="category",
+        categoryorder="array",
+        categoryarray=["0", "1", "2", "3"],
+    )
+
+    # 3. Configure the measurement axis.
+    figure.update_yaxes(
+        title_text=y_axis_title,
+        zeroline=True,
+        zerolinecolor="#555555",
+    )
+
+
+def build_player_spacing_win_rate_chart(
+    *,
+    statistics: PlayerSpacingAnalysisStatistics,
+) -> go.Figure:
+    """
+    H3a: Visualize observed win rates by NPC spacing.
+
+    Ties count as non-wins, consistent with the research
+    methodology and descriptive statistics.
+    """
+
+    # 1. Extract the four NPC spacing groups.
+    groups = [
+        statistics.spacing_groups[spacing]
+        for spacing in range(4)
+    ]
+
+    labels = [str(group.spacing) for group in groups]
+
+    win_rates = [
+        group.win_rate * 100
+        if group.win_rate is not None
+        else None
+        for group in groups
+    ]
+
+    # 2. Prepare outcome counts for hover tooltips.
+    hover_data = [
+        [
+            group.total_games,
+            group.wins,
+            group.losses,
+            group.ties,
+        ]
+        for group in groups
+    ]
+
+    # 3. Construct the win-rate bar chart.
+    figure = go.Figure()
+
+    figure.add_trace(
+        go.Bar(
+            x=labels,
+            y=win_rates,
+            customdata=hover_data,
+            marker_color="#4472C4",
+            hovertemplate=(
+                "Intervening NPCs: %{x}<br>"
+                "Win Rate: %{y:.2f}%<br>"
+                "Games: %{customdata[0]}<br>"
+                "Wins: %{customdata[1]}<br>"
+                "Losses: %{customdata[2]}<br>"
+                "Ties: %{customdata[3]}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    # 4. Apply common styling and percentage scale.
+    _apply_player_spacing_layout(
+        figure=figure,
+        title="H3a — Win Rate by NPC Spacing",
+        y_axis_title="Win Rate (%)",
+    )
+
+    figure.update_yaxes(
+        range=[0, 100],
+        ticksuffix="%",
+    )
+
+    return figure
+
+
+def build_player_spacing_score_chart(
+    *,
+    statistics: PlayerSpacingAnalysisStatistics,
+) -> go.Figure:
+    """
+    H3b: Visualize mean final scores by NPC spacing.
+    """
+
+    # 1. Extract the four NPC spacing groups.
+    groups = [
+        statistics.spacing_groups[spacing]
+        for spacing in range(4)
+    ]
+
+    labels = [str(group.spacing) for group in groups]
+
+    average_scores = [
+        group.average_score
+        for group in groups
+    ]
+
+    # 2. Prepare sample sizes for hover tooltips.
+    game_counts = [
+        group.total_games
+        for group in groups
+    ]
+
+    # 3. Construct the average-score bar chart.
+    figure = go.Figure()
+
+    figure.add_trace(
+        go.Bar(
+            x=labels,
+            y=average_scores,
+            customdata=game_counts,
+            marker_color="#4472C4",
+            hovertemplate=(
+                "Intervening NPCs: %{x}<br>"
+                "Average Final Score: %{y:.2f}<br>"
+                "Games: %{customdata}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    # 4. Apply common styling.
+    _apply_player_spacing_layout(
+        figure=figure,
+        title="H3b — Average Final Score by NPC Spacing",
+        y_axis_title="Average Final Score",
+    )
+
+    # 5. Scale the Y-axis to the observed average scores.
+    valid_scores = [
+        score
+        for score in average_scores
+        if score is not None
+    ]
+
+    if valid_scores:
+        minimum = min(valid_scores)
+        maximum = max(valid_scores)
+
+        score_range = maximum - minimum
+        padding = max(score_range * 0.15, 2)
+
+        figure.update_yaxes(
+            range=[
+                minimum - padding,
+                maximum + padding,
+            ],
+        )
+
+    return figure
+
+
+def build_player_spacing_score_differential_chart(
+    *,
+    statistics: PlayerSpacingAnalysisStatistics,
+) -> go.Figure:
+    """
+    H3c: Visualize mean score differentials by NPC spacing.
+
+    Positive values favor the principal player.
+    Negative values favor the opponent.
+    """
+
+    # 1. Extract the four NPC spacing groups.
+    groups = [
+        statistics.spacing_groups[spacing]
+        for spacing in range(4)
+    ]
+
+    labels = [str(group.spacing) for group in groups]
+
+    average_differentials = [
+        group.average_score_differential
+        for group in groups
+    ]
+
+    # 2. Color bars according to differential direction.
+    colors = [
+        "#B0B0B0" if value is None
+        else "#4472C4" if value >= 0
+        else "#D65A5A"
+        for value in average_differentials
+    ]
+
+    game_counts = [
+        group.total_games
+        for group in groups
+    ]
+
+    # 3. Construct the score-differential bar chart.
+    figure = go.Figure()
+
+    figure.add_trace(
+        go.Bar(
+            x=labels,
+            y=average_differentials,
+            customdata=game_counts,
+            marker_color=colors,
+            hovertemplate=(
+                "Intervening NPCs: %{x}<br>"
+                "Average Score Differential: %{y:+.2f}<br>"
+                "Games: %{customdata}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    # 4. Apply common styling.
+    _apply_player_spacing_layout(
+        figure=figure,
+        title="H3c — Average Score Differential by NPC Spacing",
+        y_axis_title="Average Score Differential",
+    )
+
+    # 5. Emphasize the zero-differential reference line.
+    figure.update_yaxes(
+        zeroline=True,
+        zerolinewidth=2,
+        zerolinecolor="#555555",
+    )
+
     return figure

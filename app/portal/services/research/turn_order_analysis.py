@@ -7,6 +7,7 @@ from .turn_order_research import (
     build_turn_order_dataset,
     TurnOrderDataset,
     partition_direct_preceding_games,
+    partition_player_spacing_games,
 )
 
 from .turn_order_statistics import (
@@ -28,6 +29,11 @@ from .turn_order_statistics import (
     analyze_direct_preceding_win_significance,
     analyze_direct_preceding_score_significance,
     analyze_direct_preceding_score_differential_significance,
+    PlayerSpacingAnalysisStatistics,
+    analyze_player_spacing_performance,
+    analyze_player_spacing_win_significance,
+    analyze_player_spacing_score_significance,
+    analyze_player_spacing_score_differential_significance,
 )
 
 @dataclass(frozen=True)
@@ -69,6 +75,21 @@ class DirectPrecedingAnalysisResult:
     win_significance: DirectPrecedingWinSignificanceResult
     score_significance: TwoSampleMeanPermutationSignificanceResult
     score_differential_significance: TwoSampleMeanPermutationSignificanceResult
+
+
+@dataclass(frozen=True)
+class PlayerSpacingAnalysisResult:
+    """
+    Combined descriptive and inferential results for
+    the principal player's NPC spacing relative to the opponent.
+
+    Covers H3a, H3b, and H3c.
+    """
+
+    statistics: PlayerSpacingAnalysisStatistics
+    win_significance: StartingPositionWinSignificanceResult
+    score_significance: AnovaPermutationSignificanceResult
+    score_differential_significance: AnovaPermutationSignificanceResult
 
 
 def get_turn_order_comparison(
@@ -199,6 +220,56 @@ def get_direct_preceding_analysis(
 
     # 6. Assemble the complete H2 analysis.
     result = DirectPrecedingAnalysisResult(
+        statistics=statistics,
+        win_significance=win_significance,
+        score_significance=score_significance,
+        score_differential_significance=score_differential_significance,
+    )
+
+    return result
+
+def get_player_spacing_analysis(
+    *,
+    dataset: TurnOrderDataset,
+) -> PlayerSpacingAnalysisResult:
+    """
+    Run the player-spacing research analysis.
+
+    Includes descriptive statistics and significance tests
+    for H3a, H3b, and H3c.
+
+    Operates entirely on an existing in-memory dataset.
+    """
+
+    # 1. Partition games by NPC spacing.
+    partition = partition_player_spacing_games(
+        dataset=dataset,
+    )
+
+    # 2. Calculate descriptive statistics.
+    statistics = analyze_player_spacing_performance(
+        dataset=partition,
+    )
+
+    # 3. Test H3a: Probability of winning.
+    win_significance = analyze_player_spacing_win_significance(
+        statistics=statistics,
+    )
+
+    # 4. Test H3b: Average final score.
+    score_significance = analyze_player_spacing_score_significance(
+        dataset=partition,
+    )
+
+    # 5. Test H3c: Average score differential.
+    score_differential_significance = (
+        analyze_player_spacing_score_differential_significance(
+            dataset=partition,
+        )
+    )
+
+    # 6. Assemble the complete H3 analysis.
+    result = PlayerSpacingAnalysisResult(
         statistics=statistics,
         win_significance=win_significance,
         score_significance=score_significance,

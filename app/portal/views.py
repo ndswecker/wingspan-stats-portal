@@ -101,6 +101,7 @@ from .services.player_game_score_gap import (
 from .services.research.turn_order_analysis import (
     get_starting_position_analysis,
     get_direct_preceding_analysis,
+    get_player_spacing_analysis,
 )
 
 from .services.research.turn_order_charts import (
@@ -110,6 +111,9 @@ from .services.research.turn_order_charts import (
     build_direct_preceding_score_chart,
     build_direct_preceding_score_differential_chart,
     build_direct_preceding_win_rate_chart,
+    build_player_spacing_win_rate_chart,
+    build_player_spacing_score_chart,
+    build_player_spacing_score_differential_chart,
 )
 
 from .services.research.turn_order_research import (
@@ -1137,8 +1141,12 @@ def turn_order_research(request):
     # 3. Initialize research results and charts.
     starting_position_analysis = None
     starting_position_charts = None
+
     direct_preceding_analysis = None
     direct_preceding_charts = None
+
+    player_spacing_analysis = None
+    player_spacing_charts = None
 
     # 4. Validate parameters and execute research.
     if run_analysis and filter_form.is_valid():
@@ -1166,7 +1174,20 @@ def turn_order_research(request):
             dataset=dataset,
         )
 
-        # 8. Generate H1 charts from descriptive statistics.
+        # 8. Hypothesis 6.3: Player Spacing.
+        player_spacing_analysis = get_player_spacing_analysis(
+            dataset=dataset,
+        )
+
+        # 9. Configure Plotly chart rendering.
+        chart_config = {
+            "displayModeBar": False,
+            "scrollZoom": False,
+            "doubleClick": False,
+            "displaylogo": False,
+        }
+
+        # 10. Generate H1 charts from descriptive statistics.
         statistics = starting_position_analysis.statistics
 
         if statistics.total_games > 0:
@@ -1185,14 +1206,7 @@ def turn_order_research(request):
                 )
             )
 
-            chart_config = {
-                "displayModeBar": False,
-                "scrollZoom": False,
-                "doubleClick": False,
-                "displaylogo": False,
-            }
-
-            # 9. Convert H1 figures into HTML fragments.
+            # 11. Convert H1 figures into HTML fragments.
             starting_position_charts = {
                 "win_rate": win_rate_figure.to_html(
                     full_html=False,
@@ -1211,8 +1225,7 @@ def turn_order_research(request):
                 ),
             }
 
-        # Future analysis:
-        # 10. Generate H2 charts from descriptive statistics.
+        # 12. Generate H2 charts from descriptive statistics.
         h2_statistics = direct_preceding_analysis.statistics
 
         if h2_statistics.total_games > 0:
@@ -1231,7 +1244,7 @@ def turn_order_research(request):
                 )
             )
 
-            # 11. Convert H2 figures into HTML fragments.
+            # 13. Convert H2 figures into HTML fragments.
             direct_preceding_charts = {
                 "win_rate": h2_win_rate_figure.to_html(
                     full_html=False,
@@ -1250,16 +1263,58 @@ def turn_order_research(request):
                 ),
             }
 
-    # 11. Assemble template context.
+        # 14. Generate H3 charts from descriptive statistics.
+        h3_statistics = player_spacing_analysis.statistics
+
+        if h3_statistics.total_games > 0:
+
+            h3_win_rate_figure = build_player_spacing_win_rate_chart(
+                statistics=h3_statistics,
+            )
+
+            h3_score_figure = build_player_spacing_score_chart(
+                statistics=h3_statistics,
+            )
+
+            h3_differential_figure = (
+                build_player_spacing_score_differential_chart(
+                    statistics=h3_statistics,
+                )
+            )
+
+            # 15. Convert H3 figures into HTML fragments.
+            player_spacing_charts = {
+                "win_rate": h3_win_rate_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config=chart_config,
+                ),
+                "score": h3_score_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config=chart_config,
+                ),
+                "score_differential": h3_differential_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config=chart_config,
+                ),
+            }   
+
+    # 16. Assemble template context.
     context = {
         "filter_form": filter_form,
         "starting_position_analysis": starting_position_analysis,
         "starting_position_charts": starting_position_charts,
+
         "direct_preceding_analysis": direct_preceding_analysis,
         "direct_preceding_charts": direct_preceding_charts,
+
+        "player_spacing_analysis": player_spacing_analysis,
+        "player_spacing_charts": player_spacing_charts,
     }
 
-    # 12. Render the research page.
+    # 17. Render the research page.
     return render(
         request,
         "portal/research/turn_order_research.html",

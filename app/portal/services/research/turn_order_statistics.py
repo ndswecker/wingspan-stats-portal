@@ -708,6 +708,82 @@ def analyze_player_spacing_win_significance(
     )
 
 
+def analyze_player_spacing_score_significance(
+    *,
+    dataset: PlayerSpacingDataset,
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> AnovaPermutationSignificanceResult:
+    """
+    H3b: Test whether the principal player's mean final score
+    differs across NPC spacing categories (0 through 3).
+
+    Uses individual game scores, not group averages.
+
+    Performs no database queries.
+    """
+
+    # 1. Initialize observations for all four NPC spacing categories.
+    groups = {
+        spacing: []
+        for spacing in range(4)
+    }
+
+    # 2. Collect individual final scores by NPC spacing.
+    for spacing in range(4):
+        groups[spacing] = [
+            game_record.principal_score
+            for game_record in dataset.spacing_groups[spacing]
+        ]
+
+    # 3. Perform the one-way ANOVA permutation test.
+    return analyze_anova_permutation_significance(
+        groups=groups,
+        significance_level=significance_level,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+def analyze_player_spacing_score_differential_significance(
+    *,
+    dataset: PlayerSpacingDataset,
+    significance_level: float = 0.05,
+    number_of_permutations: int = 100_000,
+    random_seed: int = 42,
+) -> AnovaPermutationSignificanceResult:
+    """
+    H3c: Test whether the principal player's mean score
+    differential differs across NPC spacing categories
+    (0 through 3).
+
+    Uses individual game score differentials.
+
+    Performs no database queries.
+    """
+
+    # 1. Initialize observations for all four NPC spacing categories.
+    groups = {
+        spacing: []
+        for spacing in range(4)
+    }
+
+    # 2. Collect individual score differentials by NPC spacing.
+    for spacing in range(4):
+        groups[spacing] = [
+            game_record.score_differential
+            for game_record in dataset.spacing_groups[spacing]
+        ]
+
+    # 3. Perform the one-way ANOVA permutation test.
+    return analyze_anova_permutation_significance(
+        groups=groups,
+        significance_level=significance_level,
+        number_of_permutations=number_of_permutations,
+        random_seed=random_seed,
+    )
+
+
 def _calculate_anova_f_statistic(
     *,
     values: np.ndarray,
