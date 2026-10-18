@@ -5,7 +5,7 @@
 {% block title %}Turn Order Research | Wingspan Stats Portal{% endblock %}
 
 {% block content %}
-
+<script src="https://cdn.plot.ly/plotly-3.1.0.min.js"></script>
 
 <!-- Page Header -->
 <div class="mb-4">
@@ -34,7 +34,7 @@
     </div>
 
     <div class="card-body">
-        <form method="get">
+        <form method="get" id="research-filters">
 
             <!-- Player Selection -->
             <div class="row g-3 mb-3">
@@ -133,12 +133,39 @@
         influence their competitive performance?
     </p>
 
-
     <!-- Starting Position Research Guide -->
     {% include "portal/research/partials/turn_order/_starting_position_methodology.html" %}
 
+    <!-- Execute H1 -->
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <button
+            type="button"
+            class="btn btn-primary"
+            hx-get="{% url 'portal:execute-turn-order-hypothesis' %}"
+            hx-include="#research-filters"
+            hx-vals='{"hypothesis": "h1"}'
+            hx-target="#h1-results"
+            hx-swap="innerHTML"
+            hx-disabled-elt="this"
+            hx-indicator="#h1-loading"
+        >
+            Execute H1
+        </button>
+
+        <div id="h1-loading" class="htmx-indicator">
+            <span
+                class="spinner-border spinner-border-sm"
+                role="status"
+                aria-hidden="true"
+            ></span>
+            <span class="ms-2">Executing analysis...</span>
+        </div>
+    </div>
+
     <!-- Starting Position Results -->
-    {% include "portal/research/partials/turn_order/_starting_position.html" %}
+    <div id="h1-results">
+        {% include "portal/research/partials/turn_order/_starting_position.html" %}
+    </div>
 
 </section>
 

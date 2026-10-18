@@ -100,4 +100,9 @@ urlpatterns = [
         views.turn_order_research,
         name="research-turn-order",
     ),
+    path(
+        "research/turn-order/execute/",
+        views.execute_turn_order_hypothesis,
+        name="execute-turn-order-hypothesis",
+    ),
 ]
