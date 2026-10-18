@@ -1,0 +1,91 @@
+<!-- Player Spacing Research Methodology -->
+<div class="accordion mb-3" id="playerSpacingMethodology">
+    <!-- 1. Dataset and Variables -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingPlayerSpacing1">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapsePlayerSpacing1"
+                    aria-expanded="false" aria-controls="collapsePlayerSpacing1">
+                Dataset and Variables
+            </button>
+        </h3>
+        <div id="collapsePlayerSpacing1" class="accordion-collapse collapse"
+             aria-labelledby="headingPlayerSpacing1"
+             data-bs-parent="#playerSpacingMethodology">
+            <div class="accordion-body">
+                <p>This study groups games by the number of computer players encountered when moving forward from the principal player to the opponent in the initial circular five-position turn order.</p>
+<p>Only qualifying games with the two selected human players and three NPCs are included. Each game contributes one observation. The turn order wraps from position 5 back to position 1.</p>
+<dl class="row"><dt class="col-sm-4">0 intervening NPCs</dt><dd class="col-sm-8">The principal player directly precedes the opponent (same group as H2).</dd><dt class="col-sm-4">1, 2, or 3 NPCs</dt><dd class="col-sm-8">That many NPC turns occur before the opponent's next turn.</dd><dt class="col-sm-4">Win Rate</dt><dd class="col-sm-8">Wins divided by all games in the category; ties count as non-wins.</dd><dt class="col-sm-4">Average Score</dt><dd class="col-sm-8">Principal player's mean final score.</dd><dt class="col-sm-4">Score Differential</dt><dd class="col-sm-8">Principal score minus opponent score, averaged within each category.</dd></dl>
+<p class="mb-0">Spacing is treated as a four-category variable, not as a linear predictor. Categories with no games remain visible in the results but are excluded from hypothesis testing.</p>
+            </div>
+        </div>
+    </div>
+    <!-- 2. H3a — Probability of Winning (Primary) -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingPlayerSpacing2">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapsePlayerSpacing2"
+                    aria-expanded="false" aria-controls="collapsePlayerSpacing2">
+                H3a — Probability of Winning (Primary)
+            </button>
+        </h3>
+        <div id="collapsePlayerSpacing2" class="accordion-collapse collapse"
+             aria-labelledby="headingPlayerSpacing2"
+             data-bs-parent="#playerSpacingMethodology">
+            <div class="accordion-body">
+                <h6>Research Question</h6><p>Does the principal player's probability of winning differ among NPC-spacing categories?</p><p><strong>Null Hypothesis (H0):</strong> Win probability is the same across all represented spacing categories.</p><p><strong>Alternative Hypothesis (H1):</strong> At least one category has a different win probability.</p><h6>Method</h6><p>A Pearson chi-square statistic compares wins versus non-wins across spacing categories. The p-value comes from permuting win/non-win outcomes while preserving category sizes. Ties are non-wins.</p><p class="mb-0">The chi-square statistic measures association, not the direction of an effect. Compare category win rates for descriptive direction.</p>
+            </div>
+        </div>
+    </div>
+    <!-- 3. H3b — Average Final Score (Secondary) -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingPlayerSpacing3">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapsePlayerSpacing3"
+                    aria-expanded="false" aria-controls="collapsePlayerSpacing3">
+                H3b — Average Final Score (Secondary)
+            </button>
+        </h3>
+        <div id="collapsePlayerSpacing3" class="accordion-collapse collapse"
+             aria-labelledby="headingPlayerSpacing3"
+             data-bs-parent="#playerSpacingMethodology">
+            <div class="accordion-body">
+                <h6>Research Question</h6><p>Does the principal player's average final score differ across NPC-spacing categories?</p><p><strong>Null Hypothesis (H0):</strong> Mean final scores are equal across categories.</p><p><strong>Alternative Hypothesis (H1):</strong> At least one category has a different mean score.</p><h6>Method</h6><p>A one-way ANOVA F-statistic is calculated from individual game scores. Permutation testing reallocates observed scores among categories while preserving their sample sizes.</p><p class="mb-0">The F-statistic measures between-group variation relative to within-group variation; it does not identify which category differs or establish a trend.</p>
+            </div>
+        </div>
+    </div>
+    <!-- 4. H3c — Average Score Differential (Secondary) -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingPlayerSpacing4">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapsePlayerSpacing4"
+                    aria-expanded="false" aria-controls="collapsePlayerSpacing4">
+                H3c — Average Score Differential (Secondary)
+            </button>
+        </h3>
+        <div id="collapsePlayerSpacing4" class="accordion-collapse collapse"
+             aria-labelledby="headingPlayerSpacing4"
+             data-bs-parent="#playerSpacingMethodology">
+            <div class="accordion-body">
+                <h6>Research Question</h6><p>Does the mean score margin against the opponent differ across NPC-spacing categories?</p><p><strong>Null Hypothesis (H0):</strong> Mean score differentials are equal across categories.</p><p><strong>Alternative Hypothesis (H1):</strong> At least one category has a different mean differential.</p><h6>Method</h6><p>For each game, subtract the opponent's score from the principal player's score. Apply a one-way ANOVA F-statistic and permutation test to these individual game-level margins.</p><p class="mb-0">Positive average margins favor the principal player. The omnibus F-test does not identify a specific pair of categories as different.</p>
+            </div>
+        </div>
+    </div>
+    <!-- 5. Interpreting Statistical Evidence and Limitations -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingPlayerSpacing5">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapsePlayerSpacing5"
+                    aria-expanded="false" aria-controls="collapsePlayerSpacing5">
+                Interpreting Statistical Evidence and Limitations
+            </button>
+        </h3>
+        <div id="collapsePlayerSpacing5" class="accordion-collapse collapse"
+             aria-labelledby="headingPlayerSpacing5"
+             data-bs-parent="#playerSpacingMethodology">
+            <div class="accordion-body">
+                <p>The significance threshold is α = 0.05. Each test uses 100,000 Monte Carlo permutations and random seed 42. A p-value below 0.05 is classified as statistically significant; a higher p-value is not proof of no effect.</p><ul><li>Small or uneven category sizes reduce statistical power.</li><li>Permutation inference assumes observations are exchangeable under the null model; unequal score variability can complicate mean comparisons.</li><li>These exploratory p-values are not adjusted for multiple comparisons.</li><li>Games between the same two players may not be fully independent.</li><li>Associations do not establish causation, and the analysis does not control for other game conditions.</li><li>Spacing is based on the initial turn order; the starting player changes between rounds.</li></ul><p class="mb-0">Interpret p-values alongside sample sizes, observed averages, and the study assumptions.</p>
+            </div>
+        </div>
+    </div>
+</div>
