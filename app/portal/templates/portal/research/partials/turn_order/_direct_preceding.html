@@ -71,9 +71,6 @@
         </div>
     </div>
 
-    <!-- Charts -->
-    {% include "portal/research/partials/turn_order/_direct_preceding_charts.html" %}
-
     <!-- Statistical Significance -->
     <div class="card mb-3">
         <div class="card-header">Hypothesis Testing</div>
@@ -170,11 +167,14 @@
         </div>
     </div>
 
+    <!-- Charts -->
+    {% include "portal/research/partials/turn_order/_direct_preceding_charts.html" %}
+
     {% endwith %}
 
 {% else %}
     <div class="alert alert-secondary">
-        Select two players and click <strong>Run Analysis</strong>
+        Select two players and click <strong>Execute H2</strong>
         to view direct-preceding research results.
     </div>
 {% endif %}

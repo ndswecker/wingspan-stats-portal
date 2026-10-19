@@ -1,4 +1,3 @@
-
 {% if starting_position_analysis %}
 
     {% with stats=starting_position_analysis.statistics %}
@@ -44,37 +43,37 @@
 
                     <tbody>
                         {% for position, result in stats.positions.items %}
-                            <tr>
-                                <td>{{ position }}</td>
-                                <td>{{ result.total_games }}</td>
-                                <td>{{ result.wins }}</td>
-                                <td>{{ result.losses }}</td>
-                                <td>{{ result.ties }}</td>
+                        <tr>
+                            <td>{{ position }}</td>
+                            <td>{{ result.total_games }}</td>
+                            <td>{{ result.wins }}</td>
+                            <td>{{ result.losses }}</td>
+                            <td>{{ result.ties }}</td>
 
-                                <td>
-                                    {% if result.win_rate is not None %}
-                                        {{ result.win_rate|floatformat:2 }}
-                                    {% else %}
-                                        —
-                                    {% endif %}
-                                </td>
+                            <td>
+                                {% if result.win_rate is not None %}
+                                    {{ result.win_rate|floatformat:2 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
 
-                                <td>
-                                    {% if result.average_score is not None %}
-                                        {{ result.average_score|floatformat:2 }}
-                                    {% else %}
-                                        —
-                                    {% endif %}
-                                </td>
+                            <td>
+                                {% if result.average_score is not None %}
+                                    {{ result.average_score|floatformat:2 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
 
-                                <td>
-                                    {% if result.average_score_differential is not None %}
-                                        {{ result.average_score_differential|floatformat:2 }}
-                                    {% else %}
-                                        —
-                                    {% endif %}
-                                </td>
-                            </tr>
+                            <td>
+                                {% if result.average_score_differential is not None %}
+                                    {{ result.average_score_differential|floatformat:2 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -88,11 +87,6 @@
             </p>
         </div>
     </div>
-
-    
-    <!-- Starting Position Charts -->
-    {% include "portal/research/partials/turn_order/_starting_position_charts.html" %}
-
 
     <!-- Statistical Significance -->
     <div class="card mb-3">
@@ -249,6 +243,9 @@
         </div>
     </div>
 
+    <!-- Starting Position Charts -->
+    {% include "portal/research/partials/turn_order/_starting_position_charts.html" %}
+
     {% endwith %}
 
 {% else %}
@@ -256,7 +253,7 @@
     <!-- No Analysis Executed -->
     <div class="alert alert-secondary">
         Select two players and click
-        <strong>Run Analysis</strong>
+        <strong>Execute H1</strong>
         to view starting-position research results.
     </div>
 

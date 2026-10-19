@@ -6,6 +6,9 @@ Chart builders receive prepared descriptive statistics.
 They perform no database queries or hypothesis testing.
 """
 
+from datetime import date
+from html import escape
+
 import plotly.graph_objects as go
 
 from .turn_order_statistics import (
@@ -20,24 +23,51 @@ def _apply_starting_position_layout(
     figure: go.Figure,
     title: str,
     y_axis_title: str,
+    principal_player_name: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
 ) -> None:
     """
-    Apply consistent formatting to starting-position charts.
+    Apply consistent formatting to starting-position charts,
+    including optional research context.
     """
 
-    # 1. Configure the chart's appearance.
+    title_text = escape(title)
+
+    if principal_player_name is not None:
+        title_text += (
+            f"<br><span style='font-size:13px;'>"
+            f"Principal Player: {escape(principal_player_name)}"
+            f"</span>"
+        )
+
+        date_label = (
+            f"{start_date:%b %d, %Y}" if start_date else "Not available"
+        )
+        end_label = (
+            f"{end_date:%b %d, %Y}" if end_date else "Not available"
+        )
+
+        title_text += (
+            f"<br><span style='font-size:12px;color:gray;'>"
+            f"Research Period: {date_label} – {end_label}"
+            f"</span>"
+        )
+
     figure.update_layout(
         title={
-            "text": title,
+            "text": title_text,
             "x": 0.5,
             "xanchor": "center",
+            "y": 0.96,
+            "yanchor": "top",
         },
         template="plotly_white",
-        height=400,
+        height=460,
         margin={
             "l": 60,
             "r": 30,
-            "t": 80,
+            "t": 135,
             "b": 60,
         },
         showlegend=False,
@@ -45,7 +75,6 @@ def _apply_starting_position_layout(
         dragmode=False,
     )
 
-    # 2. Configure the categorical starting-position axis.
     figure.update_xaxes(
         title_text="Starting Position",
         type="category",
@@ -53,7 +82,6 @@ def _apply_starting_position_layout(
         categoryarray=["1", "2", "3", "4", "5"],
     )
 
-    # 3. Configure the measurement axis.
     figure.update_yaxes(
         title_text=y_axis_title,
         zeroline=True,
@@ -64,6 +92,9 @@ def _apply_starting_position_layout(
 def build_starting_position_win_rate_chart(
     *,
     statistics: StartingPositionAnalysisStatistics,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> go.Figure:
     """
     H1a: Visualize observed win rates by starting position.
@@ -124,6 +155,9 @@ def build_starting_position_win_rate_chart(
         figure=figure,
         title="H1a — Win Rate by Starting Position",
         y_axis_title="Win Rate (%)",
+        principal_player_name=principal_player_name,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     figure.update_yaxes(
@@ -137,6 +171,9 @@ def build_starting_position_win_rate_chart(
 def build_starting_position_score_chart(
     *,
     statistics: StartingPositionAnalysisStatistics,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None
 ) -> go.Figure:
     """
     H1b: Visualize mean final scores by starting position.
@@ -184,6 +221,9 @@ def build_starting_position_score_chart(
         figure=figure,
         title="H1b — Average Final Score by Starting Position",
         y_axis_title="Average Final Score",
+        principal_player_name=principal_player_name,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     # 5. Scale the Y-axis to the observed average scores.
@@ -214,6 +254,9 @@ def build_starting_position_score_chart(
 def build_starting_position_score_differential_chart(
     *,
     statistics: StartingPositionAnalysisStatistics,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> go.Figure:
     """
     H1c: Visualize mean score differentials by position.
@@ -271,6 +314,9 @@ def build_starting_position_score_differential_chart(
         figure=figure,
         title="H1c — Average Score Differential by Position",
         y_axis_title="Average Score Differential",
+        principal_player_name=principal_player_name,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     # 5. Emphasize the zero-differential reference line.

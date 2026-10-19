@@ -307,6 +307,19 @@ def build_turn_order_dataset(
 
         game_records.append(game_record)
 
+    # Resolve unspecified date boundaries using qualifying games.
+    if start_date is None:
+        start_date = min(
+            (record.date_played for record in game_records),
+            default=None,
+        )
+
+    if end_date is None:
+        end_date = max(
+            (record.date_played for record in game_records),
+            default=None,
+        )
+
     # 3. Assemble the complete research dataset.
     dataset = TurnOrderDataset(
         principal_player=principal_player,

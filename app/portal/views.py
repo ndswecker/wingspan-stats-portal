@@ -1127,196 +1127,31 @@ def research_home(request):
 def turn_order_research(request):
     """
     Staff-only page for turn-order research.
+
+    Renders the research filters and hypothesis sections.
+    Statistical analyses are executed independently through
+    execute_turn_order_hypothesis().
     """
 
     # 1. Require staff privileges.
     if not request.user.is_staff:
         raise PermissionDenied
 
-    # 2. Bind the form only when an analysis is requested.
-    run_analysis = request.GET.get("action") == "run"
+    # 2. Initialize the research filter form.
+    filter_form = TurnOrderResearchFilterForm()
 
-    filter_form = TurnOrderResearchFilterForm(
-        request.GET if run_analysis else None,
-    )
-
-    # 3. Initialize research results and charts.
-    starting_position_analysis = None
-    starting_position_charts = None
-
-    direct_preceding_analysis = None
-    direct_preceding_charts = None
-
-    player_spacing_analysis = None
-    player_spacing_charts = None
-
-    # 4. Validate parameters and execute research.
-    if run_analysis and filter_form.is_valid():
-
-        principal_player = filter_form.cleaned_data["principal_player"]
-        opponent_player = filter_form.cleaned_data["opponent_player"]
-        start_date = filter_form.cleaned_data["start_date"]
-        end_date = filter_form.cleaned_data["end_date"]
-
-        # 5. Build the shared research dataset.
-        dataset = build_turn_order_dataset(
-            principal_player=principal_player,
-            opponent_player=opponent_player,
-            start_date=start_date,
-            end_date=end_date,
-        )
-
-        # 6. Hypothesis 6.1: Starting Position.
-        starting_position_analysis = get_starting_position_analysis(
-            dataset=dataset,
-        )
-
-        # 7. Hypothesis 6.2: Direct Preceding.
-        direct_preceding_analysis = get_direct_preceding_analysis(
-            dataset=dataset,
-        )
-
-        # 8. Hypothesis 6.3: Player Spacing.
-        player_spacing_analysis = get_player_spacing_analysis(
-            dataset=dataset,
-        )
-
-        # 9. Configure Plotly chart rendering.
-        chart_config = {
-            "displayModeBar": False,
-            "scrollZoom": False,
-            "doubleClick": False,
-            "displaylogo": False,
-        }
-
-        # 10. Generate H1 charts from descriptive statistics.
-        statistics = starting_position_analysis.statistics
-
-        if statistics.total_games > 0:
-
-            win_rate_figure = build_starting_position_win_rate_chart(
-                statistics=statistics,
-            )
-
-            score_figure = build_starting_position_score_chart(
-                statistics=statistics,
-            )
-
-            differential_figure = (
-                build_starting_position_score_differential_chart(
-                    statistics=statistics,
-                )
-            )
-
-            # 11. Convert H1 figures into HTML fragments.
-            starting_position_charts = {
-                "win_rate": win_rate_figure.to_html(
-                    full_html=False,
-                    include_plotlyjs="cdn",
-                    config=chart_config,
-                ),
-                "score": score_figure.to_html(
-                    full_html=False,
-                    include_plotlyjs=False,
-                    config=chart_config,
-                ),
-                "score_differential": differential_figure.to_html(
-                    full_html=False,
-                    include_plotlyjs=False,
-                    config=chart_config,
-                ),
-            }
-
-        # 12. Generate H2 charts from descriptive statistics.
-        h2_statistics = direct_preceding_analysis.statistics
-
-        if h2_statistics.total_games > 0:
-
-            h2_win_rate_figure = build_direct_preceding_win_rate_chart(
-                statistics=h2_statistics,
-            )
-
-            h2_score_figure = build_direct_preceding_score_chart(
-                statistics=h2_statistics,
-            )
-
-            h2_differential_figure = (
-                build_direct_preceding_score_differential_chart(
-                    statistics=h2_statistics,
-                )
-            )
-
-            # 13. Convert H2 figures into HTML fragments.
-            direct_preceding_charts = {
-                "win_rate": h2_win_rate_figure.to_html(
-                    full_html=False,
-                    include_plotlyjs=False,
-                    config=chart_config,
-                ),
-                "score": h2_score_figure.to_html(
-                    full_html=False,
-                    include_plotlyjs=False,
-                    config=chart_config,
-                ),
-                "score_differential": h2_differential_figure.to_html(
-                    full_html=False,
-                    include_plotlyjs=False,
-                    config=chart_config,
-                ),
-            }
-
-        # 14. Generate H3 charts from descriptive statistics.
-        h3_statistics = player_spacing_analysis.statistics
-
-        if h3_statistics.total_games > 0:
-
-            h3_win_rate_figure = build_player_spacing_win_rate_chart(
-                statistics=h3_statistics,
-            )
-
-            h3_score_figure = build_player_spacing_score_chart(
-                statistics=h3_statistics,
-            )
-
-            h3_differential_figure = (
-                build_player_spacing_score_differential_chart(
-                    statistics=h3_statistics,
-                )
-            )
-
-            # 15. Convert H3 figures into HTML fragments.
-            player_spacing_charts = {
-                "win_rate": h3_win_rate_figure.to_html(
-                    full_html=False,
-                    include_plotlyjs=False,
-                    config=chart_config,
-                ),
-                "score": h3_score_figure.to_html(
-                    full_html=False,
-                    include_plotlyjs=False,
-                    config=chart_config,
-                ),
-                "score_differential": h3_differential_figure.to_html(
-                    full_html=False,
-                    include_plotlyjs=False,
-                    config=chart_config,
-                ),
-            }   
-
-    # 16. Assemble template context.
+    # 3. Assemble the initial template context.
     context = {
         "filter_form": filter_form,
-        "starting_position_analysis": starting_position_analysis,
-        "starting_position_charts": starting_position_charts,
-
-        "direct_preceding_analysis": direct_preceding_analysis,
-        "direct_preceding_charts": direct_preceding_charts,
-
-        "player_spacing_analysis": player_spacing_analysis,
-        "player_spacing_charts": player_spacing_charts,
+        "starting_position_analysis": None,
+        "starting_position_charts": None,
+        "direct_preceding_analysis": None,
+        "direct_preceding_charts": None,
+        "player_spacing_analysis": None,
+        "player_spacing_charts": None,
     }
 
-    # 17. Render the research page.
+    # 4. Render the research page.
     return render(
         request,
         "portal/research/turn_order_research.html",
@@ -1387,16 +1222,23 @@ def execute_turn_order_hypothesis(request):
             # Generate the three H1 figures.
             win_rate_figure = build_starting_position_win_rate_chart(
                 statistics=statistics,
+                principal_player_name=str(dataset.principal_player),
+                start_date=dataset.start_date,
+                end_date=dataset.end_date,
             )
 
             score_figure = build_starting_position_score_chart(
                 statistics=statistics,
+                principal_player_name=str(dataset.principal_player),
+                start_date=dataset.start_date,
+                end_date=dataset.end_date,
             )
 
-            differential_figure = (
-                build_starting_position_score_differential_chart(
-                    statistics=statistics,
-                )
+            differential_figure = build_starting_position_score_differential_chart(
+                statistics=statistics,
+                principal_player_name=str(dataset.principal_player),
+                start_date=dataset.start_date,
+                end_date=dataset.end_date,
             )
 
             # Convert figures to HTML.
@@ -1462,7 +1304,7 @@ def execute_turn_order_hypothesis(request):
             charts = {
                 "win_rate": win_rate_figure.to_html(
                     full_html=False,
-                    include_plotlyjs="cdn",
+                    include_plotlyjs=False,
                     config=chart_config,
                 ),
                 "score": score_figure.to_html(
@@ -1520,7 +1362,7 @@ def execute_turn_order_hypothesis(request):
             charts = {
                 "win_rate": win_rate_figure.to_html(
                     full_html=False,
-                    include_plotlyjs="cdn",
+                    include_plotlyjs=False,
                     config=chart_config,
                 ),
                 "score": score_figure.to_html(

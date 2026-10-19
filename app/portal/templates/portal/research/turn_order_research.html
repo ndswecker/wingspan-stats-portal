@@ -109,15 +109,15 @@
                 </div>
             {% endfor %}
 
-            <!-- Submit -->
-            <button
-                type="submit"
-                name="action"
-                value="run"
-                class="btn btn-primary"
-            >
-                Run Analysis
-            </button>
+            <!-- Clear Research -->
+            <div class="mt-3">
+                <a
+                    href="{% url 'portal:research-turn-order' %}"
+                    class="btn btn-outline-secondary"
+                >
+                    Clear
+                </a>
+            </div>
 
         </form>
     </div>
@@ -181,8 +181,36 @@
     <!-- Direct Preceding Research Guide -->
     {% include "portal/research/partials/turn_order/_direct_preceding_methodology.html" %}
 
+    <!-- Execute H2 -->
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <button
+            type="button"
+            class="btn btn-primary"
+            hx-get="{% url 'portal:execute-turn-order-hypothesis' %}"
+            hx-include="#research-filters"
+            hx-vals='{"hypothesis": "h2"}'
+            hx-target="#h2-results"
+            hx-swap="innerHTML"
+            hx-disabled-elt="this"
+            hx-indicator="#h2-loading"
+        >
+            Execute H2
+        </button>
+
+        <div id="h2-loading" class="htmx-indicator">
+            <span
+                class="spinner-border spinner-border-sm"
+                role="status"
+                aria-hidden="true"
+            ></span>
+            <span class="ms-2">Executing analysis...</span>
+        </div>
+    </div>
+
     <!-- Direct Preceding Results -->
-    {% include "portal/research/partials/turn_order/_direct_preceding.html" %}
+    <div id="h2-results">
+        {% include "portal/research/partials/turn_order/_direct_preceding.html" %}
+    </div>
 </section>
 
 <!-- Player Spacing -->
@@ -198,8 +226,36 @@
     <!-- Player Spacing Research Guide -->
     {% include "portal/research/partials/turn_order/_player_spacing_methodology.html" %}
 
+    <!-- Execute H3 -->
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <button
+            type="button"
+            class="btn btn-primary"
+            hx-get="{% url 'portal:execute-turn-order-hypothesis' %}"
+            hx-include="#research-filters"
+            hx-vals='{"hypothesis": "h3"}'
+            hx-target="#h3-results"
+            hx-swap="innerHTML"
+            hx-disabled-elt="this"
+            hx-indicator="#h3-loading"
+        >
+            Execute H3
+        </button>
+
+        <div id="h3-loading" class="htmx-indicator">
+            <span
+                class="spinner-border spinner-border-sm"
+                role="status"
+                aria-hidden="true"
+            ></span>
+            <span class="ms-2">Executing analysis...</span>
+        </div>
+    </div>
+
     <!-- Player Spacing Results -->
-    {% include "portal/research/partials/turn_order/_player_spacing.html" %}
+    <div id="h3-results">
+        {% include "portal/research/partials/turn_order/_player_spacing.html" %}
+    </div>
 </section>
 
 {% endblock %}
