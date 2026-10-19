@@ -337,21 +337,49 @@ def _apply_direct_preceding_layout(
     figure: go.Figure,
     title: str,
     y_axis_title: str,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> None:
-    """Apply consistent formatting to the two-group H2 charts."""
+    """Apply consistent formatting and research context to H2 charts."""
 
-    # 1. Configure the chart appearance.
+    title_text = escape(title)
+
+    title_text += (
+        f"<br><span style='font-size:13px;'>"
+        f"Principal Player: {escape(principal_player_name)}"
+        f"</span>"
+    )
+
+    start_label = (
+        f"{start_date:%b %d, %Y}" if start_date else "Not available"
+    )
+    end_label = (
+        f"{end_date:%b %d, %Y}" if end_date else "Not available"
+    )
+
+    title_text += (
+        f"<br><span style='font-size:12px;color:gray;'>"
+        f"Research Period: {start_label} – {end_label}"
+        f"</span>"
+    )
+
     figure.update_layout(
-        title={"text": title, "x": 0.5, "xanchor": "center"},
+        title={
+            "text": title_text,
+            "x": 0.5,
+            "xanchor": "center",
+            "y": 0.96,
+            "yanchor": "top",
+        },
         template="plotly_white",
-        height=400,
-        margin={"l": 60, "r": 30, "t": 85, "b": 80},
+        height=460,
+        margin={"l": 60, "r": 30, "t": 135, "b": 80},
         showlegend=False,
         hovermode="closest",
         dragmode=False,
     )
 
-    # 2. Configure the two comparison groups.
     figure.update_xaxes(
         title_text="Turn Order Relationship",
         type="category",
@@ -359,7 +387,6 @@ def _apply_direct_preceding_layout(
         categoryarray=["Directly Precedes", "Does Not Precede"],
     )
 
-    # 3. Configure the measurement axis.
     figure.update_yaxes(
         title_text=y_axis_title,
         zeroline=True,
@@ -370,6 +397,9 @@ def _apply_direct_preceding_layout(
 def build_direct_preceding_win_rate_chart(
     *,
     statistics: DirectPrecedingAnalysisStatistics,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> go.Figure:
     """H2a: Compare observed win rates (ties are non-wins)."""
 
@@ -405,6 +435,9 @@ def build_direct_preceding_win_rate_chart(
         figure=figure,
         title="H2a — Win Rate by Direct-Preceding Status",
         y_axis_title="Win Rate (%)",
+        principal_player_name=principal_player_name,
+        start_date=start_date,
+        end_date=end_date,
     )
     figure.update_yaxes(range=[0, 100], ticksuffix="%")
     return figure
@@ -413,6 +446,9 @@ def build_direct_preceding_win_rate_chart(
 def build_direct_preceding_score_chart(
     *,
     statistics: DirectPrecedingAnalysisStatistics,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> go.Figure:
     """H2b: Compare mean final scores between the two groups."""
 
@@ -440,6 +476,9 @@ def build_direct_preceding_score_chart(
         figure=figure,
         title="H2b — Average Final Score by Direct-Preceding Status",
         y_axis_title="Average Final Score",
+        principal_player_name=principal_player_name,
+        start_date=start_date,
+        end_date=end_date,
     )
     valid_scores = [score for score in scores if score is not None]
     if valid_scores:
@@ -453,6 +492,9 @@ def build_direct_preceding_score_chart(
 def build_direct_preceding_score_differential_chart(
     *,
     statistics: DirectPrecedingAnalysisStatistics,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> go.Figure:
     """H2c: Compare mean score differentials (principal minus opponent)."""
 
@@ -480,6 +522,9 @@ def build_direct_preceding_score_differential_chart(
         figure=figure,
         title="H2c — Average Score Differential by Direct-Preceding Status",
         y_axis_title="Average Score Differential",
+        principal_player_name=principal_player_name,
+        start_date=start_date,
+        end_date=end_date,
     )
     figure.update_yaxes(zeroline=True, zerolinewidth=2, zerolinecolor="#555555")
     return figure

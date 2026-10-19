@@ -1289,16 +1289,23 @@ def execute_turn_order_hypothesis(request):
         if statistics.total_games > 0:
             win_rate_figure = build_direct_preceding_win_rate_chart(
                 statistics=statistics,
+                principal_player_name=str(dataset.principal_player),
+                start_date=dataset.start_date,
+                end_date=dataset.end_date,
             )
 
             score_figure = build_direct_preceding_score_chart(
                 statistics=statistics,
+                principal_player_name=str(dataset.principal_player),
+                start_date=dataset.start_date,
+                end_date=dataset.end_date,
             )
 
-            differential_figure = (
-                build_direct_preceding_score_differential_chart(
-                    statistics=statistics,
-                )
+            differential_figure = build_direct_preceding_score_differential_chart(
+                statistics=statistics,
+                principal_player_name=str(dataset.principal_player),
+                start_date=dataset.start_date,
+                end_date=dataset.end_date,
             )
 
             charts = {
