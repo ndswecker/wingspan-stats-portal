@@ -230,6 +230,48 @@
                         </tr>
                         {% endwith %}
 
+                        
+                        <!-- H1d: Relative Starting-Order Imbalance -->
+                        {% with result=starting_position_analysis.turn_order_significance %}
+                        <tr>
+                            <td>H1d — Relative Starting-Order Imbalance</td>
+                            <td>{{ result.test.display_name }}</td>
+
+                            <td>
+                                {% if result.sample_size > 0 %}
+                                    {% widthratio result.principal_starts_earlier result.sample_size 100 %}%
+                                    ({{ result.principal_starts_earlier }} of {{ result.sample_size }} games)
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if result.p_value is not None %}
+                                    {{ result.p_value|floatformat:4 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if result.p_value is None %}
+                                    <span class="badge bg-secondary">
+                                        Insufficient Data
+                                    </span>
+                                {% elif result.is_significant %}
+                                    <span class="badge bg-success">
+                                        Significant
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Not Significant
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+
                     </tbody>
                 </table>
             </div>

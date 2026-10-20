@@ -15,6 +15,7 @@ from .turn_order_statistics import (
     StartingPositionAnalysisStatistics,
     DirectPrecedingAnalysisStatistics,
     PlayerSpacingAnalysisStatistics,
+    TurnOrderComparisonStatistics,
 )
 
 
@@ -328,8 +329,158 @@ def build_starting_position_score_differential_chart(
 
     return figure
 
-# Add DirectPrecedingAnalysisStatistics to the existing imports from
-# .turn_order_statistics in turn_order_charts.py.
+
+
+def build_starting_position_turn_order_chart(
+    *,
+    statistics: TurnOrderComparisonStatistics,
+    principal_player_name: str,
+    opponent_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
+) -> go.Figure:
+    """
+    H1d: Visualize relative starting-order frequencies.
+
+    Shows the proportion of qualifying games in which
+    each player started earlier than the other.
+
+    The 50% reference represents the expected probability
+    under the null hypothesis of balanced starting order.
+    """
+
+    # 1. Extract observed counts.
+    total_games = statistics.total_games
+
+    principal_count = statistics.principal_starts_earlier
+    opponent_count = statistics.opponent_starts_earlier
+
+    if total_games == 0:
+        raise ValueError(
+            "Cannot build the H1d chart without qualifying games."
+        )
+
+    if principal_count + opponent_count != total_games:
+        raise ValueError(
+            "H1d requires a distinct starting position for each player."
+        )
+
+    # 2. Calculate observed percentages.
+    principal_percentage = principal_count / total_games * 100
+    opponent_percentage = opponent_count / total_games * 100
+
+    # 3. Construct the horizontal stacked bar chart.
+    figure = go.Figure()
+
+    for label, percentage, count, color in [
+        (
+            f"{principal_player_name} starts earlier",
+            principal_percentage,
+            principal_count,
+            "#4472C4",
+        ),
+        (
+            f"{opponent_player_name} starts earlier",
+            opponent_percentage,
+            opponent_count,
+            "#D65A5A",
+        ),
+    ]:
+        figure.add_trace(
+            go.Bar(
+                x=[percentage],
+                y=["Starting Order"],
+                name=label,
+                orientation="h",
+                marker_color=color,
+                text=[f"{percentage:.1f}%"],
+                textposition="inside",
+                insidetextanchor="middle",
+                customdata=[[count, total_games]],
+                hovertemplate=(
+                    "%{fullData.name}<br>"
+                    "Percentage: %{x:.2f}%<br>"
+                    "Games: %{customdata[0]} of %{customdata[1]}"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
+    # 4. Build chart title and research context.
+    date_label = (
+        f"{start_date:%b %d, %Y}"
+        if start_date else "Not available"
+    )
+    end_label = (
+        f"{end_date:%b %d, %Y}"
+        if end_date else "Not available"
+    )
+
+    title_text = (
+        "H1d — Relative Starting-Order Imbalance"
+        "<br><span style='font-size:13px;'>"
+        f"{escape(principal_player_name)} vs. "
+        f"{escape(opponent_player_name)}"
+        "</span>"
+        "<br><span style='font-size:12px;color:gray;'>"
+        f"Research Period: {date_label} – {end_label}"
+        "</span>"
+    )
+
+    # 5. Apply chart layout.
+    figure.update_layout(
+        title={
+            "text": title_text,
+            "x": 0.5,
+            "xanchor": "center",
+            "y": 0.96,
+            "yanchor": "top",
+        },
+        template="plotly_white",
+        barmode="stack",
+        height=380,
+        margin={
+            "l": 40,
+            "r": 40,
+            "t": 135,
+            "b": 90,
+        },
+        showlegend=True,
+        legend={
+            "orientation": "h",
+            "x": 0.5,
+            "xanchor": "center",
+            "y": -0.35,
+            "yanchor": "top",
+        },
+        hovermode="closest",
+        dragmode=False,
+        uniformtext_minsize=11,
+        uniformtext_mode="hide",
+    )
+
+    figure.update_xaxes(
+        title_text="Percentage of Games",
+        range=[0, 100],
+        ticksuffix="%",
+        fixedrange=True,
+    )
+
+    figure.update_yaxes(
+        showticklabels=False,
+        fixedrange=True,
+    )
+
+    # 6. Mark the expected 50/50 allocation.
+    figure.add_vline(
+        x=50,
+        line_dash="dash",
+        line_color="#555555",
+        line_width=2,
+    )
+
+    return figure
+
 
 
 def _apply_direct_preceding_layout(
@@ -536,24 +687,50 @@ def _apply_player_spacing_layout(
     figure: go.Figure,
     title: str,
     y_axis_title: str,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> None:
     """
-    Apply consistent formatting to the four-category H3 charts.
+    Apply consistent formatting and research context
+    to the four-category H3 charts.
     """
 
-    # 1. Configure the chart appearance.
+    title_text = escape(title)
+
+    title_text += (
+        f"<br><span style='font-size:13px;'>"
+        f"Principal Player: {escape(principal_player_name)}"
+        f"</span>"
+    )
+
+    start_label = (
+        f"{start_date:%b %d, %Y}" if start_date else "Not available"
+    )
+    end_label = (
+        f"{end_date:%b %d, %Y}" if end_date else "Not available"
+    )
+
+    title_text += (
+        f"<br><span style='font-size:12px;color:gray;'>"
+        f"Research Period: {start_label} – {end_label}"
+        f"</span>"
+    )
+
     figure.update_layout(
         title={
-            "text": title,
+            "text": title_text,
             "x": 0.5,
             "xanchor": "center",
+            "y": 0.96,
+            "yanchor": "top",
         },
         template="plotly_white",
-        height=400,
+        height=460,
         margin={
             "l": 60,
             "r": 30,
-            "t": 85,
+            "t": 135,
             "b": 65,
         },
         showlegend=False,
@@ -561,7 +738,6 @@ def _apply_player_spacing_layout(
         dragmode=False,
     )
 
-    # 2. Configure the categorical NPC spacing axis.
     figure.update_xaxes(
         title_text="Intervening NPCs",
         type="category",
@@ -569,7 +745,6 @@ def _apply_player_spacing_layout(
         categoryarray=["0", "1", "2", "3"],
     )
 
-    # 3. Configure the measurement axis.
     figure.update_yaxes(
         title_text=y_axis_title,
         zeroline=True,
@@ -580,6 +755,9 @@ def _apply_player_spacing_layout(
 def build_player_spacing_win_rate_chart(
     *,
     statistics: PlayerSpacingAnalysisStatistics,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> go.Figure:
     """
     H3a: Visualize observed win rates by NPC spacing.
@@ -640,6 +818,9 @@ def build_player_spacing_win_rate_chart(
         figure=figure,
         title="H3a — Win Rate by NPC Spacing",
         y_axis_title="Win Rate (%)",
+        principal_player_name=principal_player_name,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     figure.update_yaxes(
@@ -653,6 +834,9 @@ def build_player_spacing_win_rate_chart(
 def build_player_spacing_score_chart(
     *,
     statistics: PlayerSpacingAnalysisStatistics,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> go.Figure:
     """
     H3b: Visualize mean final scores by NPC spacing.
@@ -700,6 +884,9 @@ def build_player_spacing_score_chart(
         figure=figure,
         title="H3b — Average Final Score by NPC Spacing",
         y_axis_title="Average Final Score",
+        principal_player_name=principal_player_name,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     # 5. Scale the Y-axis to the observed average scores.
@@ -729,6 +916,9 @@ def build_player_spacing_score_chart(
 def build_player_spacing_score_differential_chart(
     *,
     statistics: PlayerSpacingAnalysisStatistics,
+    principal_player_name: str,
+    start_date: date | None,
+    end_date: date | None,
 ) -> go.Figure:
     """
     H3c: Visualize mean score differentials by NPC spacing.
@@ -786,6 +976,9 @@ def build_player_spacing_score_differential_chart(
         figure=figure,
         title="H3c — Average Score Differential by NPC Spacing",
         y_axis_title="Average Score Differential",
+        principal_player_name=principal_player_name,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     # 5. Emphasize the zero-differential reference line.

@@ -298,7 +298,93 @@
         </div>
     </div>
 
-    <!-- 5. Statistical Interpretation -->
+
+    <!-- 5. H1d -->
+    <div class="accordion-item">
+        <h3 class="accordion-header" id="headingH1d">
+            <button class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseH1d"
+                    aria-expanded="false"
+                    aria-controls="collapseH1d">
+                H1d — Relative Starting-Order Imbalance
+            </button>
+        </h3>
+
+        <div id="collapseH1d"
+             class="accordion-collapse collapse"
+             aria-labelledby="headingH1d"
+             data-bs-parent="#startingPositionMethodology">
+            <div class="accordion-body">
+
+                <h6>Research Question</h6>
+                <p>
+                    Does the principal player start earlier than
+                    the selected opponent more or less frequently
+                    than expected under balanced starting-order
+                    allocation?
+                </p>
+
+                <p>
+                    <strong>Null Hypothesis (H0):</strong>
+                    The principal player has a 50% probability
+                    of starting earlier than the opponent.
+                </p>
+                <p>
+                    <strong>Alternative Hypothesis (H1):</strong>
+                    The probability differs from 50%.
+                </p>
+
+                <h6>Method</h6>
+                <p>
+                    Each qualifying game contributes one observation.
+                    The initial numerical starting positions of
+                    the two human players are compared.
+                </p>
+                <p>
+                    The game is classified into one of two categories:
+                    the principal player starts earlier, or the
+                    opponent starts earlier.
+                </p>
+                <p>
+                    A two-sided exact binomial test evaluates
+                    whether the observed frequency of the principal
+                    player starting earlier differs from the
+                    expected probability of 0.5.
+                </p>
+                <p>
+                    The analysis assumes that starting positions
+                    are independently and uniformly randomized
+                    across qualifying games.
+                </p>
+
+                <h6>Interpretation</h6>
+                <p>
+                    The chart displays the percentage of games
+                    in which each player started earlier. The
+                    50% reference line represents the expected
+                    allocation under the null hypothesis.
+                </p>
+                <p>
+                    A statistically significant result provides
+                    evidence that the observed starting-order
+                    allocation differs from the expected 50/50
+                    distribution under the test assumptions.
+                </p>
+                <p class="mb-0">
+                    This hypothesis concerns allocation fairness,
+                    not player performance. It does not establish
+                    that starting earlier improves the probability
+                    of winning or increases final scores.
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 6. Statistical Interpretation -->
     <div class="accordion-item">
         <h3 class="accordion-header" id="headingInterpretation">
             <button class="accordion-button collapsed"
@@ -317,7 +403,8 @@
              data-bs-parent="#startingPositionMethodology">
             <div class="accordion-body">
 
-                <h6>Permutation Testing</h6>
+
+                <h6>Permutation Testing (H1a–H1c)</h6>
                 <p>
                     Under the null hypothesis, performance outcomes
                     are assumed exchangeable across starting-position
@@ -332,6 +419,22 @@
                     provides an estimated p-value.
                 </p>
 
+                <h6>Exact Binomial Testing (H1d)</h6>
+                <p>
+                    H1d uses a two-sided exact binomial test rather
+                    than permutation testing. Under its null
+                    hypothesis, each qualifying game has a 50%
+                    probability of the principal player starting
+                    earlier than the opponent.
+                </p>
+                <p>
+                    The test calculates the probability of observing
+                    a starting-order imbalance at least as extreme
+                    as the recorded result, assuming independent
+                    observations and the specified null probability.
+                </p>
+
+
                 <h6>Statistical Variables</h6>
                 <dl class="row">
                     <dt class="col-sm-4">Test Statistic</dt>
@@ -339,14 +442,17 @@
                         A numerical summary of the observed
                         differences between groups. H1a uses
                         chi-square; H1b and H1c use F-statistics.
+                        H1d reports the observed starting-earlier
+                        frequency and proportion.
                     </dd>
 
                     <dt class="col-sm-4">P-value</dt>
                     <dd class="col-sm-8">
-                        The estimated probability, under the null
-                        hypothesis and permutation procedure, of
-                        obtaining a test statistic at least as
-                        extreme as the observed statistic.
+                        The probability, under the specified null
+                        hypothesis, of obtaining a result at least
+                        as extreme as the observed result.
+                        H1a–H1c estimate this through permutation
+                        testing; H1d uses an exact binomial test.
                     </dd>
 
                     <dt class="col-sm-4">Significance Level</dt>
@@ -381,9 +487,22 @@
                         and limit the ability to detect differences.
                     </li>
                     <li>
-                        The three hypotheses represent multiple
+                        The four hypotheses represent multiple
                         exploratory tests. Their individual p-values
                         are not adjusted for multiple comparisons.
+                    </li>
+                    <li>
+                        H1d assumes independently randomized starting
+                        positions and a 50/50 expected allocation
+                        between the two human players. The analysis
+                        does not independently verify the game's
+                        randomization process.
+                    </li>
+                    <li>
+                        H1d evaluates initial numerical starting order,
+                        not circular turn adjacency or changes to
+                        the starting player between rounds.
+                    </li>
                     </li>
                     <li>
                         The analysis assumes a five-player game

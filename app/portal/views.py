@@ -116,6 +116,7 @@ from .services.research.turn_order_charts import (
     build_player_spacing_win_rate_chart,
     build_player_spacing_score_chart,
     build_player_spacing_score_differential_chart,
+    build_starting_position_turn_order_chart,
 )
 
 from .services.research.turn_order_research import (
@@ -1241,6 +1242,14 @@ def execute_turn_order_hypothesis(request):
                 end_date=dataset.end_date,
             )
 
+            turn_order_figure = build_starting_position_turn_order_chart(
+                statistics=analysis.turn_order_statistics,
+                principal_player_name=dataset.principal_player.name,
+                opponent_player_name=dataset.opponent_player.name,
+                start_date=dataset.start_date,
+                end_date=dataset.end_date,
+            )
+
             # Convert figures to HTML.
             charts = {
                 "win_rate": win_rate_figure.to_html(
@@ -1258,6 +1267,11 @@ def execute_turn_order_hypothesis(request):
                     include_plotlyjs=False,
                     config=chart_config,
                 ),
+                "turn_order": turn_order_figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=False,
+                    config=chart_config,
+                )
             }
 
         # Render the existing H1 results partial.
@@ -1354,15 +1368,24 @@ def execute_turn_order_hypothesis(request):
         if statistics.total_games > 0:
             win_rate_figure = build_player_spacing_win_rate_chart(
                 statistics=statistics,
+                principal_player_name=str(dataset.principal_player),
+                start_date=dataset.start_date,
+                end_date=dataset.end_date,
             )
 
             score_figure = build_player_spacing_score_chart(
                 statistics=statistics,
+                principal_player_name=str(dataset.principal_player),
+                start_date=dataset.start_date,
+                end_date=dataset.end_date,
             )
 
             differential_figure = (
                 build_player_spacing_score_differential_chart(
                     statistics=statistics,
+                    principal_player_name=str(dataset.principal_player),
+                    start_date=dataset.start_date,
+                    end_date=dataset.end_date,
                 )
             )
 

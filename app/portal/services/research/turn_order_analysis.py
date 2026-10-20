@@ -36,6 +36,7 @@ from .turn_order_statistics import (
     analyze_player_spacing_score_differential_significance,
 )
 
+
 @dataclass(frozen=True)
 class TurnOrderComparisonResult:
     """
@@ -48,19 +49,25 @@ class TurnOrderComparisonResult:
     statistics: TurnOrderComparisonStatistics
     significance: TurnOrderSignificanceResult
 
+
+
 @dataclass(frozen=True)
 class StartingPositionAnalysisResult:
     """
-    Combined descriptive and inferential results for the
-    principal player's starting position.
-
-    Covers Hypothesis 6.1 of the turn-order research methodology.
+    Combined descriptive and inferential results for
+    H1a, H1b, H1c, and H1d.
     """
 
     statistics: StartingPositionAnalysisStatistics
+
     win_significance: StartingPositionWinSignificanceResult
     score_significance: AnovaPermutationSignificanceResult
     score_differential_significance: AnovaPermutationSignificanceResult
+
+    turn_order_statistics: TurnOrderComparisonStatistics
+    turn_order_significance: TurnOrderSignificanceResult
+
+
 
 @dataclass(frozen=True)
 class DirectPrecedingAnalysisResult:
@@ -133,6 +140,7 @@ def get_turn_order_comparison(
 
     return result
 
+
 def get_starting_position_analysis(
     *,
     dataset: TurnOrderDataset,
@@ -141,7 +149,7 @@ def get_starting_position_analysis(
     Run the starting-position research analysis.
 
     Includes descriptive statistics and significance tests
-    for H1a, H1b, and H1c.
+    for H1a, H1b, H1c, and H1d.
 
     Operates entirely on an existing in-memory dataset.
     """
@@ -168,15 +176,27 @@ def get_starting_position_analysis(
         )
     )
 
-    # 5. Assemble the complete starting-position analysis.
+    # 5. Analyze H1d: Relative starting-order imbalance.
+    turn_order_statistics = analyze_turn_order_comparison(
+        dataset=dataset,
+    )
+
+    turn_order_significance = analyze_turn_order_significance(
+        statistics=turn_order_statistics,
+    )
+
+    # 6. Assemble the complete starting-position analysis.
     result = StartingPositionAnalysisResult(
         statistics=statistics,
         win_significance=win_significance,
         score_significance=score_significance,
         score_differential_significance=score_differential_significance,
+        turn_order_statistics=turn_order_statistics,
+        turn_order_significance=turn_order_significance,
     )
 
     return result
+
 
 def get_direct_preceding_analysis(
     *,
