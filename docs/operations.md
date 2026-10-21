@@ -279,17 +279,72 @@ docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec djang
 
 ## HTTPS Certificate Renewal
 
-Renew:
+Let's Encrypt certificates expire approximately every 90 days. Renew before expiration.
+
+### 1. Test Renewal
+
+Verify certificate renewal works without modifying the production certificate.
 
 ```bash
-docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   run --rm certbot renew
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm certbot renew --dry-run
 ```
 
-Reload Nginx:
+Expected: `Congratulations, all simulated renewals succeeded`
+
+### 2. Renew Certificate
 
 ```bash
-docker compose   -f docker-compose.yml   -f docker-compose.prod.yml   exec nginx nginx -s reload
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm certbot renew
 ```
+
+Confirm the output reports a successful renewal. If no renewal is due, Certbot may leave the certificate unchanged.
+
+### 3. Validate and Reload Nginx
+
+Validate the configuration:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  exec nginx nginx -t
+```
+
+If successful, reload Nginx to load the renewed certificate:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  exec nginx nginx -s reload
+```
+
+### 4. Verify HTTPS Certificate
+
+Check the certificate currently served by the production site:
+
+```bash
+echo | openssl s_client \
+  -connect wingspanscores.com:443 \
+  -servername wingspanscores.com 2>/dev/null \
+  | openssl x509 -noout -enddate
+```
+
+Expected output:
+
+```text
+notAfter=Jan 19 15:38:52 2027 GMT
+```
+
+Confirm the expiration date is in the future. The actual date changes with each renewal.
+
+Finally, verify that `https://wingspanscores.com` loads without browser security warnings.
 
 ## Nginx Validation
 
