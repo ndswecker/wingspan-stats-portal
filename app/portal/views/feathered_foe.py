@@ -20,12 +20,15 @@ def feathered_foe(request):
         secondary_player = filter_form.cleaned_data["secondary_player"]
         start_date = filter_form.cleaned_data["start_date"]
         end_date = filter_form.cleaned_data["end_date"]
+        winner_method = filter_form.cleaned_data["winner_method"]
 
         feathered_foe_result = build_feathered_foe(
             primary_player=primary_player,
             secondary_player=secondary_player,
             start_date=start_date,
             end_date=end_date,
+            fully_confirmed_only=True,
+            winner_method=winner_method,
         )
 
     context = {

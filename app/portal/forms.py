@@ -23,6 +23,8 @@ from .models import (
 
 from .services.game_entry import get_allowed_result_players
 
+from .services.feathered_foe import FeatheredFoeWinnerMethod
+
 User = get_user_model()
 
 class GameForm(forms.ModelForm):
@@ -841,6 +843,20 @@ class FeatheredFoeForm(forms.Form):
         ),
     )
 
+    winner_method = forms.ChoiceField(
+        choices=[
+            (FeatheredFoeWinnerMethod.STANDARD, "Standard — Game Wins"),
+            (FeatheredFoeWinnerMethod.ALTERNATIVE, "Alternative — Night Wins"),
+        ],
+        initial=FeatheredFoeWinnerMethod.STANDARD,
+        required=False,
+        widget=forms.RadioSelect(
+            attrs={
+                "class": "form-check-input",
+            }
+        ),
+    )
+
     def __init__(
         self,
         *args,
@@ -861,6 +877,12 @@ class FeatheredFoeForm(forms.Form):
 
         self.fields["primary_player"].queryset = allowed_players
         self.fields["secondary_player"].queryset = allowed_players
+
+    def clean_winner_method(self):
+        return (
+            self.cleaned_data["winner_method"]
+            or FeatheredFoeWinnerMethod.STANDARD
+        )
 
     def clean(self):
         cleaned_data = super().clean()

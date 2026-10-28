@@ -48,7 +48,7 @@ from ..services.player_game_scatter_chart import (
 )
 
 from ..services.player_game_score_gap import (
-    select_game_score_gaps,
+    build_game_score_gaps,
     calculate_victory_margin_analysis,
 )
 
@@ -104,6 +104,7 @@ def competitive_history(request):
                 secondary_player=selected_secondary_player,
                 start_date=start_date,
                 end_date=end_date,
+                fully_confirmed_only=True,
             )
 
             comparison_rows = comparison.rows
@@ -117,6 +118,7 @@ def competitive_history(request):
                 player=selected_player,
                 start_date=start_date,
                 end_date=end_date,
+                fully_confirmed_only=True,
             )
 
             player_history = history.daily_results
@@ -286,6 +288,7 @@ def player_score_trends(request):
             game_type=game_type,
             start_date=selected_start_date,
             end_date=selected_end_date,
+            fully_confirmed_only=True,
         )
 
         secondary_game_results = None
@@ -296,16 +299,18 @@ def player_score_trends(request):
                 game_type=game_type,
                 start_date=selected_start_date,
                 end_date=selected_end_date,
+                fully_confirmed_only=True,
             )
 
             if game_type == Game.HumanPlayerMode.MULTIPLE:
                 show_game_score_gap = True
 
-                game_score_gaps = select_game_score_gaps(
+                game_score_gaps = build_game_score_gaps(
                     primary_player=selected_player,
                     secondary_player=selected_secondary_player,
                     start_date=selected_start_date,
                     end_date=selected_end_date,
+                    fully_confirmed_only=True,
                 )
 
                 if game_score_gaps:

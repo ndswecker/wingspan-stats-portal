@@ -73,6 +73,7 @@ def build_player_history_comparison(
     secondary_player: Player,
     start_date: date | None = None,
     end_date: date | None = None,
+    fully_confirmed_only: bool = False
 ) -> PlayerHistoryComparison:
     """
     Build two players' competitive histories, summaries,
@@ -83,12 +84,14 @@ def build_player_history_comparison(
         player=primary_player,
         start_date=start_date,
         end_date=end_date,
+        fully_confirmed_only=fully_confirmed_only,
     )
 
     secondary_history = build_player_history_with_summary(
         player=secondary_player,
         start_date=start_date,
         end_date=end_date,
+        fully_confirmed_only=fully_confirmed_only,
     )
 
     comparison_rows = align_player_histories(

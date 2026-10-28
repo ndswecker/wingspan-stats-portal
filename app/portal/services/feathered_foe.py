@@ -4,7 +4,16 @@ from itertools import groupby
 
 from django.db.models import Count, Q, Prefetch
 
+from .game_result_selection import select_shared_games
+
 from ..models import Player, Game, GameResult
+
+from enum import StrEnum
+
+
+class FeatheredFoeWinnerMethod(StrEnum):
+    STANDARD = "standard"
+    ALTERNATIVE = "alternative"
 
 
 @dataclass(frozen=True)
@@ -70,9 +79,10 @@ class FeatheredFoe:
     """
     primary_player: Player
     secondary_player: Player
-    current_winner: Player | None
+    period_winner: Player | None
     player_summaries: list[FeatheredFoePlayerSummary]
     nights: list[FeatheredFoeNight]
+    winner_method: FeatheredFoeWinnerMethod
 
 
 def select_feathered_foe_games(
@@ -81,62 +91,48 @@ def select_feathered_foe_games(
     secondary_player: Player,
     start_date: date | None = None,
     end_date: date | None = None,
+    fully_confirmed_only: bool = False,
 ) -> list[Game]:
     """
-    Select competitive games played exclusively by the two players.
-    
-    A qualifying game must contain both selected players and exactly
-    two player results. Optional boundaries are inclusive.
+    Select competitive games played exclusively by two players.
 
-    Game results and their associated players are prefetched for 
-    downstream processing.
+    Optionally restrict results to fully confirmed games.
     """
+    # Select games containing both players, applying optional
+    # date and confirmation restrictions.
+    games = select_shared_games(
+        primary_player=primary_player,
+        secondary_player=secondary_player,
+        start_date=start_date,
+        end_date=end_date,
+        fully_confirmed_only=fully_confirmed_only,
+    )
+
+    # Feathered Foe requires exactly two human participants.
+    # This excludes shared games containing additional players.
     games = (
-        Game.objects
+        games
+        .annotate(
+            total_result_count=Count("results"),
+        )
         .filter(
             human_player_mode=Game.HumanPlayerMode.MULTIPLE,
-        )
-        .annotate(
-            total_result_count=Count(
-                "results",
-            ),
-            selected_player_count=Count(
-                "results",
-                filter=Q(
-                    results__player__in=[
-                        primary_player,
-                        secondary_player,
-                    ]
-                ),
-            ),
-        )
-        .filter(
             total_result_count=2,
-            selected_player_count=2,
         )
     )
 
-    if start_date is not None:
-        games = games.filter(
-            date_played__gte=start_date,
+    # Prefetch both player results for downstream processing.
+    # Preserve the original newest-first ordering.
+    games = (
+        games
+        .prefetch_related(
+            Prefetch(
+                "results",
+                queryset=GameResult.objects.select_related("player"),
+                to_attr="feathered_foe_results",
+            )
         )
-
-    if end_date is not None:
-        games = games.filter(
-            date_played__lte=end_date,
-        )
-
-    games = games.prefetch_related(
-        Prefetch(
-            "results",
-            queryset=GameResult.objects.select_related("player"),
-            to_attr="feathered_foe_results",
-        )
-    )
-
-    games = games.order_by(
-        "-date_played",
-        "-id",
+        .order_by("-date_played", "-id")
     )
 
     games = list(games)
@@ -149,6 +145,7 @@ def build_feathered_foe_game(
     game: Game,
     primary_player: Player,
     secondary_player: Player,
+    fully_confirmed_only: bool = False,
 ) -> FeatheredFoeGame:
     """
     Build a Feathered Foe game from a qualifying game.
@@ -387,31 +384,50 @@ def build_feathered_foe_player_summaries(
 
     return player_summaries
 
-def determine_feathered_foe_current_winner(
+
+def determine_feathered_foe_period_winner(
     *,
     primary_summary: FeatheredFoePlayerSummary,
     secondary_summary: FeatheredFoePlayerSummary,
+    winner_method: FeatheredFoeWinnerMethod = FeatheredFoeWinnerMethod.STANDARD,
 ) -> Player | None:
     """
-    Determine the current Feathered Foe winner.
+    Determine the period winner using the selected ranking method.
 
-    Game wins are compared first. If game wins are tied,
-    total score is used as the tiebreaker. If both are tied,
-    there is no current winner.
+    Return None when all applicable tiebreakers are equal.
     """
-    if primary_summary.game_wins > secondary_summary.game_wins:
+    winner_method = FeatheredFoeWinnerMethod(winner_method)
+
+    if winner_method == FeatheredFoeWinnerMethod.STANDARD:
+        primary_rank = (
+            primary_summary.game_wins,
+            primary_summary.score_total,
+        )
+        secondary_rank = (
+            secondary_summary.game_wins,
+            secondary_summary.score_total,
+        )
+
+    else:
+        primary_rank = (
+            primary_summary.night_wins,
+            primary_summary.game_wins,
+            primary_summary.score_total,
+        )
+        secondary_rank = (
+            secondary_summary.night_wins,
+            secondary_summary.game_wins,
+            secondary_summary.score_total,
+        )
+
+    if primary_rank > secondary_rank:
         return primary_summary.player
 
-    if secondary_summary.game_wins > primary_summary.game_wins:
-        return secondary_summary.player
-
-    if primary_summary.score_total > secondary_summary.score_total:
-        return primary_summary.player
-
-    if secondary_summary.score_total > primary_summary.score_total:
+    if secondary_rank > primary_rank:
         return secondary_summary.player
 
     return None
+
 
 def build_feathered_foe(
     *,
@@ -419,6 +435,8 @@ def build_feathered_foe(
     secondary_player: Player,
     start_date: date | None = None,
     end_date: date | None = None,
+    fully_confirmed_only = False,
+    winner_method: FeatheredFoeWinnerMethod = FeatheredFoeWinnerMethod.STANDARD
 ) -> FeatheredFoe:
     """
     Build the complete Feathered Foe result for two players
@@ -429,6 +447,7 @@ def build_feathered_foe(
         secondary_player=secondary_player,
         start_date=start_date,
         end_date=end_date,
+        fully_confirmed_only=fully_confirmed_only,
     )
 
     feathered_foe_games = [
@@ -455,17 +474,19 @@ def build_feathered_foe(
     primary_summary = player_summaries[0]
     secondary_summary = player_summaries[1]
 
-    current_winner = determine_feathered_foe_current_winner(
+    period_winner = determine_feathered_foe_period_winner(
         primary_summary=primary_summary,
         secondary_summary=secondary_summary,
+        winner_method=winner_method,
     )
 
     feathered_foe = FeatheredFoe(
         primary_player=primary_player,
         secondary_player=secondary_player,
-        current_winner=current_winner,
+        period_winner=period_winner,
         player_summaries=player_summaries,
         nights=nights,
+        winner_method=FeatheredFoeWinnerMethod(winner_method)
     )
 
     return feathered_foe

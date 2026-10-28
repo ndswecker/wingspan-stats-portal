@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
-from django.db.models import QuerySet
+from django.db.models import Exists, OuterRef, QuerySet
 from django.db import transaction
 from django.core.exceptions import PermissionDenied
 
@@ -57,12 +57,12 @@ def select_player_competitive_games(
     player: Player,
     start_date: date | None = None,
     end_date: date | None = None,
+    fully_confirmed_only: bool = False,
 ) -> QuerySet[Game]:
     """
-    Select competitive games in which the player participated.
+    Select competitive games involving a player within an optional date range.
 
-    Related game results and players are prefetched for downstream outcome
-    calculations. Optional date bounds are inclusive.
+    Optionally restrict results to fully confirmed games.
     """
     if (
         start_date is not None
@@ -79,9 +79,25 @@ def select_player_competitive_games(
             human_player_mode=Game.HumanPlayerMode.MULTIPLE,
             results__player=player,
         )
-        .prefetch_related("results__player")
-        .order_by("-date_played", "-id")
     )
+
+    if fully_confirmed_only:
+        # A game is eligible only when every participant's result
+        # has been confirmed.
+        unconfirmed_results = GameResult.objects.filter(
+            game_id=OuterRef("pk"),
+            is_confirmed=False,
+        )
+
+        games = (
+            games
+            .alias(
+                has_unconfirmed_results=Exists(unconfirmed_results),
+            )
+            .filter(
+                has_unconfirmed_results=False,
+            )
+        )
 
     if start_date is not None:
         games = games.filter(
@@ -93,7 +109,11 @@ def select_player_competitive_games(
             date_played__lte=end_date,
         )
 
-    return games
+    return (
+        games
+        .prefetch_related("results__player")
+        .order_by("-date_played", "-id")
+    )
 
 
 def calculate_player_game_result(
@@ -349,6 +369,7 @@ def build_player_history(
     player: Player,
     start_date: date | None = None,
     end_date: date | None = None,
+    fully_confirmed_only: bool = False,
 ) -> list[PlayerDailyResult]:
     """
     Build a player's competitive game history grouped into daily results.
@@ -360,6 +381,7 @@ def build_player_history(
         player=player,
         start_date=start_date,
         end_date=end_date,
+        fully_confirmed_only=fully_confirmed_only,
     )
 
     # Convert each selected game into a PlayerGameResult.
@@ -397,6 +419,7 @@ def build_player_history_with_summary(
     player: Player,
     start_date: date | None = None,
     end_date: date | None = None,
+    fully_confirmed_only: bool = False,
 ) -> PlayerHistory:
     """
     Build a player's competitive history together with aggregate totals.
@@ -407,6 +430,7 @@ def build_player_history_with_summary(
         player=player,
         start_date=start_date,
         end_date=end_date,
+        fully_confirmed_only=fully_confirmed_only
     )
 
     # Roll the daily results into totals for the

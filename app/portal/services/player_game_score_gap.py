@@ -4,6 +4,8 @@ from statistics import mean, median
 
 from django.db.models import Count, Prefetch, Q
 
+from .game_result_selection import select_shared_games
+
 from ..models import Game, GameResult, Player
 
 
@@ -51,54 +53,36 @@ class VictoryMarginAnalysis:
     insight: VictoryMarginInsight
 
 
-def select_game_score_gaps(
+
+def build_game_score_gaps(
     *,
     primary_player: Player,
     secondary_player: Player,
     start_date: date | None = None,
     end_date: date | None = None,
+    fully_confirmed_only: bool = False,
 ) -> list[GameScoreGap]:
     """
-    Select shared games and calculate score-gap data for two players.
+    Build chronological score-gap data for games shared by two players.
 
-    A game qualifies when both selected players have a result in the game.
-    Other players may also have participated. Optional date boundaries are
-    inclusive.
+    Optionally restrict results to fully confirmed games.
     """
-    games = (
-        Game.objects
-        # Count only results belonging to the two selected players. We do not
-        # restrict the total result count because multiplayer games with
-        # additional participants are valid for Game Score Gap.
-        .annotate(
-            selected_player_count=Count(
-                "results",
-                filter=Q(
-                    results__player__in=[
-                        primary_player,
-                        secondary_player,
-                    ]
-                ),
-            ),
-        )
-        .filter(
-            selected_player_count=2,
-        )
+
+    # Select qualifying shared games using the reusable selection service.
+    # This returns a lazy QuerySet that can be further refined.
+    games = select_shared_games(
+        primary_player=primary_player,
+        secondary_player=secondary_player,
+        start_date=start_date,
+        end_date=end_date,
+        fully_confirmed_only=fully_confirmed_only,
     )
 
-    if start_date is not None:
-        games = games.filter(
-            date_played__gte=start_date,
-        )
-
-    if end_date is not None:
-        games = games.filter(
-            date_played__lte=end_date,
-        )
-
-    # Fetch only the two results needed by this feature. The GameResult model
-    # guarantees one result per player per game, so each qualifying game will
-    # provide exactly one primary and one secondary result here.
+    # Fetch only the two selected players' results.
+    #
+    # The GameResult model guarantees one result per player per game,
+    # so every qualifying game will contain exactly one result for
+    # each selected player.
     selected_results = (
         GameResult.objects
         .filter(
@@ -110,6 +94,12 @@ def select_game_score_gaps(
         .select_related("player")
     )
 
+    # Prefetch the selected results to avoid additional database queries
+    # when building GameScoreGap objects.
+    #
+    # Order games oldest first so the output supports chronological
+    # score-gap progression charts. Game ID provides deterministic
+    # ordering when multiple games share the same date.
     games = (
         games
         .prefetch_related(
@@ -119,8 +109,6 @@ def select_game_score_gaps(
                 to_attr="game_score_gap_results",
             )
         )
-        # Score Gap is a game-by-game progression, so display the oldest game
-        # first. Game ID provides deterministic ordering for same-day games.
         .order_by(
             "date_played",
             "id",
@@ -129,6 +117,8 @@ def select_game_score_gaps(
 
     score_gaps = []
 
+    # Iterating over the QuerySet executes the database queries and
+    # provides each Game with its prefetched player results.
     for game in games:
         results_by_player = {
             result.player_id: result
@@ -145,11 +135,14 @@ def select_game_score_gaps(
             primary_score,
             secondary_score,
         )
+
         high_score = max(
             primary_score,
             secondary_score,
         )
 
+        # Determine the winner based on the two selected players'
+        # scores. A tie is represented by None.
         if primary_score > secondary_score:
             winner = primary_player
         elif secondary_score > primary_score:
@@ -171,6 +164,7 @@ def select_game_score_gaps(
         )
 
     return score_gaps
+
 
 def calculate_victory_margin_analysis(
     *,
