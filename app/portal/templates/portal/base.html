@@ -31,106 +31,58 @@
 
             <div class="collapse navbar-collapse" id="mainNavbar">
                 <ul class="navbar-nav ms-auto">
+                    {# Public navigation #}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'portal:home' %}">Home</a>
                     </li>
 
-                    <li class="nav-item">
-                        <a 
-                            class="nav-link"
-                            href="{% url 'portal:competitive_history' %}">
-                            Competitive History
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" 
-                            href="{% url 'portal:player-overview' %}">
-                            Players
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" 
-                            href="{% url 'portal:friends' %}">
-                            Friends
-                        </a>
-                    </li>
-
                     {% if user.is_authenticated %}
+                        {# Player navigation #}
                         <li class="nav-item">
-                            <a class="nav-link" 
-                                href="{% url 'portal:game-create' %}">
-                                Add Game
-                            </a>
+                            <a class="nav-link" href="{% url 'portal:player-overview' %}">Players</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'portal:competitive_history' %}">Competitive History</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'portal:player-score-trends' %}">Trends</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'portal:friends' %}">Friends</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'portal:game-create' %}">Add Game</a>
                         </li>
 
-                        <li class="nav-item">
-                            <a
-                                class="nav-link"
-                                href="{% url 'portal:player-score-trends' %}">
-                                Trends
-                            </a>
-                        </li>
+                        {% if user.is_staff %}
+                            {# Staff navigation #}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'portal:research-home' %}">Research</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/admin/">Admin</a>
+                            </li>
+                        {% endif %}
 
+                        {# Account actions #}
                         <li class="nav-item">
-                            <a 
-                            class="nav-link" 
-                            href="{% url 'portal:account' %}">
-                                Account
-                            </a>
+                            <a class="nav-link" href="{% url 'portal:account' %}">Account</a>
                         </li>
-
                         <li class="nav-item">
-                            <form
-                                method="post"
-                                action="{% url 'logout' %}"
-                                class="d-inline"
-                            >
+                            <form method="post" action="{% url 'logout' %}" class="d-inline">
                                 {% csrf_token %}
-
-                                <button
-                                    type="submit"
-                                    class="nav-link border-0 bg-transparent"
-                                >
+                                <button type="submit" class="nav-link border-0 bg-transparent">
                                     Logout
                                 </button>
                             </form>
                         </li>
-
-                        {% if user.is_staff %}
-                            <li class="nav-item">
-                                <a
-                                    class="nav-link"
-                                    href="{% url 'portal:research-home' %}"
-                                >
-                                    Research
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="/admin/">
-                                    Admin
-                                </a>
-                            </li>
-                        {% endif %}
                     {% else %}
+                        {# Anonymous navigation #}
                         <li class="nav-item">
-                            <a
-                                class="nav-link"
-                                href="{% url 'portal:register' %}"
-                            >
-                                Register
-                            </a>
+                            <a class="nav-link" href="{% url 'portal:register' %}">Register</a>
                         </li>
-
                         <li class="nav-item">
-                            <a
-                                class="nav-link"
-                                href="{% url 'login' %}"
-                            >
-                                Login
-                            </a>
+                            <a class="nav-link" href="{% url 'login' %}">Login</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -166,6 +118,5 @@
     </footer>
 
     <script src="{% static 'portal/js/bootstrap.bundle.min.js' %}"></script>
-    <script src="{% static 'portal/js/htmx.min.js' %}"></script>
 </body>
 </html>
