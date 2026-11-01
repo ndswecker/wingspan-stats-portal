@@ -35,6 +35,10 @@ class Player(models.Model):
         default=True,
     )
 
+    is_public = models.BooleanField(
+        default=False,
+    )
+
     class Meta:
         ordering = ["name"]
 

@@ -18,14 +18,21 @@ class PlayerAdmin(admin.ModelAdmin):
         "username",
         "handle",
         "email",
-        "is_active"
+        "is_active",
+        "is_public"
     )
-    list_filter = ("is_active",)
+
+    list_filter = (
+        "is_active",
+        "is_public",
+    )
+
     search_fields = (
         "name",
         "user__username",
         "user__email",
     )
+
     list_select_related = ("user",)
 
     @admin.display(description="Username")
