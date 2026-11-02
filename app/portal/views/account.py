@@ -1,8 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 
-from ..forms import RegistrationForm
+from ..forms import (
+    RegistrationForm,
+    PlayerPrivacyForm,
+)
 
 from ..services.player_game_results import (
     select_pending_game_results,
@@ -24,15 +28,41 @@ def account(request):
     )
 
     pending_game_results = []
+    privacy_form = None
+
+    if request.method == "POST":
+        if player is None:
+            raise PermissionDenied
+
+        privacy_form = PlayerPrivacyForm(
+            request.POST,
+            instance=player
+        )
+
+        if privacy_form.is_valid():
+            privacy_form.save()
+
+            messages.success(
+                request,
+                "Your privacy settings have been updated.",
+            )
+
+            return redirect("portal:account")
 
     if player is not None:
         pending_game_results = select_pending_game_results(
             player=player,
         )
 
+        if privacy_form is None:
+            privacy_form = PlayerPrivacyForm(
+                instance=player,
+            )
+
     context = {
         "player": player,
         "pending_game_results": pending_game_results,
+        "privacy_form": privacy_form,
     }
 
     return render(

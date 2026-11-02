@@ -42,9 +42,93 @@ Account | Wingspan Stats Portal
                     </span>
                 {% endif %}
             </dd>
+
+            <dt class="col-sm-3">Profile Visibility</dt>
+            <dd class="col-sm-9">
+                {% if player %}
+                    {% if player.is_public %}
+                        <span class="text-success fw-semibold">
+                            Public
+                        </span>
+                    {% else %}
+                        <span class="text-secondary fw-semibold">
+                            Private
+                        </span>
+                    {% endif %}
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+            </dd>
         </dl>
     </div>
 </div>
+
+{% if player %}
+<div class="card mb-4">
+    <div class="card-header">
+        <strong>Player Privacy</strong>
+    </div>
+
+    <div class="card-body">
+
+        <p class="text-muted">
+            Control whether other Wingspan Stats Portal users
+            can view your confirmed game results and statistics.
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-check mb-3">
+                {{ privacy_form.is_public }}
+
+                <label
+                    class="form-check-label"
+                    for="{{ privacy_form.is_public.id_for_label }}"
+                >
+                    Make my player profile public
+                </label>
+            </div>
+
+            {% for error in privacy_form.is_public.errors %}
+                <div class="text-danger small mb-2">
+                    {{ error }}
+                </div>
+            {% endfor %}
+
+            <div class="small text-muted mb-3">
+                <p>
+                    <strong>Private:</strong>
+                    Only you and your friends can view your
+                    player statistics and confirmed game results.
+                </p>
+
+                <p>
+                    <strong>Public:</strong>
+                    Any logged-in user can view your confirmed
+                    game results and statistics. Your player name
+                    and handle will also appear on the public
+                    leaderboard.
+                </p>
+
+                <p class="mb-0">
+                    Changing this setting does not affect your
+                    friendships or who can add games for you.
+                </p>
+            </div>
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Save Privacy Settings
+            </button>
+
+        </form>
+    </div>
+</div>
+{% endif %}
+
 <div class="card mb-4">
 
     <div class="card-header">
@@ -52,13 +136,10 @@ Account | Wingspan Stats Portal
     </div>
 
     <div class="card-body">
-
         {% if pending_game_results %}
-
             <div class="list-group list-group-flush">
 
                 {% for result in pending_game_results %}
-
                     <div class="list-group-item px-0">
 
                         <div class="d-flex justify-content-between align-items-center">
@@ -83,11 +164,9 @@ Account | Wingspan Stats Portal
                         </div>
 
                     </div>
-
                 {% endfor %}
 
             </div>
-
         {% else %}
 
             <p class="text-muted mb-0">
@@ -95,7 +174,6 @@ Account | Wingspan Stats Portal
             </p>
 
         {% endif %}
-
     </div>
 
 </div>

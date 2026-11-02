@@ -1000,3 +1000,16 @@ class TurnOrderResearchFilterForm(forms.Form):
             )
 
         return cleaned_data
+
+class PlayerPrivacyForm(forms.ModelForm):
+    class Meta:
+        model = Player
+        fields = ["is_public"]
+
+        widgets = {
+            "is_public": forms.CheckboxInput(
+                attrs={
+                    "class": "form-check-input",
+                }
+            )
+        }
