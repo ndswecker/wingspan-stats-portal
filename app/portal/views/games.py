@@ -19,6 +19,10 @@ from ..services.game_entry import (
     update_game,
 )
 
+from ..services.player_access import (
+    can_view_game,
+)
+
 from ..services.player_game_results import confirm_game_result
 
 from ..permissions import can_manage_game
@@ -98,6 +102,8 @@ class GameCreateView(LoginRequiredMixin, View):
             context,
         )
 
+
+@login_required
 def game_detail(request, pk):
     # When retrieving this game I'm going to need its game results, and the player associated
     # with each result
@@ -107,6 +113,12 @@ def game_detail(request, pk):
         ),
         pk=pk,
     )
+
+    if not can_view_game(
+        user=request.user,
+        game=game,
+    ):
+        raise PermissionDenied
 
     user_can_manage_game = can_manage_game(
         request.user,

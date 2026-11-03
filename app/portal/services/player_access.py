@@ -1,6 +1,6 @@
 from django.db.models import Q
 
-from ..models import Player, Friendship
+from ..models import Player, Friendship, GameResult
 
 
 def get_viewable_players(
@@ -69,6 +69,41 @@ def get_viewable_players(
     viewable_players = viewable_players.order_by("name")
 
     return viewable_players
+
+
+def can_view_game(*, user, game):
+    """
+    Determine whether a user may view a game's full details.
+
+    Access is granted to:
+        - Staff and superusers
+        - Players who participated in the game
+
+    Friendship and public visibility do not grant access
+    to the full Game Detail page.
+    """
+
+    # Anonymous users cannot view game details.
+    if not user.is_authenticated:
+        return False
+
+    # Staff and superusers can inspect all games.
+    if user.is_staff or user.is_superuser:
+        return True
+
+    # Identify the Player associated with the user.
+    acting_player = getattr(user, "player", None)
+
+    if acting_player is None:
+        return False
+
+    # Check whether the player participated in this game.
+    is_participant = GameResult.objects.filter(
+        game=game,
+        player=acting_player,
+    ).exists()
+
+    return is_participant
 
 
 

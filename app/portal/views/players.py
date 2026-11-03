@@ -167,7 +167,7 @@ def player_overview(request):
 
     filter_form = PlayerStatisticsFilterForm(
         form_data,
-        acting_player=acting_player,
+        user=request.user,
     )
 
     general_stats = None
@@ -192,6 +192,7 @@ def player_overview(request):
             game_type=game_type,
             start_date=selected_start_date,
             end_date=selected_end_date,
+            fully_confirmed_only=True,
         )
 
         general_stats = calculate_general_stats(

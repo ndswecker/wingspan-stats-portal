@@ -25,6 +25,8 @@ from .services.game_entry import get_allowed_result_players
 
 from .services.feathered_foe import FeatheredFoeWinnerMethod
 
+from .services.player_access import get_viewable_players
+
 User = get_user_model()
 
 class GameForm(forms.ModelForm):
@@ -369,18 +371,20 @@ class PlayerStatisticsFilterForm(forms.Form):
     def __init__(
         self,
         *args,
-        acting_player=None,
+        user=None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
 
-        if acting_player is None:
+        if user is None:
             self.fields["player"].queryset = Player.objects.none()
             return
 
-        self.fields["player"].queryset = get_allowed_result_players(
-            acting_player=acting_player,
+        viewable_players = get_viewable_players(
+            user=user,
         )
+
+        self.fields["player"].queryset = viewable_players
 
     def clean(self):
         cleaned_data = super().clean()
