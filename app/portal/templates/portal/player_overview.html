@@ -244,12 +244,16 @@
                             {% for result in game_results %}
                                 <tr>
                                     <td class="text-nowrap">
-                                        <a
-                                            href="{% url 'portal:game-detail' result.game.pk %}"
-                                            class="fw-semibold"
-                                        >
+                                        {% if is_viewing_own_results %}
+                                            <a
+                                                href="{% url 'portal:game-detail' result.game.pk %}"
+                                                class="fw-semibold"
+                                            >
+                                                {{ result.game.date_played|date:"M j, Y" }}
+                                            </a>
+                                        {% else %}
                                             {{ result.game.date_played|date:"M j, Y" }}
-                                        </a>
+                                        {% endif %}
                                     </td>
 
                                     <td>

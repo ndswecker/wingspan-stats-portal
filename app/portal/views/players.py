@@ -149,7 +149,7 @@ def competitive_history(request):
 
 @login_required
 def player_overview(request):
-    acting_player = request.user.player
+    acting_player = getattr(request.user, "player", None)
 
     form_data = request.GET.copy() if request.GET else None
 
@@ -176,9 +176,16 @@ def player_overview(request):
     selected_game_type_label = None
     selected_start_date = None
     selected_end_date = None
+    is_viewing_own_results = False
 
     if filter_form.is_valid():
         selected_player = filter_form.cleaned_data["player"]
+
+        is_viewing_own_results = (
+            acting_player is not None
+            and selected_player.pk == acting_player.pk
+        )
+
         game_type = Game.HumanPlayerMode(
             filter_form.cleaned_data["game_type"]
         )
@@ -207,6 +214,7 @@ def player_overview(request):
         "selected_game_type_label": selected_game_type_label,
         "selected_start_date": selected_start_date,
         "selected_end_date": selected_end_date,
+        "is_viewing_own_results": is_viewing_own_results,
     }
 
     return render(
@@ -217,7 +225,6 @@ def player_overview(request):
 
 @login_required
 def player_score_trends(request):
-    acting_player = request.user.player
 
     form_data = request.GET.copy() if request.GET else None
 
@@ -235,7 +242,7 @@ def player_score_trends(request):
 
     filter_form = PlayerScoreTrendsFilterForm(
         form_data,
-        acting_player=acting_player,
+        user=request.user,
     )
 
     selected_player = None

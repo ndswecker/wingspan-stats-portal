@@ -459,21 +459,21 @@ class PlayerScoreTrendsFilterForm(forms.Form):
     def __init__(
         self, 
         *args, 
-        acting_player=None,
+        user=None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
 
-        if acting_player is None:
+        if user is None:
             self.fields["player"].queryset = Player.objects.none()
             self.fields["secondary_player"].queryset = Player.objects.none()
         else:
-            allowed_players = get_allowed_result_players(
-                acting_player=acting_player,
+            viewable_players = get_viewable_players(
+                user=user,
             )
 
-            self.fields["player"].queryset = allowed_players
-            self.fields["secondary_player"].queryset = allowed_players
+            self.fields["player"].queryset = viewable_players
+            self.fields["secondary_player"].queryset = viewable_players
 
 
     def clean(self):
