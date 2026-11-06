@@ -58,11 +58,10 @@ from ..services.player_game_score_gap_chart import (
 
 @login_required
 def competitive_history(request):
-    acting_player = request.user.player
 
     filter_form = PlayerGameHistoryFilterForm(
         request.GET or None,
-        acting_player=acting_player,
+        user=request.user,
     )
 
     selected_player = None
