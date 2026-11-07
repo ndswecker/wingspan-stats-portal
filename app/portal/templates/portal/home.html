@@ -1,59 +1,407 @@
+
 {% extends "portal/base.html" %}
 
 {% block title %}Home | Wingspan Stats Portal{% endblock %}
 
 {% block content %}
+
+<!-- ===================================================== -->
+<!-- Page Header                                           -->
+<!-- ===================================================== -->
+
 <h1 class="mb-3">Wingspan Stats Portal</h1>
 
-<p class="text-muted">
-    Dashboard summary for the current Wingspan database.
+<p class="text-muted mb-4">
+    Explore community rankings and compare your performance
+    with friends.
 </p>
 
-<div class="row">
+
+<!-- ===================================================== -->
+<!-- Site-Wide Statistics                                  -->
+<!-- ===================================================== -->
+
+<div class="row mb-4">
     <div class="col-md-4">
-        <div class="card shadow-sm">
+        <div class="card shadow-sm h-100">
             <div class="card-body">
                 <h5 class="card-title">Total Games Played</h5>
-                <p class="display-6 mb-0">{{ total_games_played }}</p>
+
+                <p class="display-6 mb-0">
+                    {{ total_games_played }}
+                </p>
+
+                <small class="text-muted">
+                    All recorded games
+                </small>
             </div>
         </div>
     </div>
 </div>
 
-<h2 class="mt-5 mb-3">Player Performance</h2>
 
-{% if player_performance_summary %}
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th scope="col">Player</th>
-                    <th scope="col">Games Played</th>
-                    <th scope="col">Game Wins</th>
-                    <th scope="col">Night Wins</th>
-                    <th scope="col">Average Score</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for summary in player_performance_summary %}
-                    <tr>
-                        <td>{{ summary.player.name }}</td>
-                        <td>{{ summary.games_played }}</td>
-                        <td>{{ summary.game_wins }}</td>
-                        <td>{{ summary.night_wins }}</td>
-                        <td>
-                            {% if summary.average_score %}
-                                {{ summary.average_score }}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- ===================================================== -->
+<!-- Leaderboard Filters                                   -->
+<!-- ===================================================== -->
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header">
+        <strong>Leaderboard Filters</strong>
     </div>
-{% else %}
-    <p>No player performance data is available yet.</p>
+
+    <div class="card-body">
+
+        <p class="text-muted small">
+            Customize the time period, ranking metric, and
+            game type for both leaderboards.
+        </p>
+
+        <form
+            method="get"
+            action="{% url 'portal:home' %}"
+        >
+
+            <div class="row g-3">
+
+                <!-- Time Period -->
+
+                <div class="col-md-4">
+                    <label
+                        for="{{ filter_form.period.id_for_label }}"
+                        class="form-label"
+                    >
+                        Time Period
+                    </label>
+
+                    {{ filter_form.period }}
+                </div>
+
+
+                <!-- Ranking Metric -->
+
+                <div class="col-md-4">
+                    <label
+                        for="{{ filter_form.ranking_metric.id_for_label }}"
+                        class="form-label"
+                    >
+                        Rank By
+                    </label>
+
+                    {{ filter_form.ranking_metric }}
+                </div>
+
+
+                <!-- Game Type -->
+
+                <div class="col-md-4">
+                    <label
+                        for="{{ filter_form.game_type.id_for_label }}"
+                        class="form-label"
+                    >
+                        Game Type
+                    </label>
+
+                    {{ filter_form.game_type }}
+                </div>
+
+            </div>
+
+
+            <!-- Filter Actions -->
+
+            <div class="d-flex flex-wrap gap-2 mt-3">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Update Leaderboards
+                </button>
+
+                <a
+                    href="{% url 'portal:home' %}"
+                    class="btn btn-outline-secondary"
+                >
+                    Reset Filters
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+
+<!-- ===================================================== -->
+<!-- Active Leaderboard Selections                         -->
+<!-- ===================================================== -->
+
+<div class="mb-4">
+
+    <p class="text-muted small mb-0">
+
+        <strong>Showing:</strong>
+
+        {% if selected_period == "30" %}
+            Last 30 Days
+        {% elif selected_period == "90" %}
+            Last 90 Days
+        {% else %}
+            All Time
+        {% endif %}
+
+        &middot;
+
+        {% if selected_ranking_metric == "average_score" %}
+            Ranked by Average Score
+        {% else %}
+            Ranked by Games Played
+        {% endif %}
+
+        &middot;
+
+        {% if selected_game_type == "single_human" %}
+            Solo Games
+        {% elif selected_game_type == "multi_human" %}
+            Competitive Games
+        {% else %}
+            All Games
+        {% endif %}
+
+    </p>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- Community Top 10 Leaderboard                          -->
+<!-- ===================================================== -->
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header">
+        <strong>Community Top 10</strong>
+    </div>
+
+    <div class="card-body">
+
+        <p class="text-muted small">
+            Rankings of active players who have chosen
+            to make their profiles public.
+            Only fully confirmed games are included.
+        </p>
+
+        {% if community_leaderboard %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead>
+                        <tr>
+                            <th scope="col">Rank</th>
+                            <th scope="col">Player</th>
+                            <th
+                                scope="col"
+                                class="text-end"
+                            >
+                                Games Played
+                            </th>
+                            <th
+                                scope="col"
+                                class="text-end"
+                            >
+                                Average Score
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in community_leaderboard %}
+
+                            <tr>
+
+                                <!-- Rank -->
+
+                                <td class="fw-semibold">
+                                    {{ row.rank }}
+                                </td>
+
+
+                                <!-- Player Identity -->
+
+                                <td>
+                                    <div class="fw-semibold">
+                                        {{ row.player.name }}
+                                    </div>
+
+                                    <small class="text-muted">
+                                        @{{ row.player.handle }}
+                                    </small>
+                                </td>
+
+
+                                <!-- Games Played -->
+
+                                <td class="text-end">
+                                    {{ row.games_played }}
+                                </td>
+
+
+                                <!-- Average Score -->
+
+                                <td class="text-end">
+                                    {{ row.average_score|floatformat:1 }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="text-muted py-3">
+                No public players have fully confirmed games
+                matching the selected filters.
+            </div>
+
+        {% endif %}
+
+    </div>
+</div>
+
+
+<!-- ===================================================== -->
+<!-- Friends Leaderboard                                   -->
+<!-- ===================================================== -->
+
+{% if show_friends_leaderboard %}
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            <strong>Friends Leaderboard</strong>
+        </div>
+
+        <div class="card-body">
+
+            <p class="text-muted small">
+                Compare your performance with your active friends.
+                Both public and private friends are included.
+                Only fully confirmed games are counted.
+            </p>
+
+            {% if friends_leaderboard %}
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle mb-0">
+
+                        <thead>
+                            <tr>
+                                <th scope="col">Rank</th>
+                                <th scope="col">Player</th>
+                                <th
+                                    scope="col"
+                                    class="text-end"
+                                >
+                                    Games Played
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="text-end"
+                                >
+                                    Average Score
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for row in friends_leaderboard %}
+
+                                <tr
+                                    {% if row.player.pk == acting_player.pk %}
+                                        class="table-primary"
+                                    {% endif %}
+                                >
+
+                                    <!-- Rank -->
+
+                                    <td class="fw-semibold">
+                                        {{ row.rank }}
+                                    </td>
+
+
+                                    <!-- Player Identity -->
+
+                                    <td>
+
+                                        <div class="fw-semibold">
+
+                                            {{ row.player.name }}
+
+                                            {% if row.player.pk == acting_player.pk %}
+                                                <span
+                                                    class="badge text-bg-primary ms-2"
+                                                >
+                                                    You
+                                                </span>
+                                            {% endif %}
+
+                                        </div>
+
+                                        <small class="text-muted">
+                                            @{{ row.player.handle }}
+                                        </small>
+
+                                    </td>
+
+
+                                    <!-- Games Played -->
+
+                                    <td class="text-end">
+                                        {{ row.games_played }}
+                                    </td>
+
+
+                                    <!-- Average Score -->
+
+                                    <td class="text-end">
+                                        {{ row.average_score|floatformat:1 }}
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="text-muted py-3">
+                    Neither you nor your friends have fully
+                    confirmed games matching the selected filters.
+                </div>
+
+            {% endif %}
+
+        </div>
+    </div>
+
 {% endif %}
+
 {% endblock %}

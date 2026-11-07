@@ -1017,3 +1017,58 @@ class PlayerPrivacyForm(forms.ModelForm):
                 }
             )
         }
+
+
+class HomeLeaderboardFilterForm(forms.Form):
+    """
+    Filter controls for the Home page leaderboards.
+
+    Both Community and Friends leaderboards share
+    the same period, ranking metric, and game type.
+    """
+
+    PERIOD_CHOICES = [
+        ("30", "Last 30 Days"),
+        ("90", "Last 90 Days"),
+        ("all", "All Time"),
+    ]
+
+    RANKING_CHOICES = [
+        ("average_score", "Average Score"),
+        ("games_played", "Games Played"),
+    ]
+
+    GAME_TYPE_CHOICES = [
+        ("all", "All Games"),
+        *Game.HumanPlayerMode.choices,
+    ]
+
+    period = forms.ChoiceField(
+        choices=PERIOD_CHOICES,
+        initial="30",
+        required=True,
+        label="Time Period",
+        widget=forms.Select(
+            attrs={"class": "form-select"},
+        ),
+    )
+
+    ranking_metric = forms.ChoiceField(
+        choices=RANKING_CHOICES,
+        initial="average_score",
+        required=True,
+        label="Rank By",
+        widget=forms.Select(
+            attrs={"class": "form-select"},
+        ),
+    )
+
+    game_type = forms.ChoiceField(
+        choices=GAME_TYPE_CHOICES,
+        initial="all",
+        required=True,
+        label="Game Type",
+        widget=forms.Select(
+            attrs={"class": "form-select"},
+        ),
+    )

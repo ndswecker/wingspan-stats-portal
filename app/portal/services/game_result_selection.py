@@ -33,44 +33,21 @@ def select_game_results(
     )
 
     if fully_confirmed_only:
-        # Build a correlated subquery that checks whether the game associated
-        # with each candidate GameResult has any unconfirmed results.
-        #
-        # OuterRef("game_id") references the game_id of the GameResult
-        # currently being evaluated by the outer queryset.
-        unconfirmed_results = GameResult.objects.filter(
-            game_id=OuterRef("game_id"),
-            is_confirmed=False,
+        query_set = filter_fully_confirmed_game_results(
+            game_results=query_set,
         )
 
-        # Exists() evaluates whether the subquery finds any matching rows.
-        #
-        # By filtering for False, we exclude any GameResult whose game
-        # contains at least one unconfirmed result.
-        #
-        # alias() allows us to filter on this expression without adding
-        # the calculated value to the returned results.
-        query_set = (
-            query_set
-            .alias(
-                has_unconfirmed_results=Exists(unconfirmed_results),
+        if start_date:
+            query_set = query_set.filter(
+                game__date_played__gte=start_date,
             )
-            .filter(
-                has_unconfirmed_results=False,
+
+        if end_date:
+            query_set = query_set.filter(
+                game__date_played__lte=end_date,
             )
-        )
 
-    if start_date:
-        query_set = query_set.filter(
-            game__date_played__gte=start_date,
-        )
-
-    if end_date:
-        query_set = query_set.filter(
-            game__date_played__lte=end_date,
-        )
-
-    return query_set
+        return query_set
 
 
 def select_shared_games(
@@ -162,3 +139,36 @@ def select_shared_games(
         )
 
     return games
+
+
+def filter_fully_confirmed_game_results(
+    *,
+    game_results: QuerySet[GameResult],
+) -> QuerySet[GameResult]:
+    """
+    Return only results belonging to fully confirmed games.
+
+    A game is fully confirmed when none of its
+    associated GameResult records are unconfirmed.
+
+    Accepts and returns a lazy QuerySet.
+    """
+
+    # Find unconfirmed results belonging to the game
+    # associated with each candidate GameResult.
+    unconfirmed_results = GameResult.objects.filter(
+        game_id=OuterRef("game_id"),
+        is_confirmed=False,
+    )
+
+    # Exclude results belonging to games with
+    # at least one unconfirmed participant.
+    confirmed_results = game_results.alias(
+        has_unconfirmed_results=Exists(unconfirmed_results),
+    )
+
+    confirmed_results = confirmed_results.filter(
+        has_unconfirmed_results=False,
+    )
+
+    return confirmed_results

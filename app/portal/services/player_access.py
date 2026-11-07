@@ -106,5 +106,91 @@ def can_view_game(*, user, game):
     return is_participant
 
 
+def get_public_players():
+    """
+    Return all active Players who have opted into public visibility.
 
+    The results are independent of the requesting user's
+    authentication status, friendships, or administrative privileges.
+    """
+
+    # Only active Players with public profiles are eligible.
+    public_players = Player.objects.filter(
+        is_active=True,
+        is_public=True,
+    )
+
+    # Sort alphabetically for consistent ordering.
+    public_players = public_players.order_by("name")
+
+    return public_players
+
+
+def get_friends_leaderboard_players(
+    *,
+    user,
+):
+    """
+    Return the Players eligible for a user's Friends leaderboard.
+
+    Eligible Players include:
+        - The authenticated user's own Player
+        - Their active friends, regardless of public/private status
+
+    Inactive Players and former friends are excluded.
+
+    Staff and superusers receive no special access.
+    Anonymous users and users without a linked Player
+    receive an empty queryset.
+    """
+
+    # Anonymous users cannot access a Friends leaderboard.
+    if not user.is_authenticated:
+        return Player.objects.none()
+
+    # Identify the Player associated with the authenticated user.
+    acting_player = getattr(user, "player", None)
+
+    # Users without a linked Player cannot access a Friends leaderboard.
+    if acting_player is None:
+        return Player.objects.none()
+
+    # Find active friendships where the acting player
+    # occupies the player_a position.
+    friend_ids = Friendship.objects.filter(
+        ended_at__isnull=True,
+        player_a=acting_player,
+    ).values("player_b_id")
+
+    # Find active friendships where the acting player
+    # occupies the player_b position.
+    reverse_friend_ids = Friendship.objects.filter(
+        ended_at__isnull=True,
+        player_b=acting_player,
+    ).values("player_a_id")
+
+    # A Player qualifies if they are the acting player
+    # or an active friend.
+    #
+    # Public visibility is intentionally not considered.
+    friendship_conditions = (
+        Q(pk=acting_player.pk)
+        | Q(pk__in=friend_ids)
+        | Q(pk__in=reverse_friend_ids)
+    )
+
+    # Exclude inactive Players.
+    leaderboard_players = Player.objects.filter(
+        is_active=True,
+    )
+
+    # Apply the friendship conditions.
+    leaderboard_players = leaderboard_players.filter(
+        friendship_conditions,
+    )
+
+    # Sort alphabetically for consistent ordering.
+    leaderboard_players = leaderboard_players.order_by("name")
+
+    return leaderboard_players
     
