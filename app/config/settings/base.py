@@ -35,7 +35,7 @@ CSRF_TRUSTED_ORIGINS = env.list(
 )
 
 APPLICATION_NAME = "Wingspan Stats Portal"
-APPLICATION_VERSION = "0.3.2"
+APPLICATION_VERSION = "0.4.0"
 
 # Application definition
 
