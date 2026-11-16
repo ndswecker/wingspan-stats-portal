@@ -91,10 +91,12 @@ class GameResultForm(forms.Form):
     turn_order = forms.IntegerField(
         required=False,
         min_value=1,
+        max_value=5,
         widget=forms.NumberInput(
             attrs={
                 "class": "form-control",
                 "min": 1,
+                "max": 5,
                 "inputmode": "numeric",
             }
         ),
@@ -122,6 +124,8 @@ class GameResultForm(forms.Form):
         player = cleaned_data.get("player")
         score = cleaned_data.get("score")
         turn_order = cleaned_data.get("turn_order")
+        max_turn_order = 5
+        min_turn_order = 1
 
         row_is_blank = (
             player is None
