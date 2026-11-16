@@ -7,6 +7,8 @@ from .games import (
     game_detail,
     game_edit,
     confirm_game_result_view,
+    game_result_rows,
+    game_edit_result_rows,
 )
 
 from .friendship import (

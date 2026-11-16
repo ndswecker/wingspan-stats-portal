@@ -1,297 +1,210 @@
-# Staff Game Entry Requirements
+# Wingspan Portal — Dynamic Game Player Entry
 
-## Purpose
-
-Provide a staff-only web interface for recording completed Wingspan games without requiring direct access to the Django Admin or the CSV importer.
-
-This page is intended to become the primary method of entering new games into the application.
-
-The existing CSV importer remains a destructive bootstrap utility used only for initial database population.
+**Status:** Approved for Development  
+**Scope:** Game creation workflow  
+**Target Version:** TBD
 
 ---
 
-# Access Control
+## 1. Objective
 
-## Authentication
+Improve the Add Game workflow by replacing the current five permanently displayed player-result slots with a dynamic interface.
 
-The page requires an authenticated Django user.
+Users should begin with one player entry and add or remove additional players as needed.
 
-Unauthenticated users are redirected to the login page.
+The implementation will use Django forms, Django formsets, server-rendered HTML templates, and HTMX. No custom JavaScript is required.
 
-## Authorization
+The feature must preserve existing game validation, player permissions, and score-confirmation behavior.
 
-Only users with `is_staff=True` may access this page.
+## 2. Functional Requirements
 
-Authenticated users without staff privileges receive an HTTP 403 response.
+### Player Entry
 
-## Navigation
+- The Add Game form initially displays one player-result row.
+- Each row contains Player, Score, and optional Turn Order.
+- An **Add Another Player** button dynamically adds another row.
+- Additional rows include a **Remove** control.
+- A maximum of five human players may be entered.
+- At least one human player is required.
+- Adding or removing rows must preserve previously entered values.
+- Add/Remove operations must not save a game or create database records.
+- The interface must work on desktop and mobile.
 
-A navigation link to the page should only be visible to staff users.
+### Game Modes
 
-Server-side authorization must always be enforced regardless of whether the navigation link is visible.
+Preserve the existing distinction between game modes:
 
----
+- **Solo Game:** Exactly one human player.
+- **Competitive Game:** Two or more human players.
 
-# User Interface
+Game mode is determined by the number of human participants, not the total number of participants.
 
-The page consists of a single game submission form.
+The application may eventually support computer players. The current feature will not implement computer participants, but its design must not prevent their future inclusion.
 
-The form contains two sections:
+### Validation
 
-## Game Information
+Preserve existing validation requirements:
 
-- Date Played
-- Human Player Mode
+- Every populated result requires a player and score.
+- Scores must be nonnegative.
+- Players cannot appear more than once in a game.
+- Provided turn orders must be unique and positive.
+- Game mode must agree with the human player count.
+- Only the authenticated player and their eligible friends may be selected.
 
-## Player Results
+All validation must remain authoritative on the server.
 
-The form always displays **five player rows**.
+### Score Confirmation
 
-Each row contains:
+Preserve existing confirmation behavior:
 
-- Player dropdown
-- Score input
-- Turn Order input
+- A player entering their own result automatically confirms that result.
+- Results entered for friends remain unconfirmed until confirmed by the appropriate player.
+- Dynamically adding or removing participants must not alter these rules.
 
-Rows are never dynamically added or removed.
+## 3. Technical Approach
 
-Unused rows remain blank.
+### Django and HTMX
 
----
+Use HTMX for partial-page updates while keeping all form construction and processing in Django.
 
-# Game Information
+The general interaction will be:
 
-## Date Played
+1. User selects **Add Another Player** or **Remove**.
+2. HTMX submits the current form values to a dedicated endpoint.
+3. Django reconstructs the player-result formset with the updated rows.
+4. Django renders an HTML partial containing the updated player-result section.
+5. HTMX replaces the existing section without refreshing the entire page.
 
-Requirements:
+The endpoint must preserve submitted values and remain separate from the final game-saving operation.
 
-- Required field
-- HTML date input
-- Defaults to today's date
-- Future dates are not permitted
+### Django Formsets
 
-## Human Player Mode
+Continue using the existing `GameResultFormSet` architecture.
 
-The user selects one of the existing model values:
+- Change the initial number of displayed rows from five to one.
+- Retain the five-human-player maximum.
+- Support dynamic row addition and deletion.
+- Maintain valid Django formset management data.
+- Ensure deleted rows are excluded from structural validation and persistence.
+- Preserve user-entered values and display validation errors appropriately.
 
-- Solo Game
-- Competitive Game
+### HTML Templates
 
-The form displays the human-readable labels rather than the stored database values.
+Extract the Player Results section into a reusable partial template.
 
----
+The partial will support both initial page rendering and HTMX updates.
 
-# Player Result Rows
+Use the existing Bootstrap styling conventions and HTMX dependency already included in `base.html`.
 
-Each visible row represents one potential `GameResult`.
+No additional frontend framework or custom JavaScript should be introduced.
 
-Each row contains:
+## 4. Files and Responsibilities
 
-## Player
+| File | Planned changes |
+|---|---|
+| `portal/forms.py` | Adjust result formset configuration and deletion-aware validation |
+| `portal/views/games.py` | Preserve `GameCreateView` and introduce a dedicated HTMX endpoint |
+| `portal/templates/portal/game_create.html` | Integrate dynamic player controls and the reusable partial |
+| New player-results partial | Render formset rows, controls, errors, and management fields |
+| `portal/urls.py` | Register the dedicated HTMX endpoint |
+| `portal/services/game_entry.py` | Review compatibility; avoid changing existing business logic unless necessary |
+| Tests | Cover dynamic interactions, validation, authorization, and game creation |
 
-- Dropdown of active players
-- Required only if the row is used
-- A player may only appear once within a submitted game
+## 5. Architectural Constraints
 
-Inactive players remain associated with historical games but are not selectable for new games.
+### Preserve Existing Models
 
-Player creation is outside the scope of this feature.
+The current relationship remains:
 
----
+- One `Game` has multiple `GameResult` records.
+- Each `GameResult` belongs to one `Player`.
+- Human player mode remains a property of `Game`.
 
-## Score
+No database schema changes or migrations are anticipated.
 
-- Integer input
-- Required if a player is selected
-- Must be zero or greater
+### Preserve Service Responsibilities
 
----
+`create_game()` remains responsible for:
 
-## Turn Order
+- Creating the game and its results atomically.
+- Enforcing allowed-player restrictions.
+- Applying score-confirmation rules.
 
-- Integer input
-- Optional if a player is selected
-- Must be a positive integer
-- No two submitted players may share the same turn order
+HTMX endpoints are responsible only for manipulating the form interface.
 
-Although the expected values are normally between 1 and 5, the application only requires that submitted values are positive and unique.
+### Avoid Unnecessary Refactoring
 
-The user is responsible for entering the desired turn order.
+Keep the feature focused on game creation.
 
----
+The existing Game Edit workflow uses a separate `GameResultEditFormSet`. It should remain functional and unchanged during this initial implementation.
 
-# Blank Row Behavior
+Dynamic player entry for Game Edit may be addressed in a separate feature.
 
-A row is ignored only when all fields are empty.
+## 6. Potential Implementation Risks
 
-A row containing:
+### Formset Management
 
-- Player
-- Score
-- Turn Order
+Django formsets require consistent form indexes and management fields, particularly `TOTAL_FORMS`.
 
-must contain Player and Score.
+Adding and removing rows must not generate malformed or inconsistent submissions.
 
-Examples:
+### Removing Rows
 
-| Player | Score | Turn Order | Result |
-|---------|------:|-----------:|--------|
-| blank | blank | blank | Ignored |
-| Nate | 108 | 1 | Saved |
-| Nate | blank | 1 | Validation Error |
-| blank | 108 | 1 | Validation Error |
-| Nate | 108 | blank | Saved |
+Deleted rows must not participate in player-count validation, uniqueness checks, or game creation.
 
----
+The implementation must distinguish between removing an unsaved row and submitting valid participant data.
 
-# Solo Game Rules
+### HTMX State Preservation
 
-When the game mode is **Solo Game**:
+HTMX operations must retain existing player selections, scores, turn orders, game mode, and date.
 
-- Exactly one player row must be completed.
-- The remaining rows remain blank.
+Partially completed forms should not lose data when another player is added or removed.
 
-Submitting more than one player for a solo game is invalid.
+### Validation Errors
 
----
+Invalid submissions must preserve all active rows and entered values.
 
-# Competitive Game Rules
+Row-level and formset-level validation errors must remain visible and understandable.
 
-When the game mode is **Competitive Game**:
+### Authorization
 
-- At least two player rows must be completed.
-- Up to five player rows may be completed.
+HTMX endpoints must require authentication and a linked Player.
 
-The interface always displays five rows regardless of game type.
+Player choices must continue to be restricted to the acting player and eligible friends. Client-submitted values must not be trusted as authorization.
 
----
+### Computer Players
 
-# Validation Rules
+Current formsets represent human player results only.
 
-The application validates the complete submission before saving.
+Future computer-player support may require a separate participant representation or model extension. Avoid embedding assumptions that all future game participants are human.
 
-## Game Validation
+## 7. Implementation Sequence
 
-- Date is present
-- Date is not in the future
-- Human Player Mode is valid
+1. Update `GameResultFormSet` to support one initial row and dynamic row management.
+2. Create the reusable player-results partial template.
+3. Implement and register the dedicated HTMX endpoint.
+4. Update the Add Game template with Add/Remove controls.
+5. Verify value preservation, row limits, and error handling.
+6. Test game creation, validation, permissions, and confirmation behavior.
+7. Confirm the existing Game Edit workflow remains unaffected.
+8. Deploy after successful testing.
 
-## Player Validation
-
-For every populated row:
-
-- Player is selected
-- Score is entered
-- Score is zero or greater
-- If a Turn Order is present, it is a positive integer
-
-## Cross-Row Validation
-
-- Players may not be duplicated
-- Turn Orders may not be duplicated
-
-## Mode Validation
-
-Solo Game
-
-- Exactly one populated player row
-
-Competitive Game
-
-- Minimum of two populated player rows
-- Maximum of five populated player rows
-
----
-
-# Database Persistence
-
-A successful submission creates:
-
-- One `Game`
-- One `GameResult` for each populated player row
-
-The entire operation must execute inside a single database transaction.
-
-If any validation or save operation fails:
-
-- No Game is created
-- No GameResults are created
-
-Partial saves are not permitted.
-
----
-
-# Successful Submission
-
-After successfully saving:
-
-- Display a success message.
-- Redirect using the POST/Redirect/GET pattern.
-- Allow the user to immediately enter another game.
-
----
-
-# Out of Scope
-
-The following features are intentionally excluded from the initial implementation:
-
-- Editing existing games
-- Deleting games
-- Creating new players
-- Editing players
-- Recording Automa information
-- Recording expansions
-- Recording bird selections
-- Recording bonus cards
-- Duplicate game detection
-
-These features may be implemented in future iterations.
-
----
-
-# Security Requirements
-
-The implementation must:
-
-- Require CSRF protection
-- Require authenticated staff users
-- Validate all business rules server-side
-- Reject inactive players
-- Reject invalid player IDs
-- Never trust client-side validation alone
-
----
-
-# Technical Design
-
-The implementation should follow Django best practices.
-
-Recommended components:
-
-- `GameCreateView`
-- `GameForm`
-- `GameResultForm`
-- Fixed-size `GameResultFormSet` containing five forms
-- Service layer responsible for transactional game creation
-
-The service layer should own the business logic and persistence while the view remains responsible for HTTP concerns.
-
----
-
-# Acceptance Criteria
+## 8. Acceptance Criteria
 
 The feature is complete when:
 
-1. Only authenticated staff users may access the page.
-2. The page displays one Game form and five Player Result rows.
-3. Blank player rows are ignored.
-4. Partially completed rows generate validation errors.
-5. Solo games require exactly one populated player row.
-6. Competitive games require between two and five populated player rows.
-7. Duplicate players are rejected.
-8. Duplicate turn orders are rejected.
-9. Successful submissions create one Game and the expected GameResult records.
-10. Failed submissions create no database records.
-11. Validation errors preserve previously entered values.
-12. A successful submission redirects with a confirmation message.
-13. The page is responsive and usable on desktop and mobile devices.
+- The Add Game page initially displays one player-result row.
+- Users can dynamically add and remove rows without a full-page refresh.
+- Up to five human participants can be entered.
+- Existing form values are preserved during HTMX interactions.
+- Solo and Competitive game rules remain enforced.
+- Invalid submissions show appropriate errors without losing entered data.
+- Games and results are saved correctly.
+- Friendship permissions and score-confirmation behavior remain unchanged.
+- Existing Game Edit functionality continues working.
+- No custom JavaScript or database migration is required.
+
+---
+
+**Release principle:** Improve the player-entry experience without changing the underlying game-data architecture, authorization boundaries, or confirmation workflow.

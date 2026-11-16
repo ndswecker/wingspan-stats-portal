@@ -56,6 +56,16 @@ urlpatterns = [
         name="game-result-confirm",
     ),
     path(
+        "games/result-rows/",
+        views.game_result_rows,
+        name="game-result-rows",
+    ),
+    path(
+        "games/<int:pk>/edit/result-rows/",
+        views.game_edit_result_rows,
+        name="game-edit-result-rows",
+    ),
+    path(
         "friends/",
         views.friends,
         name="friends",

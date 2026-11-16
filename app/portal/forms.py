@@ -173,23 +173,28 @@ class BaseGameResultFormSet(BaseFormSet):
     def clean(self):
         super().clean()
 
-        if any(self.errors):
+        if any(
+            form.errors
+            for form in self.forms
+            if not self._should_delete_form(form)
+        ):
             return
-        
+
         populated_forms = []
 
         for form in self.forms:
+            if form.cleaned_data.get("DELETE"):
+                continue
+
             if form.cleaned_data.get("is_populated"):
                 populated_forms.append(form)
 
         players = []
+        turn_orders = []
 
         for form in populated_forms:
             players.append(form.cleaned_data["player"])
 
-        turn_orders = []
-
-        for form in populated_forms:
             turn_order = form.cleaned_data["turn_order"]
 
             if turn_order is not None:
@@ -204,9 +209,10 @@ class BaseGameResultFormSet(BaseFormSet):
 GameResultFormSet = formset_factory(
     GameResultForm,
     formset=BaseGameResultFormSet,
-    extra=5,
+    extra=1,
     max_num=5,
     validate_max=True,
+    can_delete=True,
 )
 
 class GameResultEditForm(forms.ModelForm):
@@ -322,7 +328,7 @@ GameResultEditFormSet = modelformset_factory(
     GameResult,
     form=GameResultEditForm,
     formset=BaseGameResultEditFormSet,
-    extra=5,
+    extra=0,
     max_num=5,
     validate_max=True,
     can_delete=True,

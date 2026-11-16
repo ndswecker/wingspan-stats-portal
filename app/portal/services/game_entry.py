@@ -28,6 +28,9 @@ def create_game(
     for form in result_forms:
         result_data = form.cleaned_data
 
+        if result_data.get("DELETE"):
+            continue
+
         if not result_data.get("is_populated"):
             continue
 
@@ -283,6 +286,9 @@ def _validate_result_players(
 
     for result_form in result_forms:
         result_data = result_form.cleaned_data
+
+        if result_data.get("DELETE"):
+            continue
 
         if not result_data.get("is_populated"):
             continue

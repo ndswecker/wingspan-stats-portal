@@ -1,0 +1,218 @@
+
+<div id="game-edit-result-rows">
+
+    {{ result_formset.management_form }}
+
+    <div class="card mb-4">
+
+        <!-- Section Header -->
+        <div class="card-header">
+            <h2 class="h5 mb-1">Game Results</h2>
+
+            <p class="small text-muted mb-0">
+                Update player results, add participants, or remove
+                players entered incorrectly. Changes are not saved
+                until you select Save Changes.
+            </p>
+        </div>
+
+        <div class="card-body">
+
+            <!-- Formset Management Errors -->
+            {% for error in result_formset.management_form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+
+            <!-- Formset Validation Errors -->
+            {% for error in result_formset.non_form_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+
+            <!-- Player Result Forms -->
+            {% for form in result_formset %}
+
+                {% if form.DELETE.value %}
+
+                    <!--
+                    Deleted forms remain in the DOM as hidden inputs.
+
+                    Existing GameResult IDs must be preserved so
+                    Django knows which records to delete when
+                    Save Changes is submitted.
+                    -->
+
+                    {% for hidden_field in form.hidden_fields %}
+                        {{ hidden_field }}
+                    {% endfor %}
+
+                    {{ form.player.as_hidden }}
+                    {{ form.score.as_hidden }}
+                    {{ form.turn_order.as_hidden }}
+                    {{ form.DELETE.as_hidden }}
+
+                {% else %}
+
+                    <div class="border rounded p-3 mb-3">
+
+                        <!-- Preserve existing GameResult ID -->
+                        {% for hidden_field in form.hidden_fields %}
+                            {{ hidden_field }}
+                        {% endfor %}
+
+                        <!-- Preserve Django deletion field -->
+                        {{ form.DELETE.as_hidden }}
+
+                        <div class="row g-3 align-items-start">
+
+                            <!-- Player -->
+                            <div class="col-12 col-md-4">
+
+                                <label
+                                    class="form-label"
+                                    for="{{ form.player.id_for_label }}"
+                                >
+                                    Player
+                                </label>
+
+                                {{ form.player }}
+
+                                {% for error in form.player.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+                            <!-- Score -->
+                            <div class="col-12 col-md-3">
+
+                                <label
+                                    class="form-label"
+                                    for="{{ form.score.id_for_label }}"
+                                >
+                                    Score
+                                </label>
+
+                                {{ form.score }}
+
+                                {% for error in form.score.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+                            <!-- Turn Order -->
+                            <div class="col-12 col-md-3">
+
+                                <label
+                                    class="form-label"
+                                    for="{{ form.turn_order.id_for_label }}"
+                                >
+                                    Turn Order
+                                </label>
+
+                                {{ form.turn_order }}
+
+                                {% for error in form.turn_order.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ error }}
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+
+                            <!-- Remove Player -->
+                            <div class="col-12 col-md-2">
+
+                                <label class="form-label d-none d-md-block">
+                                    &nbsp;
+                                </label>
+
+                                {% if active_form_count > 1 %}
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-danger btn-sm w-100"
+
+                                        hx-post="{% url 'portal:game-edit-result-rows' game.pk %}"
+                                        hx-include="closest form"
+                                        hx-target="#game-edit-result-rows"
+                                        hx-swap="outerHTML"
+
+                                        hx-vals='{
+                                            "action": "remove",
+                                            "row_index": "{{ forloop.counter0 }}"
+                                        }'
+                                    >
+                                        Remove
+                                    </button>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                        <!-- Row-Level Errors -->
+                        {% for error in form.non_field_errors %}
+                            <div class="alert alert-danger mt-3 mb-0">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            {% endfor %}
+
+            <!-- Add Player Control -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
+
+                <div>
+
+                    {% if active_form_count < 5 %}
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary"
+
+                            hx-post="{% url 'portal:game-edit-result-rows' game.pk %}"
+                            hx-include="closest form"
+                            hx-target="#game-edit-result-rows"
+                            hx-swap="outerHTML"
+
+                            hx-vals='{"action": "add"}'
+                        >
+                            <span aria-hidden="true">+</span>
+                            Add Another Player
+                        </button>
+
+                    {% else %}
+
+                        <span class="text-muted small">
+                            Maximum number of players reached.
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+                <!-- Active Player Count -->
+                <div class="text-muted small">
+                    {{ active_form_count }} of 5 players
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
