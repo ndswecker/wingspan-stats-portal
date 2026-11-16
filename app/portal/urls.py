@@ -41,6 +41,11 @@ urlpatterns = [
          name="register",
     ),
     path(
+        "games/",
+        views.my_games,
+        name="my-games",
+    ),
+    path(
         "games/<int:pk>/", 
         views.game_detail, 
         name="game-detail",

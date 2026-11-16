@@ -1,0 +1,267 @@
+
+{% extends "portal/base.html" %}
+
+{% block title %}
+    My Games | Wingspan Stats Portal
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+        <h1 class="mb-2">My Games</h1>
+        <p class="text-muted mb-0">
+            View and manage games you've participated in.
+        </p>
+    </div>
+
+    <a
+        href="{% url 'portal:game-create' %}"
+        class="btn btn-primary"
+    >
+        + Add New Game
+    </a>
+</div>
+
+<!-- Game Filters -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h2 class="h5 mb-0">Filter Games</h2>
+    </div>
+
+    <div class="card-body">
+        <form method="get">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label
+                        class="form-label"
+                        for="{{ filter_form.game_type.id_for_label }}"
+                    >
+                        Game Type
+                    </label>
+
+                    {{ filter_form.game_type }}
+
+                    {% for error in filter_form.game_type.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label
+                        class="form-label"
+                        for="{{ filter_form.start_date.id_for_label }}"
+                    >
+                        Start Date
+                    </label>
+
+                    {{ filter_form.start_date }}
+
+                    <div class="form-text">
+                        Leave blank for no start date restriction.
+                    </div>
+
+                    {% for error in filter_form.start_date.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label
+                        class="form-label"
+                        for="{{ filter_form.end_date.id_for_label }}"
+                    >
+                        End Date
+                    </label>
+
+                    {{ filter_form.end_date }}
+
+                    <div class="form-text">
+                        Leave blank for no end date restriction.
+                    </div>
+
+                    {% for error in filter_form.end_date.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% for error in filter_form.non_field_errors %}
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Apply Filters
+                </button>
+
+                <a
+                    href="{% url 'portal:my-games' %}"
+                    class="btn btn-outline-secondary"
+                >
+                    Reset Filters
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Game History -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h2 class="h5 mb-0">Game History</h2>
+
+        <span class="text-muted small">
+            {{ page_obj.paginator.count }} games found
+        </span>
+    </div>
+
+    <div class="card-body p-0">
+        {% if game_rows %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Game ID</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">My Score</th>
+                            <th scope="col">Players</th>
+                            <th scope="col">My Confirmation</th>
+                            <th scope="col">Game Confirmation</th>
+                            <th scope="col">Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for row in game_rows %}
+                            <tr>
+                                <td class="fw-semibold">
+                                    #{{ row.id }}
+                                </td>
+
+                                <td class="text-nowrap">
+                                    {{ row.date_played|date:"M j, Y" }}
+                                </td>
+
+                                <td>
+                                    {{ row.game_type }}
+                                </td>
+
+                                <td class="fw-semibold">
+                                    {{ row.my_score }}
+                                </td>
+
+                                <td>
+                                    {{ row.players }}
+                                </td>
+
+                                <td>
+                                    {% if row.my_confirmed %}
+                                        <span class="badge bg-success">
+                                            Confirmed
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">
+                                            Pending
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if row.fully_confirmed %}
+                                        <span class="badge bg-success">
+                                            Fully Confirmed
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">
+                                            Pending
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <a
+                                        href="{% url 'portal:game-edit' row.id %}"
+                                        class="btn btn-sm btn-outline-primary text-nowrap"
+                                    >
+                                        Edit Game
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% elif not filter_form.errors %}
+            <div class="p-4 text-center text-muted">
+                No games match the selected filters.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+    <nav aria-label="My Games pagination">
+        <div class="d-flex flex-column align-items-center gap-2 mb-4">
+            <div class="text-muted small">
+                Showing games
+                {{ page_obj.start_index }}–{{ page_obj.end_index }}
+                of {{ page_obj.paginator.count }}
+            </div>
+
+            <ul class="pagination mb-0">
+                <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                    {% if page_obj.has_previous %}
+                        <a
+                            class="page-link"
+                            href="?page={{ page_obj.previous_page_number }}{% if filter_params %}&amp;{{ filter_params }}{% endif %}"
+                        >
+                            Previous
+                        </a>
+                    {% else %}
+                        <span class="page-link">
+                            Previous
+                        </span>
+                    {% endif %}
+                </li>
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        Page {{ page_obj.number }}
+                        of {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+
+                <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                    {% if page_obj.has_next %}
+                        <a
+                            class="page-link"
+                            href="?page={{ page_obj.next_page_number }}{% if filter_params %}&amp;{{ filter_params }}{% endif %}"
+                        >
+                            Next
+                        </a>
+                    {% else %}
+                        <span class="page-link">
+                            Next
+                        </span>
+                    {% endif %}
+                </li>
+            </ul>
+        </div>
+    </nav>
+{% endif %}
+
+{% endblock %}

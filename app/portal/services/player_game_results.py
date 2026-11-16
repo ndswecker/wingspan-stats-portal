@@ -116,6 +116,115 @@ def select_player_competitive_games(
     )
 
 
+def select_player_games(
+    *,
+    player: Player,
+    game_type: str = "all",
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> QuerySet[Game]:
+    """
+    Select all games in which a player participated.
+
+    Includes confirmed and unconfirmed games.
+    Prefetches all game results and their players.
+    Optional date bounds are inclusive.
+    """
+    if (
+        start_date is not None
+        and end_date is not None
+        and start_date > end_date
+    ):
+        raise ValueError(
+            "start_date cannot be later than end_date."
+        )
+
+    valid_game_types = {
+        "all",
+        *Game.HumanPlayerMode.values,
+    }
+
+    if game_type not in valid_game_types:
+        raise ValueError("Invalid game type.")
+
+    games = (
+        Game.objects
+        .filter(results__player=player)
+        .prefetch_related("results__player")
+    )
+
+    if game_type != "all":
+        games = games.filter(
+            human_player_mode=game_type,
+        )
+
+    if start_date is not None:
+        games = games.filter(
+            date_played__gte=start_date,
+        )
+
+    if end_date is not None:
+        games = games.filter(
+            date_played__lte=end_date,
+        )
+
+    return games.order_by(
+        "-date_played",
+        "-id",
+    )
+
+
+def build_my_game_rows(
+    *,
+    games,
+    acting_player: Player,
+) -> list[dict]:
+    """
+    Prepare a player's games for display in the My Games table.
+
+    Assumes games have their results and players prefetched.
+    Performs no database queries when used with select_player_games().
+    """
+    game_rows = []
+
+    for game in games:
+        results = list(game.results.all())
+
+        acting_result = next(
+            (
+                result
+                for result in results
+                if result.player_id == acting_player.pk
+            ),
+            None,
+        )
+
+        if acting_result is None:
+            raise ValueError(
+                f"Game {game.pk} does not contain the acting player."
+            )
+
+        game_rows.append(
+            {
+                "id": game.pk,
+                "date_played": game.date_played,
+                "game_type": game.get_human_player_mode_display(),
+                "my_score": acting_result.score,
+                "players": ", ".join(
+                    result.player.name
+                    for result in results
+                ),
+                "my_confirmed": acting_result.is_confirmed,
+                "fully_confirmed": all(
+                    result.is_confirmed
+                    for result in results
+                ),
+            }
+        )
+
+    return game_rows
+
+
 def calculate_player_game_result(
     *,
     game: Game,

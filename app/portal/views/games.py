@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.decorators.http import require_POST
@@ -13,6 +14,7 @@ from ..forms import (
     GameForm,
     GameResultFormSet,
     GameResultEditFormSet,
+    MyGamesFilterForm,
 )
 
 from ..services.game_entry import (
@@ -24,9 +26,62 @@ from ..services.player_access import (
     can_view_game,
 )
 
-from ..services.player_game_results import confirm_game_result
+from ..services.player_game_results import (
+    confirm_game_result,
+    select_player_games,
+    build_my_game_rows,
+)
 
 from ..permissions import can_manage_game
+
+@login_required
+def my_games(request):
+    acting_player = getattr(request.user, "player", None)
+
+    if acting_player is None:
+        raise PermissionDenied
+
+    filter_form = MyGamesFilterForm(
+        request.GET or None,
+    )
+
+    games = Game.objects.none()
+
+    if filter_form.is_valid():
+        games = select_player_games(
+            player=acting_player,
+            game_type=filter_form.cleaned_data["game_type"],
+            start_date=filter_form.cleaned_data["start_date"],
+            end_date=filter_form.cleaned_data["end_date"],
+        )
+
+    paginator = Paginator(games, 50)
+
+    page_obj = paginator.get_page(
+        request.GET.get("page"),
+    )
+
+    game_rows = build_my_game_rows(
+        games=page_obj,
+        acting_player=acting_player,
+    )
+
+    filter_params = request.GET.copy()
+    filter_params.pop("page", None)
+
+    context = {
+        "filter_form": filter_form,
+        "page_obj": page_obj,
+        "filter_params": filter_params.urlencode(),
+        "game_rows": game_rows,
+    }
+
+    return render(
+        request,
+        "portal/my_games.html",
+        context,
+    )
+
 
 class GameCreateView(LoginRequiredMixin, View):
     template_name = "portal/game_create.html"
@@ -90,7 +145,7 @@ class GameCreateView(LoginRequiredMixin, View):
                 f"Game {game.id} was added successfully.",
             )
 
-            return redirect("portal:game-create")
+            return redirect("portal:game-edit", pk=game.pk)
 
         context = {
             "game_form": game_form,

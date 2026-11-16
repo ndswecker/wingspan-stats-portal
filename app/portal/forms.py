@@ -1082,3 +1082,61 @@ class HomeLeaderboardFilterForm(forms.Form):
             attrs={"class": "form-select"},
         ),
     )
+
+
+class MyGamesFilterForm(forms.Form):
+    GAME_TYPE_CHOICES = [
+        ("all", "All Games"),
+        *Game.HumanPlayerMode.choices,
+    ]
+
+    game_type = forms.ChoiceField(
+        choices=GAME_TYPE_CHOICES,
+        initial="all",
+        label="Game Type",
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            }
+        ),
+    )
+
+    start_date = forms.DateField(
+        required=False,
+        label="Start Date",
+        widget=forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
+            }
+        ),
+    )
+
+    end_date = forms.DateField(
+        required=False,
+        label="End Date",
+        widget=forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
+            }
+        ),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
+
+        if (
+            start_date is not None
+            and end_date is not None
+            and start_date > end_date
+        ):
+            self.add_error(
+                "end_date",
+                "End date cannot be earlier than start date.",
+            )
+
+        return cleaned_data
