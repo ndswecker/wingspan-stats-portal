@@ -225,3 +225,67 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"{self.requestor} requesting friendship with {self.requestee} with status of {self.status}"
+
+
+class Achievement(models.Model):
+    code = models.CharField(
+        max_length=100,
+        unique=True,
+    )
+
+    name = models.CharField(
+        max_length=100,
+    )
+
+    description = models.TextField()
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class PlayerAchievement(models.Model):
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name="achievements",
+    )
+
+    achievement = models.ForeignKey(
+        Achievement,
+        on_delete=models.PROTECT,
+        related_name="player_awards",
+    )
+
+    source_result = models.ForeignKey(
+        GameResult,
+        on_delete=models.CASCADE,
+        related_name="achievements",
+        null=True,
+        blank=True,
+    )
+
+    awarded_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["-awarded_at"]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "achievement",
+                    "source_result",
+                ],
+                name="unique_achievement_per_result",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.player} - "
+            f"{self.achievement.name}"
+        )

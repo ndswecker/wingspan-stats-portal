@@ -5,6 +5,8 @@ from .models import (
     GameResult,
     FriendRequest,
     Friendship,
+    Achievement,
+    PlayerAchievement,
 )
 
 class GameResultInline(admin.TabularInline):
@@ -137,4 +139,57 @@ class FriendshipAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         "established_at",
+    )
+
+
+@admin.register(Achievement)
+class AchievementAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "code",
+        "name",
+        "description",
+    )
+
+    search_fields = (
+        "code",
+        "name",
+        "description",
+    )
+
+    ordering = (
+        "code",
+    )
+
+
+@admin.register(PlayerAchievement)
+class PlayerAchievementAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "player",
+        "achievement",
+        "source_result",
+        "awarded_at",
+    )
+
+    list_filter = (
+        "achievement",
+        "awarded_at",
+    )
+
+    search_fields = (
+        "player__name",
+        "player__handle",
+        "achievement__code",
+        "achievement__name",
+    )
+
+    ordering = (
+        "-awarded_at",
+    )
+
+    list_select_related = (
+        "player",
+        "achievement",
+        "source_result",
     )
