@@ -19,6 +19,10 @@ from ..services.registration import (
     PlayerHandleUnavailableError,
 )
 
+from ..services.achievements.player_achievements import (
+    get_player_achievement_summary,
+)
+
 @login_required
 def account(request):
     player = getattr(
@@ -28,6 +32,7 @@ def account(request):
     )
 
     pending_game_results = []
+    achievement_summary = []
     privacy_form = None
 
     if request.method == "POST":
@@ -54,6 +59,10 @@ def account(request):
             player=player,
         )
 
+        achievement_summary = get_player_achievement_summary(
+            player=player,
+        )
+
         if privacy_form is None:
             privacy_form = PlayerPrivacyForm(
                 instance=player,
@@ -63,6 +72,7 @@ def account(request):
         "player": player,
         "pending_game_results": pending_game_results,
         "privacy_form": privacy_form,
+        "achievement_summary": achievement_summary,
     }
 
     return render(

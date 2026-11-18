@@ -4,6 +4,8 @@ from ..models import Game, GameResult, Player
 
 from .friendship import get_friends_for_player
 
+from .achievements.event_evaluator import evaluate_game_achievements
+
 class GameEntryError(Exception):
     """Raised when a game entry operation violates a business rule."""
 
@@ -46,6 +48,8 @@ def create_game(
             turn_order=result_data["turn_order"],
             is_confirmed=is_confirmed
         )
+
+    evaluate_game_achievements(game=game)
 
     return game
 
@@ -234,6 +238,23 @@ def update_game(
             turn_order=result_data["turn_order"],
             is_confirmed=is_confirmed,
         )
+
+    evaluate_game_achievements(game=game)
+
+@transaction.atomic
+def delete_game(
+    *,
+    game: Game,
+):
+    """
+    Delete a game and all its associated results.
+
+    This service is responsible for deleting any PlayerAchievement
+    records that were awarded based on the deleted results.
+    """
+
+    game.delete()
+
 
 def get_allowed_result_players(
     *,

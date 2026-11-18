@@ -1,282 +1,164 @@
-# Achievement System — Feature Specification
+# Achievement System — Epic Specification and v1 Release Baseline
 
 **Project:** Wingspan Stats Portal  
-**Status:** Draft — Iterative Design  
-**Current implementation scope:** Event-based achievements  
-**Updated:** November 17, 2026
+**Epic:** Achievement System  
+**Release:** v0.5.0 — Event-Based Awards and Personal Achievement Display  
+**Status:** v1 implementation complete; production release pending final checks  
+**Updated:** November 18, 2026
 
----
+## 1. Purpose
 
-## 1. Purpose and Scope
+Recognize player accomplishments based on recorded Wingspan games. An **achievement** is a cataloged accomplishment; a **player award** (`PlayerAchievement`) is an earned instance associated with a player and, for event achievements, a source game result.
 
-The Achievement System recognizes player accomplishments calculated from recorded Wingspan games. An **achievement** (also called an **award**) is a defined accomplishment; an **earned award** is an association between a player and that accomplishment, optionally tied to a particular game result.
+The Achievement System is an ongoing epic. Version 1 establishes an event-based award pipeline and displays earned achievement summaries on the Account page. Additional achievement categories and viewing surfaces are future increments.
 
-The system will eventually support event-based and time-boxed achievements. **Only event-based achievements are in scope for the first implementation.** Time-boxed achievements will have their own evaluation classes and scheduled triggers, but may share the same relational award catalog and recipient records.
+## 2. Version 1 — Delivered Scope
 
-## 2. Architectural Decisions
+### 2.1 Data model
 
-The system is part of the existing Django application—not an independent microservice or worker.
+- `Achievement`: unique stable `code`, `name`, and `description`.
+- `PlayerAchievement`: `player`, `achievement`, optional `source_result`, and `awarded_at`.
+- Uniqueness of `(achievement, source_result)` prevents duplicate awards for the same qualifying game result.
+- Foreign-key behavior: player deletion cascades to awards; achievement definition deletion is protected; game-result deletion cascades to source-linked awards.
+- Multiple game results may earn the same achievement, including multiple awards for one player across different games.
 
-Its responsibilities are separated into:
+### 2.2 Definitions and registration
 
-1. **Definition:** Python achievement classes own stable identifiers, metadata, and qualifying rules.
-2. **Evaluation:** An event-based evaluator checks a game against registered rules and reconciles the awards that should exist.
-3. **Persistence:** Django models/PostgreSQL maintain a normalized achievement catalog and the awards earned by players.
+- Python classes define achievement codes, metadata, and eligibility rules; PostgreSQL stores definitions and earned awards.
+- `BaseAchievement.register()` uses `update_or_create(code=..., defaults=...)` to synchronize name and description.
+- Achievement codes are stable identifiers and must not be casually renamed.
+- An explicit registry holds achievement classes (`EVENT_ACHIEVEMENTS`, `ALL_ACHIEVEMENTS`).
+- The `register_achievements` Django management command runs during Docker startup after migrations. Registration is independent of game evaluation and does not rescan player awards.
 
-Agreed operating rules:
+### 2.3 Event-based award evaluation
 
-- Python is authoritative for achievement definitions and eligibility logic; the database does not evaluate conditions.
-- An `Achievement` table catalogs unique achievement types; a `PlayerAchievement` table links those types to recipients and evidence.
-- Event-based achievements run when a game is successfully created or edited, **not** when player results are confirmed.
-- Awards require no player acceptance and cannot be hidden, dismissed, or manually removed by players.
-- If an edited game ceases to qualify for an award, the evaluator **deletes** the corresponding `PlayerAchievement` row. There is no active/revoked status or revocation ledger in this iteration.
-- Event-based evaluation and reconciliation are scoped to the **changed game**, not all games or players.
-- A rerun against unchanged data must not create duplicate awards or change valid records.
-- No overnight scheduler is needed for event-based achievements.
+- `EventAchievement.evaluate(game=...)` returns qualifying `GameResult` records; concrete rules perform no award writes.
+- `The180Club` is the first defined achievement: score **at least 180** in a single game (`the_180_club`).
+- `evaluate_game_achievements(game=...)` processes registered event-based rules, creates missing `PlayerAchievement` rows, preserves still-valid awards, and deletes no-longer-valid awards for the affected game.
+- The evaluator reloads the current game and its related results from the database to avoid stale `prefetch_related()` caches when the editing flow deletes/reassigns results.
+- Evaluation runs after all results are saved inside the `create_game()` and `update_game()` service transactions, regardless of score confirmation status.
+- There is no automatic full-history evaluation at Docker startup.
 
-## 3. Domain Concepts
+### 2.4 Game deletion integration
 
-### 3.1 Python achievement definition
+- A Delete Game action exists on the Edit Game page with a confirmation modal and distinct POST action.
+- The same edit view enforces `can_manage_game()` before handling edits or deletion. The permitted set is game participants or staff; friendship and public visibility alone do not authorize deletion. Standard staff/superuser account behavior applies.
+- A transactional `delete_game()` service deletes the game. Django cascades deletion through game results to source-linked awards; achievement catalog entries remain intact.
+- Removing the final result through the regular edit form remains disallowed; deleting the entire game is the separate supported operation.
 
-An achievement class defines:
+### 2.5 Account page display
 
-| Component | Responsibility |
+- A shared retrieval function, `services/achievements/player_achievements.py::get_player_achievement_summary()`, groups a player's earned awards by achievement code/name/description and counts instances in PostgreSQL.
+- The reusable `portal/includes/achievement_list.html` partial displays each earned achievement type with its name, description, and earned count.
+- The Account page displays the logged-in player's lifetime achievement summary, including an empty state when no awards exist.
+- A separate Player Overview achievement section has **not** been implemented.
+
+## 3. Version 1 Behavior and Boundaries
+
+- Awards are issued automatically; players do not claim, accept, hide, or manually remove them.
+- Correcting a qualifying score below its threshold removes the award. Restoring eligibility creates a new award record and `awarded_at` timestamp.
+- Awards are tied to `GameResult` evidence, not to a game directly. Deleting or replacing a qualifying result removes the original award; a new qualifying result may earn a new award.
+- `is_confirmed` does not control achievement eligibility.
+- The Account page shows earned types only. It does not list locked/unearned achievements, individual source games, or award-history detail.
+- The first achievement is repeatable per qualifying result; once-per-player, nonrepeatable and periodic policies are not yet supported.
+- No notifications, badge artwork, tiers, points, leaderboards, or background job scheduler are included.
+
+## 4. Validation Performed
+
+The following cases were manually exercised in development:
+
+| Scenario | Result |
 |---|---|
-| `code` | Unique, stable programmatic identity, e.g. `the_180_club` |
-| `name` | Human-readable title, e.g. `The 180 Club` |
-| `description` | Plain-language qualification description |
-| Evaluation rule | Python logic that determines which result(s) qualify |
-| Award policy | Whether/how the achievement may repeat |
-| Registration behavior | A way to ensure its catalog record exists and metadata is synchronized |
+| Create qualifying game (181) | Award created |
+| Create nonqualifying game (179) | No award |
+| Edit score from qualifying to nonqualifying | Award removed |
+| Edit score from nonqualifying to qualifying | Award created |
+| Reassign player on qualifying game result | Worked after fixing stale prefetched game results |
+| Delete solo game | Game deleted |
+| Delete competitive game | Game deleted |
+| Delete game with associated awards | Source-linked awards cascaded |
+| Account with award | Award summary displayed |
+| Account without awards | Empty state displayed |
 
-An event-based class may inspect the **whole game** and all its results, even when the award is ultimately associated with one player's result. This supports both score thresholds and comparative achievements such as winning by at least 50 points.
+**Validation limits:** These are manual results reported during development, not evidence of an automated regression-test suite. An unauthorized deletion attempt has not been reported as explicitly tested. Exact repeat-evaluation/idempotence and transaction-failure rollback have not been verified by dedicated automated tests.
 
-### 3.2 Achievement catalog record
+## 5. Production Release Checklist
 
-A row in `Achievement` describes **one unique achievement type**. It is not evidence that a particular player earned anything. Many `PlayerAchievement` rows can refer to the same catalog entry.
+### Required before deploying
 
-### 3.3 Player award record
+- [ ] Review Git diff, confirm migrations and all achievement files are committed, and check Django system checks.
+- [ ] Confirm the running migration includes `Achievement` and `PlayerAchievement` and the registration command is called after migrations.
+- [ ] Verify an authenticated nonparticipant receives HTTP 403 on a forged game-delete POST; verify participants and staff can delete.
+- [ ] Verify the production template includes the modal's CSRF-protected form and normal game editing still succeeds.
+- [ ] Confirm that no temporary test games or test awards are being mistaken for genuine player history.
+- [ ] Back up the production PostgreSQL database before deploying.
+- [ ] Choose and document the historic-game backfill policy (see below).
+- [ ] Deploy the committed changes through the existing Git / Docker Compose production procedure and inspect startup logs for migrations and achievement registration.
+- [ ] Smoke-test Account achievement display and creation/editing/deletion with a controlled game on production.
 
-A row in `PlayerAchievement` represents an **actual earned award**. For an event-based achievement it identifies the recipient, catalog achievement, and source `GameResult`.
+### Historical games — explicit release decision
 
-The award exists while the result qualifies. The evaluator creates or deletes the row as game data changes.
+**No automatic historical backfill is included in v1.** New or edited games are evaluated; preexisting games remain unevaluated unless edited or processed through a deliberate, separate backfill. Therefore initial counts may understate lifetime qualifications. Consider backfilling later with a one-time, idempotent management command, after validating performance, permissions, and reconciliation behavior against existing data.
 
-## 4. Database Design
+## 6. Epic Backlog — Future Increments
 
-Two normalized Django models are planned.
+### Next: Player-facing access
 
-### 4.1 `Achievement`
+- Add lifetime achievement summaries to Player Overview using the existing player visibility/permission rules, not public visibility as a deletion/edit authorization mechanism.
+- Reuse the achievement summary service and shared partial.
+- Decide whether the overview should show lifetime achievements or reflect date/game-type filters; the prior discussion favored lifetime totals for consistency, but no implementation decision is finalized.
+- Optionally show award dates and links to source games, with access controls on any linked details.
 
-| Field | Type / relationship | Purpose |
-|---|---|---|
-| `id` | Primary key | Database identity |
-| `code` | `CharField`, unique | Stable link to the Python class/registry |
-| `name` | `CharField` | Display title |
-| `description` | `TextField` | Display explanation |
+### New event achievements
 
-**One catalog row per achievement code**, regardless of how many times it has been awarded. Descriptive metadata is stored once rather than copied into every earned award.
+- Add additional per-game rule classes and register them explicitly.
+- Define repeatability/one-time award policies, tie behavior, and rules requiring comparison among game participants.
+- Consider richer achievement metadata such as categories, display order, and artwork only when the catalog grows.
 
-Changes to a catalog name or description affect the display of all linked awards. Historical wording snapshots are **not** required in the current design.
+### Historical reconciliation and test coverage
 
-### 4.2 `PlayerAchievement`
+- Add automated Django tests for creation, repeated evaluation, score corrections, result reassignment/deletion, full game deletion, permissions, and transaction rollback.
+- Implement an explicit historical backfill/reconciliation tool if desired; do not couple it to ordinary Docker startup.
+- Revisit query batching only when achievement volume warrants it.
 
-| Field | Type / relationship | Purpose |
-|---|---|---|
-| `id` | Primary key | Award-instance identity |
-| `player` | FK to `Player` | Recipient |
-| `achievement` | FK to `Achievement` | Type of award earned |
-| `source_result` | FK to `GameResult`, nullable | Evidence for an event-based award |
-| `awarded_at` | Timestamp | When the earned-award row was created |
+### Periodic and long-horizon achievements
 
-**Proposed deletion policies:**
+- Introduce a `PeriodicAchievement` evaluation category with scheduled or explicit period-finalization processing.
+- Decide how a period is identified and how unique awards are enforced when `source_result` is null.
+- Specify tie rules, late game corrections, award revocation after period closure, and period recalculation.
 
-- `source_result`: `on_delete=CASCADE`, so deleting a result (or its game) removes source-linked awards.
-- `achievement`: `on_delete=PROTECT`, so deleting a catalog entry cannot silently erase earned awards.
-- `player`: `on_delete=CASCADE` is the current candidate, consistent with a player-owned earned-award row; confirm before migration if player deletion policy changes.
+### Optional experience enhancements
 
-For event-based awards, `source_result` is **required by the application**, though it may be nullable at the schema level to leave room for future time-boxed awards.
+- Dedicated achievement gallery; unearned achievements; rarity or progress indicators.
+- Achievement notifications, badge artwork, award history, and source-game drill-down.
+- Admin/support tools for reviewing unexpected awards, without allowing players to manually claim or remove awards.
 
-### 4.3 Uniqueness and repeatability
-
-For a repeatable event-based achievement, enforce uniqueness of the combination:
-
-`(achievement, source_result)`
-
-Each `GameResult` belongs to one player, so this prevents the same result from earning the same achievement twice. It **does not** prevent multiple players from earning that achievement, or one player from earning it from multiple different results.
-
-The evaluator must ensure `PlayerAchievement.player` matches `source_result.player`. That cross-table consistency is not guaranteed by the proposed unique constraint alone.
-
-**Open:** How to represent *one-time-per-player* achievements and the exact uniqueness rules for non-event awards. Note that PostgreSQL's normal unique constraint permits multiple `NULL` values for `source_result`; future time-boxed awards will require their own identity/uniqueness strategy.
-
-## 5. Python Definitions and Catalog Registration
-
-The code for an achievement is authoritative; its database catalog record is a synchronized representation.
-
-An illustrative class interface:
-
-```python
-class BaseAchievement:
-    code: str
-    name: str
-    description: str
-
-    @classmethod
-    def register(cls):
-        achievement, created = Achievement.objects.update_or_create(
-            code=cls.code,
-            defaults={
-                "name": cls.name,
-                "description": cls.description,
-            },
-        )
-        return achievement
-
-
-class The180Club(BaseAchievement):
-    code = "the_180_club"
-    name = "The 180 Club"
-    description = "Score at least 180 points in a game."
-```
-
-**This is a design sketch, not final implementation code.** Concrete event classes will also define evaluation behavior.
-
-A class can register its catalog definition without being instantiated:
-
-```python
-The180Club.register()
-```
-
-Registration uses the stable `code` to create a missing catalog record or update its descriptive metadata. It is separate from issuing a player award; calling `register()` never creates a `PlayerAchievement`.
-
-### 5.1 Registration workflow
-
-Proposed workflow:
-
-1. Implement a Python achievement class.
-2. Add it to an explicit achievement registry, initially containing event-based classes.
-3. Execute a registration/synchronization operation to create or update catalog entries.
-4. The evaluator can resolve the registered catalog entry by `code` when issuing awards.
-
-A Django management command such as `python manage.py register_achievements` is the preferred candidate. **Do not register every catalog definition on each game submission.** Automatic deployment integration is deferred.
-
-Because Python is authoritative, repeating registration can overwrite catalog metadata edited directly in Django Admin. Achievement codes must be treated as stable identifiers: changing a code would otherwise create a new catalog row instead of renaming the existing one.
-
-## 6. Event-Based Evaluation and Reconciliation
-
-### 6.1 Triggers
-
-Invoke event evaluation after successful operations in the existing services:
-
-- `create_game()` — after the game and its results are created.
-- `update_game()` — after changes to the game and its results are saved.
-
-**Confirmation status does not govern eligibility and is not a trigger.** Newly submitted results are eligible even when other players have not confirmed them.
-
-### 6.2 Evaluation contract
-
-The planned event evaluator is called with a game, conceptually:
-
-```python
-evaluate_game_achievements(game=game)
-```
-
-Individual event achievement classes should evaluate a game and identify qualifying `GameResult` records. Evaluation logic should not independently create or delete player-award rows.
-
-### 6.3 Reconciliation procedure
-
-For the affected game:
-
-1. Load current `GameResult` records and related players.
-2. Execute applicable registered event-achievement definitions.
-3. Build the expected set of `(achievement, source_result, player)` awards.
-4. Load existing event-based `PlayerAchievement` records associated with that game's results.
-5. **Create** missing awards.
-6. **Keep** existing awards that still qualify.
-7. **Delete** awards that no longer qualify.
-
-An edit can create a previously unearned award as well as remove an invalid one. A no-op re-evaluation must leave existing valid rows intact, including their original `awarded_at` timestamps.
-
-Reconciliation must be limited to event-based achievement codes; it must not delete unrelated future time-boxed awards.
-
-### 6.4 Corrections and deletions
-
-Example: Susan enters a score of 181 and earns **The 180 Club**. Later she corrects it to 175. Re-evaluating that game deletes the corresponding earned-award row. If she subsequently corrects the score back to 181, a new row is created.
-
-The current `update_game()` service treats a player reassignment as **delete old result + create new result**, which fits source-linked `CASCADE` deletion. Result deletion also automatically removes linked awards. Score, game-mode, or turn-order edits require the evaluator to reconsider applicable awards.
-
-### 6.5 Transactions and efficiency
-
-Both existing game-entry services use `@transaction.atomic`. The preferred integration is to run evaluation and award synchronization **inside the same transaction**, after all changes have been persisted, so a failure rolls back the game and award changes together.
-
-The evaluator should reload current result data (or ensure prefetch caches are not stale) and avoid one query per player per achievement. Scoping work to the changed game is the first efficiency measure; a whole-history reconciliation is not part of routine event processing.
-
-## 7. Suggested Code Organization
+## 7. Architecture and Code Map
 
 ```text
 portal/
-    models.py                         # Achievement, PlayerAchievement
-    services/
-        achievements/
-            base.py                   # Shared definition and registration contract
-            event_achievements.py     # Concrete event-based rules
-            registry.py               # Registered achievement classes
-            event_evaluator.py        # Evaluate and reconcile one game
-    management/
-        commands/
-            register_achievements.py  # Proposed catalog synchronization
+  models.py                                  Achievement, PlayerAchievement
+  permissions.py                             can_manage_game()
+  services/
+    game_entry.py                            create_game(), update_game(), delete_game()
+    achievements/
+      base.py                                BaseAchievement, catalog registration
+      event.py                               EventAchievement contract
+      event_achievements.py                 The180Club rule
+      event_evaluator.py                    game-scoped reconciliation
+      player_achievements.py                grouped player summary
+      registry.py                           EVENT_ACHIEVEMENTS, ALL_ACHIEVEMENTS
+  management/commands/
+    register_achievements.py                catalog synchronization
+  views/
+    games.py                                Edit Game and delete action
+    account.py                              personal achievement summary
+  templates/portal/
+    game_edit.html                          delete confirmation modal
+    account.html                            My Achievements section
+    includes/achievement_list.html         reusable summary cards
 ```
 
-Names and file boundaries are provisional. A separate generalized awarding service is **not required** for the first version. The event evaluator can orchestrate persistence, with small shared helpers added if they become useful.
+## 8. Release Summary
 
-## 8. Existing Game-Service Integration
-
-Review of `game_entry.py` establishes that:
-
-- `create_game()` creates the `Game`, then creates each populated `GameResult`, and returns the game.
-- `update_game()` updates game fields, deletes or reassigns old results, updates surviving results, and creates new results.
-- Player reassignment deletes the old `GameResult` and creates another rather than changing its `player_id` in place.
-- Both services are transactional.
-
-Integration should remain in the service layer, not in Django views or model signals. The evaluator runs once after the service has completed all modifications to the game's results.
-
-## 9. Player Experience
-
-Players will be able to see the earned awards associated with their player record. Possible surfaces include the account page, Player Overview, and a future dedicated profile/gallery.
-
-For now, there is **no claim, acceptance, hide, manual removal, or revoked state**. Display details and notification behavior are outside this first implementation.
-
-A player corrects an incorrectly earned event award by correcting the source game result; the evaluator then reconciles the database.
-
-## 10. Future: Time-Boxed Achievements
-
-Time-boxed achievements are a separate Python evaluation category. They are **not triggered by game submission**. A future scheduled process will evaluate completed periods such as a calendar month.
-
-Examples include most competitive games in October or highest solo score in November.
-
-The two-table catalog/recipient model is intended to be reusable, but period source fields, tie rules, late corrections, finalization, and uniqueness constraints remain **undecided**. No scheduled task is being implemented now.
-
-## 11. Initial Implementation Plan
-
-1. Add `Achievement` and `PlayerAchievement` models and constraints; create a migration.
-2. Implement the Python base definition with `register()` and one example rule, **The 180 Club**.
-3. Introduce the explicit registry and a catalog synchronization operation.
-4. Implement the game-scoped event evaluator and award reconciliation.
-5. Wire evaluation into `create_game()` and `update_game()`.
-6. Test creation, repeated evaluation, correction in both directions, result deletion, player reassignment, game-mode changes, and transactional rollback.
-7. Decide separately whether to backfill awards for existing historical games and how awards will be displayed.
-
-## 12. Open Decisions
-
-- Exact Python evaluation method signature and result type.
-- Whether initial event achievement policies support only per-result repeatability or also once-per-player milestones.
-- Final model deletion policies and any stricter consistency enforcement.
-- How registration is invoked at deploy time, and how removed/renamed Python definitions are handled.
-- Whether to perform a historical backfill of existing games at rollout.
-- How future periodic awards identify their source and uniqueness key.
-- User-facing presentation, artwork, and notifications.
-
----
-
-## Current Design Summary
-
-**Python defines and evaluates achievements; PostgreSQL stores a normalized catalog and earned-award relationships.** A class-level `register()` operation synchronizes each Python definition to `Achievement`. Game creation and editing trigger event-based evaluation immediately, without confirmation or scheduling. The evaluator reconciles `PlayerAchievement` rows associated with the changed game—creating newly qualified awards, retaining valid ones, and deleting invalid ones. Time-boxed evaluation remains a separate future workstream.
+**v1 is a viable first increment of the Achievement System epic.** Python defines and evaluates achievements; PostgreSQL retains catalog entries and earned instances. The portal automatically maintains event-based awards when games are created, edited, or deleted, and shows earned totals on the authenticated player's Account page. Player Overview, additional achievement types, historical backfill, automated regression coverage, and periodic awards remain separate work items.

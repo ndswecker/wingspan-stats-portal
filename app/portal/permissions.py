@@ -6,7 +6,7 @@ def can_manage_game(
     user: User,
     game: Game,
 ) -> bool:
-    if user.is_staff:
+    if user.is_staff or user.is_superuser:
         return True
 
     requesting_player = getattr(user, "player", None)

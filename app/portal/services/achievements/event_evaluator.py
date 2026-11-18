@@ -20,6 +20,14 @@ def evaluate_game_achievements(
     Return qualifying results grouped by achievement code.
     """
 
+    # Reload the game and its current results from the database.
+    # The supplied game may contain stale prefetched results.
+    game = Game.objects.prefetch_related(
+        "results__player",
+    ).get(
+        pk=game.pk,
+    )
+
     qualifying_achievements = {}
 
     for achievement_class in EVENT_ACHIEVEMENTS:

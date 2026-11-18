@@ -11,6 +11,7 @@ Edit Game {{ game.id }} | Wingspan Stats Portal
     Edit Game {{ game.id }}
 </h1>
 
+<!-- Game Edit Form -->
 <form method="post">
     {% csrf_token %}
 
@@ -94,5 +95,111 @@ Edit Game {{ game.id }} | Wingspan Stats Portal
     </div>
 
 </form>
+
+
+<!-- Game Deletion Section -->
+<div class="border-top mt-4 pt-4">
+    <div class="d-flex flex-column flex-md-row
+                justify-content-between align-items-md-center gap-3">
+
+        <div>
+            <h5 class="mb-1">Delete Game</h5>
+
+            <p class="text-muted mb-0">
+                Permanently delete this game, all player results,
+                and associated achievement awards.
+            </p>
+        </div>
+
+        <button
+            type="button"
+            class="btn btn-outline-danger"
+            data-bs-toggle="modal"
+            data-bs-target="#deleteGameModal"
+        >
+            Delete Game
+        </button>
+
+    </div>
+</div>
+
+
+<!-- Delete Game Confirmation Modal -->
+<div
+    class="modal fade"
+    id="deleteGameModal"
+    tabindex="-1"
+    aria-labelledby="deleteGameModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h5
+                    class="modal-title"
+                    id="deleteGameModalLabel"
+                >
+                    Delete Game {{ game.id }}?
+                </h5>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+                <p>
+                    Are you sure you want to permanently delete
+                    Game {{ game.id }}?
+                </p>
+
+                <p class="text-danger mb-0">
+                    This will permanently remove the game,
+                    all player results, and any achievement
+                    awards earned from this game.
+                    This action cannot be undone.
+                </p>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                >
+                    Cancel
+                </button>
+
+                <!-- Separate Form for Game Deletion -->
+                <form method="post" class="mb-0">
+                    {% csrf_token %}
+
+                    <input
+                        type="hidden"
+                        name="action"
+                        value="delete"
+                    >
+
+                    <button
+                        type="submit"
+                        class="btn btn-danger"
+                    >
+                        Yes, Delete Game
+                    </button>
+                </form>
+
+            </div>
+
+        </div>
+    </div>
+</div>
 
 {% endblock %}

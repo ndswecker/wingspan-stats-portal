@@ -20,6 +20,7 @@ from ..forms import (
 from ..services.game_entry import (
     create_game,
     update_game,
+    delete_game,
 )
 
 from ..services.player_access import (
@@ -496,9 +497,27 @@ def game_edit(request, pk):
     ):
         raise PermissionDenied
 
+    # Handle game deletion
+    if (
+        request.method == "POST"
+        and request.POST.get("action") == "delete"
+    ):
+
+        deleted_game_id = game.pk
+
+        delete_game(game=game)
+
+        messages.success(
+            request,
+            f"Game {deleted_game_id} was deleted successfully.",
+        )
+
+        return redirect("portal:game-create")
+
     acting_player = request.user.player
 
     if request.method == "POST":
+        
         game_form = GameForm(
             request.POST,
             instance=game,
