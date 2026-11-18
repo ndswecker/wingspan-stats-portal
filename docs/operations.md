@@ -384,3 +384,10 @@ After deployment verify:
 - Static assets load.
 - HTTPS works.
 - No unexpected errors appear in Django or Nginx logs.
+
+## Local Development Testing
+
+Open a python shell
+```bash
+docker compose   -f docker-compose.yml   -f docker-compose.dev.yml   exec django   python manage.py shell
+```

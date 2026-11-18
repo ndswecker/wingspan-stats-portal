@@ -22,7 +22,7 @@ class BaseAchievement(ABC):
 
         Registration does not award the achievment to any player.
         """
-        achievement, created = Achievement.objects.get_or_create(
+        achievement, created = Achievement.objects.update_or_create(
             code=cls.code,
             defaults={
                 "name": cls.name,
