@@ -1,148 +1,224 @@
-# Achievement System — Epic Specification (v2)
+# Wingspan Portal — Achievement System
 
-**Project:** Wingspan Stats Portal  
-**Status:** v1 implemented and manually verified; v2 planned  
-**Updated:** November 18, 2026
+**Status:** Implemented; preparing for production  
+**Updated:** November 21, 2026  
+**Scope:** Event (per-game-result) and monthly (per-player-per-month) achievements
 
-## 1. Purpose and Scope
+## 1. Purpose
 
-The Achievement System recognizes accomplishments derived from recorded Wingspan games. Python classes define achievement rules; PostgreSQL stores an `Achievement` catalog and earned `PlayerAchievement` records.
+Achievements recognize accomplishments derived from saved Wingspan games. Python classes define **what qualifies**; the Django service layer determines **when to evaluate and reconcile**; PostgreSQL records **what has been earned**.
 
-**v1** supports awards earned independently for each qualifying game result. **v2** extends the system with awards earned **once per player per calendar month**, whether eligibility requires one qualifying game or a collection of games. Evaluation and reconciliation remain immediate when games are created, edited, or deleted.
+The system is deliberately extensible: most new achievements require only a rule class and a registry entry. No scheduler, signals, separate service, or modification to the game-entry workflow is needed for these two supported achievement scopes.
 
-The implementation stays inside the Django application. No scheduled worker, periodic finalization, or automatic historical backfill is required.
-
-## 2. Existing v1 Baseline — Preserve
-
-- `Achievement`: stable unique `code`, `name`, `description`. `BaseAchievement.register()` uses `update_or_create()` to synchronize metadata.
-- An explicit registry (`EVENT_ACHIEVEMENTS`, `ALL_ACHIEVEMENTS`) and `register_achievements` management command synchronize definitions **at Docker startup, after migrations**. Registration never awards players or evaluates history.
-- `PlayerAchievement`: recipient `player`, catalog `achievement`, nullable `source_result`, and `awarded_at`. The unique `(achievement, source_result)` constraint prevents duplicate per-result awards.
-- `EventAchievement.evaluate(game=...)` returns qualifying `GameResult` records without writing awards. `The180Club` qualifies scores **at least 180**.
-- `event_evaluator.py` reloads the game and current results from the database to avoid stale prefetched data; it creates missing awards, preserves valid awards, and deletes no-longer-valid awards for that game.
-- `create_game()` and `update_game()` evaluate after results are persisted, inside their atomic transactions. `delete_game()` deletes source-linked awards through Django's cascading relationships.
-- Eligibility is independent of `GameResult.is_confirmed`.
-- Account page displays one card per earned achievement type with a count using `services/achievements/player_achievements.py` and the shared `includes/achievement_list.html` partial. Player Overview display is not implemented.
-- Game deletion is available on Edit Game with confirmation. Server authorization uses `can_manage_game()`: game participants or staff; friendship/public visibility alone does not authorize management.
-- **v1 manually verified:** qualifying/nonqualifying game creation; both directions of score correction; player reassignment; solo and competitive game deletion with award cascade; Account page with and without awards. Manual coverage is not exhaustive.
-
-## 3. v2 Functional Requirements
-
-### 3.1 Monthly award identity and eligibility
-
-- Each monthly award is identified by **player + achievement definition + calendar month (year and month)**. It can be earned **at most once per month**, and again in later months.
-- Use `Game.date_played` to determine the month, not the game entry timestamp or `awarded_at`.
-- Evaluate immediately on game creation, update, or deletion; no month-end wait.
-- Reevaluate affected periods after corrections. **Create** missing awards, **keep** valid ones without changing `awarded_at`, and **delete** awards that no longer qualify.
-- Confirmation status does not affect eligibility.
-- Solo and competitive modes use `Game.HumanPlayerMode.SINGLE` and `MULTIPLE`; participation is represented by `GameResult`. A player counts once per game.
-- The month is stored with the earned award, **not embedded in the achievement's catalog code**. Display can format `November 2026 — Small Flock Solo`.
-
-### 3.2 Initial milestone definitions (working names and thresholds)
-
-| Stable code (proposed) | Game mode | Qualifies when player plays |
-|---|---|---|
-| `small_flock_solo` | Solo | 10 games in one month |
-| `small_flock_competitive` | Competitive | 10 games in one month |
-| `fallout_solo` | Solo | 30 games in one month |
-| `fallout_competitive` | Competitive | 30 games in one month |
-
-These names and thresholds are provisional. Reaching 30 games also satisfies the 10-game milestone for the same mode and month. Each milestone is a distinct achievement type.
-
-### 3.3 Generality beyond game counts
-
-The same monthly interface must also support rules based on individual games within the month. Example: **win a competitive game by more than 50 points** (beat the highest-scoring opponent by more than 50); award once in that month even if several games qualify. The evaluator checks whether **any qualifying game remains** after edits/deletions; it must not revoke the month's award merely because one of several qualifying games was changed.
-
-Other monthly rules may aggregate scores, count distinct days played, or count wins. A monthly award's *earning frequency* does not dictate whether the eligibility rule checks one game or many.
-
-## 4. v2 Architecture
-
-### 4.1 Shared definitions and separate evaluation scopes
+## 2. Architecture
 
 ```text
-BaseAchievement                 metadata and catalog registration
-├── EventAchievement           per-game eligibility, one award per qualifying GameResult
-└── MonthlyAchievement         player + calendar-month eligibility, at most one award/month
+BaseAchievement                       Shared metadata and catalog registration
+├── EventAchievement                 Evaluate one game; return qualifying GameResults
+│   ├── The180Club
+│   ├── TheDodo
+│   ├── TheShrike
+│   └── TheImpaledShrew
+└── MonthlyAchievement               Evaluate one player in one calendar month; return bool
+    └── MonthlyGameCountAchievement   Reusable count-based monthly rule
+        ├── BackyardBirderSolo
+        ├── BackyardBirderCompetitive
+        ├── HardcoreListerSolo
+        └── HardcoreListerCompetitive
 ```
 
-Keep the existing `EventAchievement` contract and evaluator. Introduce `MonthlyAchievement.evaluate(*, player: Player, period_start: date) -> bool` (proposed contract). The `period_start` is the first day of a calendar month. Concrete classes perform eligibility queries/logic only; evaluators own award persistence and reconciliation.
+**Responsibilities**
 
-The registry adds `MONTHLY_ACHIEVEMENTS`, and `ALL_ACHIEVEMENTS` includes both categories for the existing registration command. Adding another monthly rule should require a class and registry entry, **not edits to game entry services**.
+| Component | Responsibility |
+|---|---|
+| Achievement rule classes | Declare `code`, `name`, `description`, and read-only eligibility logic |
+| `registry.py` | Explicitly list implemented event and monthly rules; expose `ALL_ACHIEVEMENTS` |
+| `register_achievements` management command | Synchronize catalog definitions using `BaseAchievement.register()` (`update_or_create` by stable code) |
+| `event_evaluator.py` | Create, retain, or revoke per-result awards for a changed game |
+| `monthly_evaluator.py` | Create, retain, or revoke monthly awards for one player/month |
+| `snapshot.py` | Capture immutable pre-change and persisted post-change game scope |
+| `orchestrator.py` | Identify affected scopes and delegate to evaluators |
+| `game_entry.py` | Call the orchestrator inside atomic create/update/delete operations |
+| `player_achievements.py` | Aggregate earned awards by achievement type for the Account page |
 
-### 4.2 Orchestrator and change snapshots
+**Separation of concerns:** rule classes determine eligibility but do not create or delete `PlayerAchievement` rows. Evaluators own persistence and reconciliation. The orchestrator owns change scope, not individual award rules.
 
-Create an achievement orchestrator as the **single integration point** for game create/update/delete operations. It delegates to the existing per-game evaluator and a new monthly evaluator.
+## 3. Data model and award identity
 
-Capture **pre-change state before any modifications**: `date_played`, `human_player_mode`, and participating player IDs. A lightweight immutable `GameAchievementSnapshot` is sufficient. After changes, obtain the current state from persisted game/results. The previous state identifies scopes that could lose eligibility; the current state identifies scopes that could gain it.
+### `Achievement` — catalog definition
 
-| Operation | Before | After | Evaluation |
+- `code`: immutable-in-practice, unique identifier; use `snake_case`.
+- `name`, `description`: user-facing metadata, synchronized from code at registration.
+- Catalog entries are not themselves earned awards.
+
+### `PlayerAchievement` — earned instance
+
+- `player`: recipient.
+- `achievement`: catalog FK.
+- `source_result`: nullable `GameResult` FK; populated for event awards.
+- `period_start`, `period_end`: nullable dates; populated for monthly awards.
+- `awarded_at`: timestamp when the record was created, **not** necessarily the date the game was played.
+
+| Scope | Identity | `source_result` | `period_start` / `period_end` |
 |---|---|---|---|
-| Create | None | New game state | Event awards for new game; affected players/month |
-| Update | Original game state | Updated game state | Event awards for updated game; union of old/new players and months |
-| Delete | Original game state | None | Source-linked event awards cascade; reevaluate old players/month |
+| Event | Achievement + qualifying `GameResult` | Populated | Null |
+| Monthly | Player + achievement + calendar month | Null | Populated |
 
-The orchestrator must reevaluate the **old and new** monthly scopes when the date or mode changes, and the **old and new participants** when player assignments change. Score edits can also affect monthly rules, even when month/mode/player IDs are unchanged. Do **not** calculate historical eligibility from a snapshot: use it only to identify what to recalculate against the **current database**.
+Database constraints prevent duplicate awards for the same event result and duplicate monthly awards for the same player/achievement/month. Source/period integrity and chronological period bounds are also constrained. The monthly end date is **exclusive**: November 2026 is `[2026-11-01, 2026-12-01)`.
 
-A proposed single entry point is `synchronize_game_achievements(*, game: Game | None, previous_state: GameAchievementSnapshot | None)`. Snapshot capture and orchestration belong in the service layer, not views or Django signals. Run reconciliation within each existing `@transaction.atomic` game-operation transaction; update `delete_game()` to snapshot and orchestrate around deletion.
+A monthly award intentionally has **no source result**. The tenth or thirtieth game may trigger evaluation, but eligibility belongs to the player's **combined monthly history**, not to that one game. Deleting the triggering game should not delete an award if enough other qualifying games remain.
 
-### 4.3 Monthly reconciliation
+## 4. Current achievement catalog
 
-For each affected `(player, month)` scope:
+### Event achievements
 
-1. Evaluate all registered monthly definitions against the **current** game history for that player and period.
-2. Read existing monthly `PlayerAchievement` instances for the player, period, and registered definitions.
-3. Create missing qualified instances; retain still-qualified instances; delete disqualified instances.
-4. Never affect per-result event awards or unrelated players/periods.
+Every qualifying `GameResult` can earn its own instance. All are independent of result confirmation.
 
-A no-change reevaluation must be idempotent. Use ORM aggregation/`exists()` where suitable rather than materializing all a player's history. No whole-history scan on normal game changes.
+| Code | Name | Qualification |
+|---|---|---|
+| `the_180_club` | The 180 Club | Score **≥ 180** in one game |
+| `the_dodo` | The Dodo | Score **< 80** in one game |
+| `the_shrike` | The Shrike | In a competitive game with at least two results, be the sole winner and beat second place by **≥ 30** |
+| `the_impaled_shrew` | The Impaled Shrew | In a competitive game with at least two results, finish **≥ 30** points below the highest score; multiple recipients possible |
 
-### 4.4 Persistence and uniqueness
+The Shrike and Impaled Shrew compare human participants in the same game. A multiplayer game can award The Impaled Shrew without awarding The Shrike, because a distant trailing player may lose by 30 even when the winner beats second place by less than 30. A tie for first cannot earn The Shrike.
 
-Extend `PlayerAchievement` with a nullable `period_start` (`DateField`) for monthly awards; first day of the month represents the month/year.
+User-facing descriptions may be cheeky and bird-themed, but **qualification thresholds belong in `evaluate()`**, not in prose. The intended paired descriptions are:
 
-- **Event award:** `source_result` populated, `period_start` null; keep unique `(achievement, source_result)`.
-- **Monthly award:** `source_result` null, `period_start` populated; add a database uniqueness constraint on `(player, achievement, period_start)` **conditioned on `period_start IS NOT NULL`**.
-- Enforce the correct source/period pairing and first-day-of-month requirement through appropriate model/application validation and, where feasible, database constraints. Existing event records remain valid.
-- `Achievement` catalog rows remain month-independent. Existing FK deletion rules remain unchanged: deleting a game cascades event awards; monthly awards require explicit reconciliation, **not** cascade via a single source result.
+- **The Shrike:** “Win by at least 30 points and leave your competition impaled on a thorn.”
+- **The Impaled Shrew:** “Lose by at least 30 points and find yourself dangling from the shrike's barbed wire.”
 
-A migration is required. The concrete constraint and validation implementation will be settled when updating the model.
+### Monthly achievements
 
-## 5. Registration and Historical Data
+Monthly participation counts distinct games represented by a player's `GameResult` entries, using `Game.date_played`. Solo and competitive counts are independent; a player can earn both 10- and 30-game milestones for the same mode and month.
 
-**Automatic Docker startup is limited to migrations and catalog registration.** It must **not** run achievement evaluation or historical award backfilling.
+| Code | Name | Requirement in one calendar month |
+|---|---|---|
+| `backyard_birder_solo` | Backyard Birder — Solo | ≥ 10 solo games |
+| `backyard_birder_competitive` | Backyard Birder — Competitive | ≥ 10 competitive games |
+| `hardcore_lister_solo` | Hardcore Lister — Solo | ≥ 30 solo games |
+| `hardcore_lister_competitive` | Hardcore Lister — Competitive | ≥ 30 competitive games |
 
-Optionally provide a **manual-only**, explicitly invoked Django management command to backfill or reconcile historical monthly awards. It should be idempotent and scoped appropriately (such as selected players/months or a deliberate date range). Historical backfill is **not a requirement for activating v2** and must never be triggered implicitly by deployment.
+Game modes are `Game.HumanPlayerMode.SINGLE` and `Game.HumanPlayerMode.MULTIPLE`. Month boundaries are start-inclusive and end-exclusive; December-to-January rollover is handled when computing boundaries. Confirmation status does not affect counting.
 
-## 6. Player Display
+## 5. Eligibility contracts
 
-Reuse the existing Account achievement summary and shared template. Monthly awards appear once per achievement type with a count of months earned, while per-game awards retain counts of qualifying games. The initial release need not add a month-by-month detail view, progress indicators, artwork, notifications, or Player Overview integration.
+### Event rules
 
-## 7. Implementation Sequence
+```python
+class ExampleEvent(EventAchievement):
+    code = "example_event"
+    name = "Example Event"
+    description = "Example qualification."
 
-1. Introduce `GameAchievementSnapshot` and `orchestrator.py`; route existing event evaluation through it. Manually verify v1 create, edit, player reassignment, and delete scenarios before proceeding.
-2. Extend `PlayerAchievement` with monthly period identity and uniqueness; create/apply a migration.
-3. Add `MonthlyAchievement`, its registry category, and a monthly evaluator/reconciler.
-4. Implement the initial 10/30 solo/competitive monthly definitions.
-5. Integrate previous/current state handling into create/update/delete with the orchestrator as the stable call site; preserve transactional behavior.
-6. Update the Account display where necessary and manually verify counts.
-7. Optionally implement a **manually invoked** historical backfill command.
+    @classmethod
+    def evaluate(cls, *, game: Game) -> list[GameResult]:
+        # Return all qualifying GameResult instances.
+        # Do not write achievement records here.
+        return []
+```
 
-## 8. Manual Acceptance Checklist (No Automated Tests in v2)
+An event rule receives a game and returns **zero, one, or several qualifying results**. This supports score thresholds, winners' margins, tied scores, and other relationships among results. The evaluator reloads the game and results from the database to avoid stale prefetched relationships following edits or player reassignment.
 
-- [ ] Existing The 180 Club behavior survives the orchestration refactor.
-- [ ] First through ninth games do not earn the 10-game milestone; tenth game awards it immediately.
-- [ ] Thirtieth game awards the 30-game milestone without duplicating the 10-game award.
-- [ ] Solo and competitive counts are independent; each player is counted once per game.
-- [ ] Different months and years receive distinct awards; month boundaries are correct.
-- [ ] Repeated reevaluation preserves one monthly award and its original `awarded_at`.
-- [ ] Editing score, date, mode, or participants reevaluates affected monthly scopes; both old/new periods and participants are handled.
-- [ ] Deleting a qualifying game removes monthly awards when the player falls below threshold; event awards still cascade normally.
-- [ ] For a single-game-triggered monthly rule, removing one qualifying game does not revoke the award while another qualifying game remains.
-- [ ] Account page displays the expected earned types and counts, including the no-awards state.
-- [ ] Restarting/rebuilding Docker registers definitions only and does **not** backfill historical awards.
+### Monthly rules
 
-**Testing policy for this iteration:** manual user tests only. Automated test development is out of scope.
+```python
+class ExampleMonthly(MonthlyAchievement):
+    code = "example_monthly"
+    name = "Example Monthly"
+    description = "Example qualification for one calendar month."
 
-## 9. Proposed File Map
+    @classmethod
+    def evaluate(
+        cls, *, player: Player, period_start: date, period_end: date
+    ) -> bool:
+        # Read the current games in [period_start, period_end).
+        # Do not create/delete achievement records here.
+        return False
+```
+
+Monthly rules return whether the player qualifies **now** for that month. `MonthlyGameCountAchievement` implements the common count-based case via configurable `required_games` and `game_mode` class attributes. Future monthly rules may inspect any qualifying game, total scores, distinct play dates, or other aggregates without changing the evaluator's contract.
+
+## 6. Lifecycle and reconciliation
+
+```text
+create_game / update_game / delete_game  [transaction.atomic]
+    |
+    +-- Capture previous GameAchievementSnapshot (update/delete)
+    +-- Persist game and GameResults (or delete game)
+    +-- synchronize_game_achievements(game, previous_state)
+          |
+          +-- For a surviving game: evaluate_game_achievements(game)
+          |     +-- Create qualifying per-result awards
+          |     +-- Preserve existing qualifying awards
+          |     +-- Delete no-longer-qualifying awards
+          |
+          +-- Derive affected (player, month) scopes from
+                previous and current persisted snapshots
+                +-- evaluate_monthly_achievements(player, period)
+                      +-- Create qualifying monthly awards
+                      +-- Preserve existing qualifying awards
+                      +-- Delete no-longer-qualifying awards
+```
+
+`GameAchievementSnapshot` contains `date_played`, `human_player_mode`, and a `frozenset` of player IDs. On update, the previous state is captured **before writes**; the current state is retrieved **after writes**. For deletion, the original state is retained, while the game and event awards are removed via cascade.
+
+The orchestrator computes the **union** of previous and current affected `(player, month)` scopes. This handles:
+
+- Creating a game: evaluate current participants/month.
+- Correcting scores: reevaluate even when the participants and month are unchanged.
+- Changing a date: reevaluate both the old and new months.
+- Reassigning participants: reevaluate both removed and added players.
+- Switching solo/competitive mode: reevaluate all monthly rules for affected players/month.
+- Deleting a game: cascade its event awards and reevaluate the original participants/month.
+
+**Reconciliation always queries current persisted game history.** Snapshots identify *where* to reevaluate; they are not used to derive historical eligibility. All work occurs inside the game operation's transaction, keeping game changes and awards consistent.
+
+**Idempotency:** reevaluating unchanged data must not create duplicates or replace valid instances. A valid award keeps its original `id` and `awarded_at`. If eligibility disappears, delete the award; if eligibility later returns, create a new instance.
+
+## 7. Adding or changing an achievement
+
+1. **Choose scope.** Event if awarded per qualifying result; monthly if awarded at most once per player per calendar month.
+2. **Define a class** in `event_achievements.py` or `monthly_achievements.py`. Supply stable `code`, user-facing metadata, and a read-only `evaluate()` implementation.
+3. **Register the class** in `EVENT_ACHIEVEMENTS` or `MONTHLY_ACHIEVEMENTS` in `registry.py`. `ALL_ACHIEVEMENTS` combines both registries.
+4. **Synchronize the catalog** by running `register_achievements` (normally performed during Docker startup, after migrations).
+5. **Manually verify** boundary thresholds, appropriate recipients, creation, edit/revocation, delete behavior, and account/admin display.
+
+For a new rule **within an existing scope**, no changes should be required to `game_entry.py`, `orchestrator.py`, evaluators, or models. Changing `name` or `description` for an existing stable code updates the catalog on registration. **Changing an `evaluate()` rule is consequential:** existing awards are only brought into line when their game or player/month scope is reevaluated; registration alone does not retroactively reconcile historical awards. Avoid reusing a stable code for an unrelated accomplishment.
+
+To add a **new scope** (e.g. annual awards), design its identity, evaluator, registry, and orchestrator integration deliberately rather than forcing it into event/monthly logic.
+
+## 8. Registration, deployment, and historical data
+
+- Docker startup executes database migrations and `register_achievements`; registration synchronizes definitions **only**.
+- No scheduled worker, month-end finalization, automatic backfill, or full-history scan runs on deployment.
+- Subsequent game creation/edit/deletion reevaluates only its affected scopes. Editing an older game can legitimately reconcile its historical month.
+- Any bulk historical reconciliation/backfill should be an **explicit, manually run operation**, scoped and reviewed separately. Such a command is optional, not part of the deployed feature.
+- Deploy code and migration changes through the normal Django/Docker process; confirm new catalog entries exist before evaluating games against them.
+
+## 9. Presentation and administration
+
+- The Account page groups earned `PlayerAchievement` rows by achievement type and displays `earned_count`. For event rules, this represents qualifying game results; for monthly rules, qualifying months.
+- `portal/includes/achievement_list.html` is the shared achievement display partial.
+- In Django Admin, show `source_result` alongside `period_start` and `period_end`: event awards have a source result; monthly awards have period dates instead.
+- A month-by-month achievement history, progress meter, popup notifications, and Player Overview award display are **not** currently part of this scope.
+
+## 10. Minimal manual regression checklist
+
+- [ ] Event boundaries: The 180 Club at 180; The Dodo at 79 but not 80.
+- [ ] The Shrike triggers at a **30-point** winning margin (not only 31); ties do not qualify.
+- [ ] The Impaled Shrew applies to **each** opponent at least 30 points behind first place.
+- [ ] Editing scores removes awards no longer earned and adds newly earned awards.
+- [ ] Monthly tenth game awards Backyard Birder; deleting it revokes the award if count falls below 10.
+- [ ] A thirtieth game awards Hardcore Lister without duplicating Backyard Birder.
+- [ ] Moving a game across months or changing participants/mode reconciles old and new scopes.
+- [ ] Repeating evaluation preserves valid award IDs/timestamps and does not duplicate records.
+- [ ] Account counts and Admin source/period columns match expected awards.
+- [ ] Restarting Docker registers catalog definitions but does not backfill historical games.
+
+**Verified in development during this feature work:** event-score awards and their revocation; monthly award persistence and idempotency; tenth-game monthly award creation and removal after deleting the game. Broader scenarios above remain useful pre-deployment regression checks.
+
+## 11. File map
 
 ```text
 portal/
@@ -154,17 +230,17 @@ portal/
       event.py
       event_achievements.py
       event_evaluator.py
-      monthly.py                  # new base contract
-      monthly_achievements.py     # new rules
-      monthly_evaluator.py        # new monthly reconciliation
-      orchestrator.py             # new shared change coordination
+      monthly.py
+      monthly_achievements.py
+      monthly_evaluator.py
+      snapshot.py
+      orchestrator.py
       registry.py
-      player_achievements.py      # existing Account summary
+      player_achievements.py
   management/commands/
-    register_achievements.py      # existing automatic catalog registration
-    backfill_achievements.py      # optional, manual-only
+    register_achievements.py
   templates/portal/includes/
-    achievement_list.html         # existing shared display
+    achievement_list.html
 ```
 
-**v2 boundary:** establish extensible immediate monthly eligibility and reconciliation without changing how current event awards work, without scheduled processing, without automatic history backfills, and without an automated test suite.
+**Maintenance principle:** keep eligibility rules isolated in classes, catalog registration explicit, reconciliation centralized, and earned awards derived from current database truth.
