@@ -4,7 +4,11 @@ from ..models import Game, GameResult, Player
 
 from .friendship import get_friends_for_player
 
-from .achievements.event_evaluator import evaluate_game_achievements
+from .achievements.snapshot import GameAchievementSnapshot
+
+from .achievements.orchestrator import (
+    synchronize_game_achievements,
+)
 
 class GameEntryError(Exception):
     """Raised when a game entry operation violates a business rule."""
@@ -49,7 +53,10 @@ def create_game(
             is_confirmed=is_confirmed
         )
 
-    evaluate_game_achievements(game=game)
+    synchronize_game_achievements(
+        game=game, 
+        previous_state=None
+    )
 
     return game
 
@@ -69,12 +76,12 @@ def update_game(
 
     Confirmation state is determined by who performed each result change.
     """
+
+    previous_state = GameAchievementSnapshot.from_game(
+        game=game,
+    )
     
     # Snapshot the existing GameResult records before making any changes.
-    #
-    # A validated ModelForm may already have applied submitted values to
-    # form.instance, so the database records are our reliable source for
-    # determining what actually changed.
     existing_results = {
         result.pk: result
         for result in GameResult.objects.select_for_update().filter(
@@ -239,7 +246,10 @@ def update_game(
             is_confirmed=is_confirmed,
         )
 
-    evaluate_game_achievements(game=game)
+    synchronize_game_achievements(
+        game=game,
+        previous_state=previous_state
+    )
 
 @transaction.atomic
 def delete_game(
@@ -249,11 +259,26 @@ def delete_game(
     """
     Delete a game and all its associated results.
 
-    This service is responsible for deleting any PlayerAchievement
-    records that were awarded based on the deleted results.
+    Event-based awards linked to deleted GameResults
+    are removed through cascading deletion.
+
+    The achievement orchestrator handles reevaluation
+    of other affected achievements.
     """
 
+    # Capture the game's state before deletion.
+    previous_state = GameAchievementSnapshot.from_game(
+        game=game,
+    )
+
+    # Delete the game, its results, and associated event awards.
     game.delete()
+
+    # Reevaluate achievements affected by the deleted game.
+    synchronize_game_achievements(
+        game=None,
+        previous_state=previous_state,
+    )
 
 
 def get_allowed_result_players(

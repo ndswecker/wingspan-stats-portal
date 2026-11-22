@@ -169,12 +169,16 @@ class PlayerAchievementAdmin(admin.ModelAdmin):
         "player",
         "achievement",
         "source_result",
+        "period_start",
+        "period_end",
         "awarded_at",
     )
 
     list_filter = (
         "achievement",
+        "period_start",
         "awarded_at",
+        "player",
     )
 
     search_fields = (

@@ -267,6 +267,19 @@ class PlayerAchievement(models.Model):
         blank=True,
     )
 
+    # Applicable period for recurring achievements.
+    # period_end is exclusive.
+    # Both fields remain NULL for per-game achievements.
+    period_start = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    period_end = models.DateField(
+        null=True,
+        blank=True,
+    )
+
     awarded_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -275,12 +288,58 @@ class PlayerAchievement(models.Model):
         ordering = ["-awarded_at"]
 
         constraints = [
+            # Prevent duplicate awards for the same game result.
             models.UniqueConstraint(
                 fields=[
                     "achievement",
                     "source_result",
                 ],
                 name="unique_achievement_per_result",
+            ),
+
+            # Prevent the same player from earning the same
+            # recurring achievement twice for one period.
+            models.UniqueConstraint(
+                fields=[
+                    "player",
+                    "achievement",
+                    "period_start",
+                ],
+                condition=models.Q(
+                    period_start__isnull=False,
+                ),
+                name="unique_player_achievement_per_period",
+            ),
+
+            # Per-game awards use source_result.
+            # Recurring awards use period_start and period_end.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        source_result__isnull=False,
+                        period_start__isnull=True,
+                        period_end__isnull=True,
+                    )
+                    |
+                    models.Q(
+                        source_result__isnull=True,
+                        period_start__isnull=False,
+                        period_end__isnull=False,
+                    )
+                ),
+                name="valid_achievement_source_or_period",
+            ),
+
+            # The end of a recurring period must be after its start.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(period_start__isnull=True)
+                    |
+                    models.Q(
+                        period_end__gt=models.F("period_start"),
+                    )
+                ),
+                name="valid_achievement_period_dates",
             ),
         ]
 
