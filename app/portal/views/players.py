@@ -56,6 +56,11 @@ from ..services.player_game_score_gap_chart import (
     build_game_score_gap_chart,
 )
 
+from ..services.achievements.player_achievements import (
+    get_player_achievement_summary,
+)
+
+
 @login_required
 def competitive_history(request):
 
@@ -176,9 +181,14 @@ def player_overview(request):
     selected_start_date = None
     selected_end_date = None
     is_viewing_own_results = False
+    achievement_summary = None
 
     if filter_form.is_valid():
         selected_player = filter_form.cleaned_data["player"]
+
+        achievement_summary = get_player_achievement_summary(
+            player=selected_player,
+        )
 
         is_viewing_own_results = (
             acting_player is not None
@@ -214,6 +224,7 @@ def player_overview(request):
         "selected_start_date": selected_start_date,
         "selected_end_date": selected_end_date,
         "is_viewing_own_results": is_viewing_own_results,
+        "achievement_summary": achievement_summary,
     }
 
     return render(

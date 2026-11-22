@@ -224,6 +224,20 @@
                 </div>
             </div>
 
+        {% endif %}
+
+        <!-- Player achievements are independent of game-history filters. -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Achievements</h2>
+            </div>
+
+            <div class="card-body">
+                {% include "portal/includes/achievement_list.html" %}
+            </div>
+        </div>
+
+        {% if general_stats.games_played > 0 %}
             <div class="card shadow-sm">
                 <div class="card-header">
                     <h2 class="h5 mb-0">Game History</h2>

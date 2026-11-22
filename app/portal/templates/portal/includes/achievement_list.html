@@ -20,6 +20,12 @@
                             time{{ achievement.earned_count|pluralize }}
                         </span>
 
+                        {% if achievement.earned_periods_label %}
+                            <p class="text-muted small mt-3 mb-0">
+                                {{ achievement.earned_periods_label }}
+                            </p>
+                        {% endif %}
+
                     </div>
                 </div>
             </div>
