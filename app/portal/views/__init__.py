@@ -41,3 +41,7 @@ from .research import (
     turn_order_research,
     execute_turn_order_hypothesis,
 )
+
+from .about import (
+    about,
+)

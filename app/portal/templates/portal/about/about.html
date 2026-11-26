@@ -1,0 +1,36 @@
+{% extends "portal/base.html" %}
+{% load static %}
+
+{% block title %}About | Wingspan Stats Portal{% endblock %}
+
+{% block main_class %}
+container-fluid px-3 px-xl-5 py-4
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+
+    <aside class="col-lg-3 mb-4 mb-lg-0">
+        {% include "portal/about/_sidebar.html" %}
+    </aside>
+
+
+    <div class="col-lg-9">
+        <h1>About Wingspan Stats Portal</h1>
+
+        <p class="lead">
+            Discover what Wingspan Stats Portal can do.
+        </p>
+
+        {% include "portal/about/_overview.html" %}
+        {% include "portal/about/_getting_started.html" %}
+        {% include "portal/about/_recording_games.html" %}
+        {% include "portal/about/_friends.html" %}
+        {% include "portal/about/_trends.html" %}   
+        
+    </div>
+
+</div>
+
+{% endblock %}

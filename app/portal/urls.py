@@ -120,4 +120,9 @@ urlpatterns = [
         views.execute_turn_order_hypothesis,
         name="execute-turn-order-hypothesis",
     ),
+    path(
+        "about/",
+        views.about,
+        name="about",
+    ),
 ]

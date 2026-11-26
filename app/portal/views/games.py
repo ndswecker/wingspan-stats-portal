@@ -300,7 +300,6 @@ def game_result_rows(request):
     )
 
 
-
 @login_required
 @require_POST
 def game_edit_result_rows(request, pk):
@@ -433,7 +432,6 @@ def game_edit_result_rows(request, pk):
     )
 
 
-
 @login_required
 def game_detail(request, pk):
     # When retrieving this game I'm going to need its game results, and the player associated
@@ -481,6 +479,7 @@ def count_active_result_forms(result_formset):
         for form in result_formset.forms
         if not form["DELETE"].value()
     )
+
 
 @login_required
 def game_edit(request, pk):

@@ -9,6 +9,7 @@
 
     <link rel="stylesheet" href="{% static 'portal/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'portal/css/site.css' %}">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <nav class="navbar navbar-expand-lg bg-primary" data-bs-theme="dark">
@@ -90,7 +91,7 @@
         </div>
     </nav>
 
-    <main class="container py-4">
+    <main class="{% block main_class %}container py-4{% endblock %}">
         {% if messages %}
             {% for message in messages %}
                 <div
