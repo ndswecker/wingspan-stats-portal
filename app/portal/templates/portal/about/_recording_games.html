@@ -1,7 +1,130 @@
+{% load static %}
+
 <section id="recording-games" class="mb-5">
     <h2>Recording Games</h2>
     <p class="text-muted">
         Record your Wingspan games and track your scores.
         Content coming soon.
     </p>
+</section>
+<section id="recording-games" class="mb-5 pb-4 border-bottom">
+
+    <h2 class="mb-3">Recording Games</h2>
+
+    <p class="lead">
+        Every game deserves a place in your history.
+    </p>
+
+    <p>
+        Whether you're playing solo or competing with friends,
+        Wingspan Stats Portal makes it easy to record your games
+        and build a lasting history of your scores. Each game you
+        record contributes to your growing collection of Wingspan
+        results.
+    </p>
+
+    <!-- My Games -->
+    <div class="mt-5">
+
+        <h3 class="h4 mb-3">Start from My Games</h3>
+
+        <p>
+            Select <strong>My Games</strong> from the main navigation
+            to access your personal game dashboard.
+            From here, select <strong>Add New Game</strong>
+            to record a completed Wingspan game.
+        </p>
+
+        <figure class="my-4">
+            <img
+                src="{% static 'portal/images/about/my-games.webp' %}"
+                class="img-fluid rounded shadow-sm border"
+                alt="My Games dashboard showing the game history filters and Add New Game button"
+                loading="lazy"
+            >
+            <figcaption class="text-muted small mt-2">
+                The My Games dashboard is where you can review
+                your playing history and add new games.
+            </figcaption>
+        </figure>
+
+    </div>
+
+    <!-- Adding a Game -->
+    <div class="mt-5">
+
+        <h3 class="h4 mb-3">Enter Your Game Results</h3>
+
+        <p>
+            Recording a game takes just a few steps:
+        </p>
+
+        <ol class="mb-4">
+            <li class="mb-2">
+                <strong>Choose the date.</strong>
+                Select when your game was played. The date defaults to today, but you can change it if needed.
+            </li>
+
+            <li class="mb-2">
+                <strong>Select the game mode.</strong>
+                Indicate whether you played solo or with
+                other human players.
+            </li>
+
+            <li class="mb-2">
+                <strong>Enter player scores.</strong>
+                Select yourself or friends who participated
+                and enter each player's final score.
+            </li>
+
+            <li class="mb-2">
+                <strong>Add additional players.</strong>
+                Use the Add Another Player button to include
+                more participants, up to five human players. 
+                Only your friends can be added to a game. 
+                You can also record turn order if you wish.
+            </li>
+
+            <li class="mb-2">
+                <strong>Save the game.</strong>
+                Your completed game is recorded in
+                Wingspan Stats Portal.
+            </li>
+        </ol>
+
+        <figure class="my-4">
+            <img
+                src="{% static 'portal/images/about/add-game.webp' %}"
+                class="img-fluid rounded shadow-sm border"
+                alt="Add Game form showing the date, game mode, player scores, and Add Another Player button"
+                loading="lazy"
+            >
+            <figcaption class="text-muted small mt-2">
+                Add players as needed, enter their scores,
+                and save your completed game.
+            </figcaption>
+        </figure>
+
+    </div>
+
+    <!-- Confirmation Preview -->
+    <div class="alert alert-info mt-4" role="note">
+
+        <h3 class="h6 fw-bold mb-2">
+            A note about player results
+        </h3>
+
+        <p class="mb-0">
+            Your own results are automatically confirmed when
+            you record a game. Friends you include must confirm
+            their results before the game is fully verified.
+            We'll explain how that works in the
+            <a href="#confirming-results" class="alert-link">
+                Confirming Results
+            </a>
+            section.
+        </p>
+
+    </div>
+
 </section>
