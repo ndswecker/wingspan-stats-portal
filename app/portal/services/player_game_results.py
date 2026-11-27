@@ -219,6 +219,7 @@ def build_my_game_rows(
                     result.is_confirmed
                     for result in results
                 ),
+                "is_competitive": (game.human_player_mode == Game.HumanPlayerMode.MULTIPLE)
             }
         )
 

@@ -129,81 +129,101 @@
 
     <div class="card-body p-0">
         {% if game_rows %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Score</th>
+                        <th scope="col">Players</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in game_rows %}
                         <tr>
-                            <th scope="col">Game ID</th>
-                            <th scope="col">Date</th>
-                            <th scope="col">Type</th>
-                            <th scope="col">My Score</th>
-                            <th scope="col">Players</th>
-                            <th scope="col">My Confirmation</th>
-                            <th scope="col">Game Confirmation</th>
-                            <th scope="col">Action</th>
-                        </tr>
-                    </thead>
 
-                    <tbody>
-                        {% for row in game_rows %}
-                            <tr>
-                                <td class="fw-semibold">
-                                    #{{ row.id }}
-                                </td>
+                            <!-- Date / View Game -->
+                            <td class="text-nowrap">
+                                <a
+                                    href="{% url 'portal:game-detail' row.id %}"
+                                    class="fw-semibold text-decoration-none"
+                                    aria-label="View game {{ row.id }} played on {{ row.date_played|date:'F j, Y' }}"
+                                    title="View Game #{{ row.id }}"
+                                >
+                                    {{ row.date_played|date:"m/d/y" }}
+                                </a>
+                            </td>
 
-                                <td class="text-nowrap">
-                                    {{ row.date_played|date:"M j, Y" }}
-                                </td>
+                            <!-- My Score -->
+                            <td class="fw-semibold">
+                                {{ row.my_score }}
+                            </td>
 
-                                <td>
-                                    {{ row.game_type }}
-                                </td>
+                            <!-- Players -->
+                            <td>
+                                <div class="d-flex align-items-start gap-2">
 
-                                <td class="fw-semibold">
-                                    {{ row.my_score }}
-                                </td>
-
-                                <td>
-                                    {{ row.players }}
-                                </td>
-
-                                <td>
-                                    {% if row.my_confirmed %}
-                                        <span class="badge bg-success">
-                                            Confirmed
+                                    {% if row.is_competitive %}
+                                        <span
+                                            class="badge bg-primary"
+                                            title="Competitive game"
+                                            aria-label="Competitive game"
+                                        >
+                                            M
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-warning text-dark">
-                                            Pending
+                                        <span
+                                            class="badge bg-success"
+                                            title="Solo game"
+                                            aria-label="Solo game"
+                                        >
+                                            S
                                         </span>
                                     {% endif %}
-                                </td>
 
-                                <td>
+                                    <span>
+                                        {{ row.players }}
+                                    </span>
+
+                                </div>
+                            </td>
+
+                            <!-- Confirmation Status -->
+                            <td>
+                                <div class="d-flex flex-column align-items-start gap-1">
+
                                     {% if row.fully_confirmed %}
                                         <span class="badge bg-success">
-                                            Fully Confirmed
+                                            All Confirmed
+                                        </span>
+                                    {% elif row.my_confirmed %}
+                                        <span class="badge bg-warning text-dark">
+                                            Awaiting Others
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-warning text-dark">
-                                            Pending
-                                        </span>
+                                        <a
+                                            href="{%url 'portal:game-detail' row.id %}"
+                                            class="badge bg-danger text-white text-decoration-none"
+                                            aria-label="View game {{ row.id }} to confirm your result"
+                                            title="View Game #{{ row.id }} to confirm your result"
+                                        >
+                                            Please Confirm
+                                        </a>
                                     {% endif %}
-                                </td>
+                                </div>
+                            </td>
 
-                                <td>
-                                    <a
-                                        href="{% url 'portal:game-detail' row.id %}"
-                                        class="btn btn-sm btn-outline-primary text-nowrap"
-                                    >
-                                        View
-                                    </a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
         {% elif not filter_form.errors %}
             <div class="p-4 text-center text-muted">
                 No games match the selected filters.
