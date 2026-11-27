@@ -39,10 +39,8 @@
 
                     <!--
                     Deleted forms remain in the DOM as hidden inputs.
-
                     Existing GameResult IDs must be preserved so
-                    Django knows which records to delete when
-                    Save Changes is submitted.
+                    Django knows which records to delete.
                     -->
 
                     {% for hidden_field in form.hidden_fields %}
@@ -56,7 +54,8 @@
 
                 {% else %}
 
-                    <div class="border rounded p-3 mb-3">
+                    <!-- Active Player Row -->
+                    <div class="border-bottom pb-3 mb-3">
 
                         <!-- Preserve existing GameResult ID -->
                         {% for hidden_field in form.hidden_fields %}
@@ -66,13 +65,13 @@
                         <!-- Preserve Django deletion field -->
                         {{ form.DELETE.as_hidden }}
 
-                        <div class="row g-3 align-items-start">
+                        <div class="row g-2 align-items-start">
 
                             <!-- Player -->
-                            <div class="col-12 col-md-4">
+                            <div class="col-6">
 
                                 <label
-                                    class="form-label"
+                                    class="form-label small mb-1"
                                     for="{{ form.player.id_for_label }}"
                                 >
                                     Player
@@ -81,7 +80,7 @@
                                 {{ form.player }}
 
                                 {% for error in form.player.errors %}
-                                    <div class="text-danger small mt-1">
+                                    <div class="invalid-feedback d-block">
                                         {{ error }}
                                     </div>
                                 {% endfor %}
@@ -89,10 +88,10 @@
                             </div>
 
                             <!-- Score -->
-                            <div class="col-12 col-md-3">
+                            <div class="col-3">
 
                                 <label
-                                    class="form-label"
+                                    class="form-label small mb-1"
                                     for="{{ form.score.id_for_label }}"
                                 >
                                     Score
@@ -101,7 +100,7 @@
                                 {{ form.score }}
 
                                 {% for error in form.score.errors %}
-                                    <div class="text-danger small mt-1">
+                                    <div class="invalid-feedback d-block">
                                         {{ error }}
                                     </div>
                                 {% endfor %}
@@ -109,60 +108,56 @@
                             </div>
 
                             <!-- Turn Order -->
-                            <div class="col-12 col-md-3">
+                            <div class="col-3">
 
                                 <label
-                                    class="form-label"
+                                    class="form-label small mb-1"
                                     for="{{ form.turn_order.id_for_label }}"
                                 >
-                                    Turn Order
+                                    Turn
                                 </label>
 
                                 {{ form.turn_order }}
 
                                 {% for error in form.turn_order.errors %}
-                                    <div class="text-danger small mt-1">
+                                    <div class="invalid-feedback d-block">
                                         {{ error }}
                                     </div>
                                 {% endfor %}
 
                             </div>
 
-                            <!-- Remove Player -->
-                            <div class="col-12 col-md-2">
+                        </div>
 
-                                <label class="form-label d-none d-md-block">
-                                    &nbsp;
-                                </label>
+                        <!-- Remove Player -->
+                        {% if active_form_count > 1 %}
 
-                                {% if active_form_count > 1 %}
+                            <div class="d-flex justify-content-end mt-2">
 
-                                    <button
-                                        type="button"
-                                        class="btn btn-outline-danger btn-sm w-100"
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-danger btn-sm"
 
-                                        hx-post="{% url 'portal:game-edit-result-rows' game.pk %}"
-                                        hx-include="closest form"
-                                        hx-target="#game-edit-result-rows"
-                                        hx-swap="outerHTML"
+                                    hx-post="{% url 'portal:game-edit-result-rows' game.pk %}"
+                                    hx-include="closest form"
+                                    hx-target="#game-edit-result-rows"
+                                    hx-swap="outerHTML"
 
-                                        hx-vals='{
-                                            "action": "remove",
-                                            "row_index": "{{ forloop.counter0 }}"
-                                        }'
-                                    >
-                                        Remove
-                                    </button>
-
-                                {% endif %}
+                                    hx-vals='{
+                                        "action": "remove",
+                                        "row_index": "{{ forloop.counter0 }}"
+                                    }'
+                                >
+                                    Remove
+                                </button>
 
                             </div>
 
-                        </div>
+                        {% endif %}
 
                         <!-- Row-Level Errors -->
                         {% for error in form.non_field_errors %}
-                            <div class="alert alert-danger mt-3 mb-0">
+                            <div class="alert alert-danger mt-2 mb-0" role="alert">
                                 {{ error }}
                             </div>
                         {% endfor %}

@@ -1,0 +1,152 @@
+
+{% load static %}
+
+<section id="managing-games" class="mb-5 pb-4 border-bottom">
+
+    <h2 class="mb-3">Managing Games</h2>
+
+    <p class="lead">
+        Your game history, organized and easy to manage.
+    </p>
+
+    <p>
+        Wingspan Stats Portal keeps your recorded games together
+        in one place. Find previous games, review their results,
+        and correct mistakes when necessary. You can manage
+        games that you participated in.
+    </p>
+
+    <!-- Finding Games -->
+    <div class="mt-5">
+
+        <h3 class="h4 mb-3">Find Your Games</h3>
+
+        <p>
+            Select <strong>My Games</strong> from the main navigation
+            to browse your playing history. You can filter your
+            games by game type or date range to find a particular
+            session.
+        </p>
+
+        <p>
+            Each game displays your score, the participating
+            players, and its confirmation status. Select the
+            game's date to open its details.
+        </p>
+
+        <figure class="my-4">
+            <img
+                src="{% static 'portal/images/about/game-history.webp' %}"
+                class="img-fluid rounded shadow-sm border"
+                alt="My Games dashboard showing recorded games, player scores, and confirmation statuses"
+                loading="lazy"
+            >
+            <figcaption class="text-muted small mt-2">
+                Browse your game history and select a date
+                to view an individual game.
+            </figcaption>
+        </figure>
+
+    </div>
+
+    <!-- Viewing Game Details -->
+    <div class="mt-5">
+
+        <h3 class="h4 mb-3">Review Game Details</h3>
+
+        <p>
+            Each recorded game has its own details page.
+            Here you can review when the game was played,
+            who participated, everyone's scores, and the
+            order in which players took their turns,
+            if recorded.
+        </p>
+
+        <p>
+            You can also see which players have confirmed
+            their results. We'll explain this process further
+            in the
+            <a href="#confirming-results">
+                Confirming Results
+            </a>
+            section.
+        </p>
+
+        <figure class="my-4">
+            <img
+                src="{% static 'portal/images/about/game-details.webp' %}"
+                class="img-fluid rounded shadow-sm border"
+                alt="Game Details page showing participants, scores, turn order, and confirmation status"
+                loading="lazy"
+            >
+            <figcaption class="text-muted small mt-2">
+                Review the complete results of an
+                individual Wingspan game.
+            </figcaption>
+        </figure>
+
+    </div>
+
+    <!-- Editing Games -->
+    <div class="mt-5">
+
+        <h3 class="h4 mb-3">Correct a Game</h3>
+
+        <p>
+            Made a mistake when entering a game?
+            If you participated in the game, you can
+            select <strong>Edit Game</strong> from its
+            details page to make corrections.
+        </p>
+
+        <p>
+            You can update the game date, game type,
+            player scores, and turn order. You can also
+            add or remove participants when correcting
+            an existing game.
+        </p>
+
+        <p>
+            Select <strong>Save Changes</strong> when
+            you're finished. Changes to player results
+            may require those players to confirm their
+            updated scores.
+        </p>
+
+        <figure class="my-4">
+            <img
+                src="{% static 'portal/images/about/edit-game.webp' %}"
+                class="img-fluid rounded shadow-sm border"
+                alt="Edit Game form showing editable game information, player results, and Save Changes button"
+                loading="lazy"
+            >
+            <figcaption class="text-muted small mt-2">
+                Correct game information and player results
+                whenever necessary.
+            </figcaption>
+        </figure>
+
+    </div>
+
+    <!-- Deleting Games -->
+    <div class="mt-5">
+
+        <h3 class="h4 mb-3">Delete an Incorrect Game</h3>
+
+        <p>
+            If a game was entered by mistake or should no
+            longer be part of your history, you can delete
+            it from the Edit Game page.
+        </p>
+
+        <div class="alert alert-warning" role="note">
+            <strong>Important:</strong>
+            Deleting a game permanently removes its player
+            results and any associated achievement awards.
+            This action cannot be undone through the
+            application.
+        </div>
+
+    </div>
+
+</section>

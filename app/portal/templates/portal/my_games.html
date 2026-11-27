@@ -25,16 +25,22 @@
 
 <!-- Game Filters -->
 <div class="card shadow-sm mb-4">
+
     <div class="card-header">
         <h2 class="h5 mb-0">Filter Games</h2>
     </div>
 
     <div class="card-body">
+
         <form method="get">
-            <div class="row g-3">
-                <div class="col-12 col-md-4">
+
+            <div class="row g-2">
+
+                <!-- Game Type -->
+                <div class="col-12">
+
                     <label
-                        class="form-label"
+                        class="form-label small mb-1"
                         for="{{ filter_form.game_type.id_for_label }}"
                     >
                         Game Type
@@ -47,11 +53,14 @@
                             {{ error }}
                         </div>
                     {% endfor %}
+
                 </div>
 
-                <div class="col-12 col-md-4">
+                <!-- Start Date -->
+                <div class="col-6">
+
                     <label
-                        class="form-label"
+                        class="form-label small mb-1"
                         for="{{ filter_form.start_date.id_for_label }}"
                     >
                         Start Date
@@ -59,20 +68,19 @@
 
                     {{ filter_form.start_date }}
 
-                    <div class="form-text">
-                        Leave blank for no start date restriction.
-                    </div>
-
                     {% for error in filter_form.start_date.errors %}
                         <div class="text-danger small mt-1">
                             {{ error }}
                         </div>
                     {% endfor %}
+
                 </div>
 
-                <div class="col-12 col-md-4">
+                <!-- End Date -->
+                <div class="col-6">
+
                     <label
-                        class="form-label"
+                        class="form-label small mb-1"
                         for="{{ filter_form.end_date.id_for_label }}"
                     >
                         End Date
@@ -80,25 +88,31 @@
 
                     {{ filter_form.end_date }}
 
-                    <div class="form-text">
-                        Leave blank for no end date restriction.
-                    </div>
-
                     {% for error in filter_form.end_date.errors %}
                         <div class="text-danger small mt-1">
                             {{ error }}
                         </div>
                     {% endfor %}
+
                 </div>
+
             </div>
 
+            <!-- Date Guidance -->
+            <div class="form-text mt-2">
+                Leave dates blank to include all available dates.
+            </div>
+
+            <!-- Form Errors -->
             {% for error in filter_form.non_field_errors %}
                 <div class="alert alert-danger mt-3 mb-0" role="alert">
                     {{ error }}
                 </div>
             {% endfor %}
 
-            <div class="d-flex flex-wrap gap-2 mt-4">
+            <!-- Filter Actions -->
+            <div class="d-flex flex-wrap gap-2 mt-3">
+
                 <button
                     type="submit"
                     class="btn btn-primary"
@@ -110,11 +124,15 @@
                     href="{% url 'portal:my-games' %}"
                     class="btn btn-outline-secondary"
                 >
-                    Reset Filters
+                    Reset
                 </a>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
 
 <!-- Game History -->
