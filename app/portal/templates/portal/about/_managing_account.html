@@ -1,0 +1,177 @@
+{% load static %}
+
+<section id="managing-account" class="mb-5 pb-4 border-bottom">
+
+    <h2 class="mb-3">Managing Your Account</h2>
+
+    <p class="lead">
+        Your Wingspan identity, your achievements, your privacy.
+    </p>
+
+    <p>
+        Your Account page brings together your player information,
+        privacy preferences, achievements, and game notifications.
+        It's your personal home for managing how you participate
+        in Wingspan Stats Portal.
+    </p>
+
+    <!-- Account Information -->
+    <div class="mt-5">
+
+        <h3 class="h5 mb-3">Your Player Profile</h3>
+
+        <p>
+            Select <strong>Account</strong> from the main navigation
+            to view your account information, including your username,
+            email address, player name, and unique player handle.
+        </p>
+
+        <p>
+            Your player handle helps identify you within
+            the Wingspan Stats Portal community.
+        </p>
+
+    </div>
+
+    <!-- Privacy -->
+    <div class="mt-5">
+
+        <h3 class="h5 mb-3">You're in Control of Your Privacy</h3>
+
+        <p>
+            Not everyone wants their gaming statistics shared
+            with the entire community. That's why Wingspan Stats Portal
+            lets you choose who can view your player profile.
+        </p>
+
+        <div class="row g-3 my-3">
+
+            <!-- Private -->
+            <div class="col-12 col-md-6">
+
+                <div class="card h-100">
+
+                    <div class="card-body">
+
+                        <h4 class="h6">
+                            <span class="badge bg-secondary me-2">
+                                Private
+                            </span>
+                            Friends Only
+                        </h4>
+
+                        <p class="mb-0">
+                            Only you and your friends can view
+                            your player statistics and
+                            confirmed game results.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Public -->
+            <div class="col-12 col-md-6">
+
+                <div class="card h-100">
+
+                    <div class="card-body">
+
+                        <h4 class="h6">
+                            <span class="badge bg-success me-2">
+                                Public
+                            </span>
+                            Community Visibility
+                        </h4>
+
+                        <p class="mb-0">
+                            Any logged-in user can view your
+                            confirmed game results and statistics.
+                            Your name and handle can also appear
+                            on the public leaderboard.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <p>
+            You can change your visibility whenever you like.
+            Simply select or clear
+            <strong>Make my player profile public</strong>
+            and save your privacy settings.
+        </p>
+
+        <div class="alert alert-info" role="note">
+
+            <strong>Good to know:</strong>
+            Changing your profile visibility does not affect
+            your friendships or who can record games
+            on your behalf.
+
+        </div>
+
+        <figure class="my-4">
+
+            <img
+                src="{% static 'portal/images/about/account-privacy.webp' %}"
+                class="img-fluid rounded shadow-sm border"
+                alt="Account page showing player information and privacy settings"
+                loading="lazy"
+            >
+
+            <figcaption class="text-muted small mt-2">
+                Manage your player information and profile visibility
+                from your Account page.
+            </figcaption>
+
+        </figure>
+
+    </div>
+
+    <!-- Achievements -->
+    <div class="mt-5">
+
+        <h3 class="h5 mb-3">Your Achievements</h3>
+
+        <p>
+            Your Account page also displays achievements you've
+            earned while playing Wingspan.
+        </p>
+
+        <p>
+            From reaching impressive scores to memorable victories
+            (and occasionally spectacular defeats), achievements
+            recognize milestones throughout your playing history.
+        </p>
+
+        <p>
+            Each achievement includes a description of what
+            you've accomplished and how many times you've earned it.
+        </p>
+
+        <figure class="my-4">
+
+            <img
+                src="{% static 'portal/images/about/account-achievements.webp' %}"
+                class="img-fluid rounded shadow-sm border"
+                alt="Account page displaying earned Wingspan achievements"
+                loading="lazy"
+            >
+
+            <figcaption class="text-muted small mt-2">
+                Review the achievements you've earned through
+                your Wingspan games.
+            </figcaption>
+
+        </figure>
+
+    </div>
+
+</section>
